@@ -92,10 +92,9 @@ def h_cv(x):
 def UKFinit():
     global ukf
     ukf_fuse = []
-    p_std_yaw = 0.004
-    v_std_yaw = 0.008
-    dt = 0.0125 #80HZ
-
+    p_std_yaw = rospy.get_param('0.004','p_std_yaw')
+    v_std_yaw = rospy.get_param('0.008','v_std_yaw')
+    dt = rospy.get_param('0.125','dt') #80HZ
 
     sigmas = MerweScaledSigmaPoints(2, alpha=.1, beta=2., kappa=-1.0)
     ukf = UKF(dim_x=2, dim_z=2, fx=f_cv, hx=h_cv, dt=dt, points=sigmas)
