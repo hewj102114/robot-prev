@@ -27,7 +27,7 @@ using namespace std;
 
 #define VIDEO_WIDTH  1280
 #define VIDEO_HEIGHT 720
-#define BUFFER_SIZE 3
+#define BUFFER_SIZE 1
 
 volatile unsigned int prdIdx;
 volatile unsigned int csmIdx;
@@ -63,19 +63,21 @@ ImageConsProd::ImageConsProd(Settings* _settings)
         pnh->advertise<geometry_msgs::PoseStamped>("base/armor_pose", 1);
     image_transport::ImageTransport it(*pnh);
     pub_image=it.advertise("image",5);
+
+	robot_num=0;
+	pnh->getParam("robot_num",robot_num);
 }
 
 void ImageConsProd::ImageProducer(){
     // set input source and image size
     
     RMVideoCapture cap("/dev/ttyVideo0", 1);
-	    cap.info();
+	cap.info();
     cap.setVideoFormat(640, 480, 1);
     cap.getCurrentSetting();
     cap.setExposureTime(0, 64);//settings->exposure_time);
     cap.startStream();
-    
-    cap.changeVideoFormat(640, 480, 1);
+
     
     start=ros::Time::now();
     ros::Duration delta_time;
@@ -129,9 +131,20 @@ void ImageConsProd::ImageConsumer(){
     Settings & setting = *settings;
     
     // load calibration parameter
-    FileStorage fs(setting.intrinsic_file_480, FileStorage::READ);
+	string intrinsic_file_480;
+	if (robot_num==0||robot_num>2){
+		ROS_ERROR("cannot get robot num!");
+	}
+	else if (robot_num==1){
+		intrinsic_file_480=string("/home/ubuntu/Documents/whuRobot2/src/robo_vision/param/camera-01-640.xml");
+	}
+	else if (robot_num==2){
+		intrinsic_file_480=string("/home/ubuntu/Documents/whuRobot2/src/robo_vision/param/camera-02-640.xml");
+	
+	}
+    FileStorage fs(intrinsic_file_480, FileStorage::READ);
     if (!fs.isOpened())	{
-	cout << "Could not open the configuration file: \"" << setting.intrinsic_file_480 << "\"" << endl;
+	cout << "Could not open the configuration file: \"" << intrinsic_file_480 << "\"" << endl;
 	return ;
     }
     Mat cam_matrix_480, distortion_coeff_480;

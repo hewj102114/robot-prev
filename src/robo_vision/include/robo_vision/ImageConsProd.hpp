@@ -45,7 +45,7 @@ public:
 public:
     Settings * settings;
     OtherParam * other_param;
-    int fd2car;
+    int robot_num;
 };
 
 
