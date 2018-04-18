@@ -27,10 +27,6 @@ from nav_msgs.msg import Odometry
 from robo_perception.msg import ObjectList
 from robo_perception.msg import Object
 
-import tensorflow as tf
-from config import *
-from train import _draw_box
-from nets import *
 
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
@@ -39,14 +35,14 @@ from cv_bridge import CvBridge, CvBridgeError
 
 count = 0
 
-SAVE_NUM = 1000
-SAVE_PATH = '/home/ubuntu/catkin_ws/src/robo_perception/scripts/visual'
+SAVE_NUM = 10000
+SAVE_PATH = '/media/ubuntu/p600/infrared'
 ENABLE_VISULIAZE = False
 
 
 def callback_image(image):
     global count, sess, model, mc, video, frame_rate_list, frame_rate_idx, frame_rate
-    print ('I here rgb and pointcloud !',count)
+    print ('I here image !',count)
     count = count + 1
 
     bridge = CvBridge()
@@ -78,7 +74,7 @@ def callback_image(image):
 
 rospy.init_node('rgb_detection')
 
-image_sub = rospy.Subscriber('camera/color/image_raw', Image, callback_image)
+image_sub = rospy.Subscriber('/camera/infra1/image_rect_raw', Image, callback_image)
 
 
 
