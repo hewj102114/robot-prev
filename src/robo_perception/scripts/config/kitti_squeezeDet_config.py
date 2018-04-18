@@ -39,10 +39,10 @@ def kitti_squeezeDet_config():
   mc.ANCHOR_BOX            = set_anchors(mc)
   mc.ANCHORS               = len(mc.ANCHOR_BOX)
   mc.ANCHOR_PER_GRID       = 9
-  mc.DRAW_BOX = True
-  mc.DRAW_Video = True
+  mc.DRAW_BOX = False
+  mc.DRAW_Video = False
   mc.DEBUG = False
-  mc.SAVE_NUM = 1000
+  mc.SAVE_NUM = 100
   return mc
 
 def set_anchors(mc):
