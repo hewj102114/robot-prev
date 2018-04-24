@@ -9,22 +9,32 @@ message(STATUS "OpenCV version: ${OpenCV_VERSION}")
 
 
 find_package(catkin REQUIRED COMPONENTS
-  geometry_msgs
   roscpp
   rospy
   sensor_msgs
   std_msgs
+  geometry_msgs
   image_transport
   cv_bridge
-  whurobot_msgs
   tf
-  tf2
+  message_generation
+)
+
+add_message_files(
+   FILES
+   ArmorInfo.msg
+)
+
+generate_messages(
+   DEPENDENCIES
+   geometry_msgs
+  std_msgs
 )
 
 catkin_package( 
 #  INCLUDE_DIRS include
 #  LIBRARIES vision 
-  CATKIN_DEPENDS geometry_msgs roscpp rospy sensor_msgs std_msgs whurobot_msgs tf tf2
+  CATKIN_DEPENDS geometry_msgs roscpp rospy sensor_msgs std_msgs tf image_transport  cv_bridge  message_runtime
 #  DEPENDS system_lib
 )
 
@@ -43,7 +53,14 @@ src/RuneResFilter.cpp
 )
 
 add_executable(armor_detect
-src/vision_node.cpp
+src/robo_vision_node.cpp
 ${CPP_FILES}
 )
 target_link_libraries(armor_detect ${OpenCV_LIBS} pthread ${catkin_LIBRARIES})
+
+
+add_executable(camera
+src/ReadCamera.cpp
+${CPP_FILES}
+)
+target_link_libraries(camera ${OpenCV_LIBS} pthread ${catkin_LIBRARIES})

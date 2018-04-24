@@ -58,7 +58,7 @@ ImageConsProd::ImageConsProd(Settings* _settings)
     pnh=new ros::NodeHandle("");
     settings = _settings;
     
-    pub_armor_info=pnh->advertise<whurobot_msgs::ArmorInfo>("base/armor_info",1);
+    pub_armor_info=pnh->advertise<robo_vision::ArmorInfo>("base/armor_info",1);
     pub_armor_pose =
         pnh->advertise<geometry_msgs::PoseStamped>("base/armor_pose", 1);
     image_transport::ImageTransport it(*pnh);
@@ -216,7 +216,7 @@ void ImageConsProd::ImageConsumer(){
 	
 	
 	//msg init
-	whurobot_msgs::ArmorInfo msg_armor_info;
+	robo_vision::ArmorInfo msg_armor_info;
 	msg_armor_info.header.stamp=ros::Time::now();
 	msg_armor_info.header.frame_id="base_link";
 	

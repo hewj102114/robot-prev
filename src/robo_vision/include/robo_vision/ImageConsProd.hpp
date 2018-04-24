@@ -25,7 +25,7 @@ IN THE SOFTWARE.
 #include <geometry_msgs/PoseStamped.h>
 #include <std_msgs/Int16.h>
 #include <cv_bridge/cv_bridge.h>
-#include "whurobot_msgs/ArmorInfo.h"
+#include "robo_vision/ArmorInfo.h"
 #include <geometry_msgs/TransformStamped.h>
 #include <tf/transform_datatypes.h>
 #include <tf2_ros/transform_broadcaster.h>

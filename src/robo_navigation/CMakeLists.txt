@@ -1,38 +1,88 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(robo_navigation)
 
-## Compile as C++11, supported in ROS Kinetic and newer
-# add_compile_options(-std=c++11)
-
-## Find catkin macros and libraries
-## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
-## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  nav_msgs
   roscpp
   rospy
   tf
-  move_base_msgs
-  actionlib
+  tf2
+  nav_msgs
+  geometry_msgs
+  sensor_msgs
+  std_msgs
+  visualization_msgs
+#   message_generation
 )
 
+
+################################################
+## Declare ROS messages, services and actions ##
+################################################
+
+find_package(OpenCV 3 REQUIRED)
+
+# # msg 文件
+# # Generate messages in the 'msg' folder
+# add_message_files(
+#    FILES
+#    Message1.msg
+# )
+# # msg 依赖
+# generate_messages(
+#     DEPENDENCIES
+#     std_msgs
+# )
+# # Generate services in the 'srv' folder
+# add_service_files(
+#   FILES
+#   Service1.srv
+# )
+# # Generate actions in the 'action' folder
+# add_action_files(
+#   FILES
+#   Action1.action
+# )
+
+
+###########
+## Build ##
+###########
 
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES planning
-  CATKIN_DEPENDS nav_msgs roscpp rospy tf move_base_msgs actionlib
-#  DEPENDS system_lib
+    # INCLUDE_DIRS include   #声明给其它package的include路径
+    # LIBRARIES ${PRIJECT_NAME}    #声明给其它package的库
+    CATKIN_DEPENDS
+    roscpp
+    rospy
+    tf
+    tf2
+    nav_msgs
+    geometry_msgs
+    sensor_msgs
+    std_msgs
+    visualization_msgs
+    # message_runtime
 )
-
 
 include_directories(
-# include
+  include
   ${catkin_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
 )
 
- add_executable(send_goal src/send_goal.cpp)
+list(APPEND SOURCEFILES
+  src/global_planner.cpp
+)
 
- target_link_libraries(send_goal
+add_executable(${PROJECT_NAME}
+    src/${PROJECT_NAME}_node.cpp
+    ${SOURCEFILES}
+)
+
+target_link_libraries(${PROJECT_NAME}
+${OpenCV_LIBS}
    ${catkin_LIBRARIES}
+
  )
+
 
