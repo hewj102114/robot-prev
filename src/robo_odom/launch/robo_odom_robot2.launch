@@ -82,8 +82,8 @@
   </node>
 	
   <node pkg="robo_odom" type="ukf_process_node.py" name="ukf_process_node" output = "screen">
-    <param name="p_std_x" value="0.1"/>
-		<param name="p_std_y" value="0.1"/>
+    <param name="p_std_x" value="0.03"/>
+		<param name="p_std_y" value="0.03"/>
 		<param name="v_std_x" value="0.03"/>
 		<param name="v_std_y" value="0.03"/>
 		<param name="a_std_x" value="0.2"/>
