@@ -22,8 +22,8 @@
 #include <actionlib_msgs/GoalStatusArray.h>
 
 #include "robo_control/serial.h"
-#include "whurobot_msgs/ArmorInfo.h"
-#include "whurobot_msgs/GameInfo.h"
+#include "robo_vision/ArmorInfo.h"
+#include "robo_control/GameInfo.h"
 
 using namespace std;
 #define PI 3.1415926535898
@@ -58,7 +58,7 @@ class RoboControl {
     RoboControl() {
         pnh = new ros::NodeHandle("");
 
-        pub_game_info = pnh->advertise<whurobot_msgs::GameInfo>("base/game_info", 1);
+        pub_game_info = pnh->advertise<robo_control::GameInfo>("base/game_info", 1);
         pub_uwb_odom = pnh->advertise<nav_msgs::Odometry>("map/uwb/data", 1);
         pub_wheel_vel =
             pnh->advertise<geometry_msgs::Vector3Stamped>("robo/wheel/data", 1);
@@ -76,7 +76,7 @@ class RoboControl {
     };
 
 //ROS CallBack Function
-    void cb_armorInfo(const whurobot_msgs::ArmorInfo &msg);
+    void cb_armorInfo(const robo_vision::ArmorInfo &msg);
     void cb_cmd_vel(const geometry_msgs::Twist &msg);
     void cb_move_base(const move_base_msgs::MoveBaseActionFeedback &msg);
     void cb_enemy_pose(const geometry_msgs::TransformStamped &msg);

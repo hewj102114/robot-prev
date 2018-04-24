@@ -59,8 +59,8 @@ ${CPP_FILES}
 target_link_libraries(armor_detect ${OpenCV_LIBS} pthread ${catkin_LIBRARIES})
 
 
-add_executable(camera
+add_executable(read_camera
 src/ReadCamera.cpp
 ${CPP_FILES}
 )
-target_link_libraries(camera ${OpenCV_LIBS} pthread ${catkin_LIBRARIES})
+target_link_libraries(read_camera ${OpenCV_LIBS} pthread ${catkin_LIBRARIES})

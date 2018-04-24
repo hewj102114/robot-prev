@@ -18,13 +18,25 @@ tf2
 move_base_msgs
 )
 
+add_message_files(
+   FILES
+   GameInfo.msg
+)
+
+generate_messages(
+   DEPENDENCIES
+   geometry_msgs
+  std_msgs
+)
+
 
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES serial
-CATKIN_DEPENDS geometry_msgs roscpp rospy std_msgs whurobot_msgs nav_msgs tf sensor_msgs tf2 move_base_msgs
+CATKIN_DEPENDS geometry_msgs roscpp rospy std_msgs whurobot_msgs nav_msgs tf sensor_msgs tf2 move_base_msgs message_runtime
 #  DEPENDS system_lib
 )
+
 
 
 
@@ -40,6 +52,10 @@ include_directories(
    ${catkin_LIBRARIES}
  )
 
+add_executable(nav_test src/navigation_test.cpp src/robo_control.cpp src/serial.cpp)
+target_link_libraries(nav_test
+   ${catkin_LIBRARIES}
+ )
 
  add_executable(odom_broadcaster src/odom_broadcaster.cpp)
 

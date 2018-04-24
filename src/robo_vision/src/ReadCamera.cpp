@@ -16,7 +16,7 @@ int main(int argc, char **argv) {
     image_transport::ImageTransport it(nh);
     image_transport::Publisher pub_image = it.advertise("usbcamera/image", 1);
 
-    RMVideoCapture cap("/dev/video0", 1);
+    RMVideoCapture cap("/dev/ttyVideo0", 1);
     cap.info();
     cap.setVideoFormat(640, 480, 1);
     cap.getCurrentSetting();
@@ -33,7 +33,7 @@ int main(int argc, char **argv) {
         img_msg.image = img;
         img_msg.encoding = sensor_msgs::image_encodings::BGR8;
         pub_image.publish(img_msg.toImageMsg());
-        // cv::imshow("i", img);
-        // cv::waitKey(1);
+         cv::imshow("i", img);
+         cv::waitKey(1);
     }
 }

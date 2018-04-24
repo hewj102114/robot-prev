@@ -23,6 +23,7 @@ Mat img_recv;
 
 void image_callback(const sensor_msgs::ImageConstPtr& msg) {
     Mat img_temp = cv_bridge::toCvShare(msg, "bgr8")->image;
+ROS_INFO("recv");
     if (img_temp.empty()) {
         ROS_ERROR("Could't not get image");
     } else {
@@ -42,11 +43,11 @@ int main(int argc, char* argv[]) {
     ros::Publisher pub_armor_pose =
         nh.advertise<geometry_msgs::PoseStamped>("base/armor_pose", 1);
     tf2_ros::TransformBroadcaster enemy_pnp_tf;
-
-    // load setting from file
+image_transport::ImageTransport it(nh);
+    image_transport::Subscriber image_sub = it.subscribe("usbcamera/image", 1, &image_callback);
+    // load setting from fil
     char* config_file_name =
-        "/home/ubuntu/Documents/whuRobot2/src/robo_vision/param/"
-        "param_config.xml";
+        "/home/ubuntu/robot/src/robo_vision/param/param_config.xml";
     Settings setting(config_file_name);
 
     // get robot id & choose the calibration file
@@ -55,14 +56,11 @@ int main(int argc, char* argv[]) {
     string intrinsic_file_480;
     if (robot_num == 0 || robot_num > 2) {
         ROS_ERROR("cannot get robot num!");
+intrinsic_file_480 = string("/home/ubuntu/robot/src/robo_vision/param/camera-02-640.xml");
     } else if (robot_num == 1) {
-        intrinsic_file_480 = string(
-            "/home/ubuntu/Documents/whuRobot2/src/robo_vision/param/"
-            "camera-01-640.xml");
+        intrinsic_file_480 = string("/home/ubuntu/robot/src/robo_vision/param/camera-01-640.xml");
     } else if (robot_num == 2) {
-        intrinsic_file_480 = string(
-            "/home/ubuntu/Documents/whuRobot2/src/robo_vision/param/"
-            "camera-02-640.xml");
+        intrinsic_file_480 = string("/home/ubuntu/robot/src/robo_vision/param/camera-02-640.xml");
     }
     FileStorage fs(intrinsic_file_480, FileStorage::READ);
     if (!fs.isOpened()) {
@@ -110,11 +108,13 @@ int main(int argc, char* argv[]) {
     ROS_INFO("Image Consumer Start!");
 
     while (ros::ok()) {
+ROS_INFO("loop");
         if (img_recv.empty()) {
             ros::spinOnce();
             rate.sleep();
             continue;
         }
+        
         img_recv.copyTo(src);
         if (setting.show_image) {
             src.copyTo(src_csm);

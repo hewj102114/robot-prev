@@ -21,6 +21,7 @@ int main(int argc, char **argv) {
     int armor_lost_count = 0;
     int key_point_no = 1;
     clock_t start = clock(), end;
+    
     while (0)
     {
 	//TODO: jump to next point if time out

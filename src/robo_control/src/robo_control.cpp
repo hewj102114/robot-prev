@@ -1,5 +1,5 @@
 #include "robo_control/robo_control.hpp"
-void RoboControl::cb_armorInfo(const whurobot_msgs::ArmorInfo &msg) {
+void RoboControl::cb_armorInfo(const robo_vision::ArmorInfo &msg) {
     armor_info_msg.mode = msg.mode;
     armor_info_msg.image_dx = msg.pose_image.x;
     armor_info_msg.image_dy = msg.pose_image.y;
@@ -65,7 +65,7 @@ void RoboControl::readMCUData() {
     if (!serial->ReadData(msg_frommcu)) return;
 
     init_flag = msg_frommcu.init_flag;
-    whurobot_msgs::GameInfo game_msg;
+    robo_control::GameInfo game_msg;
     game_msg.header.stamp = time;
     game_msg.header.frame_id = "base_link";
     game_msg.remainingHP = msg_frommcu.remaining_HP;
