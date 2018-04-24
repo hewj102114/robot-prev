@@ -22,19 +22,20 @@ int main(int argc, char **argv) {
     int key_point_no = 1;
     clock_t start = clock(), end;
     
-    int flag=1;
+    int flag=-10;
     ros::Rate rate(10);
     while (ros::ok())
     {
 	robo_ctl.readMCUData();
-	if (flag){
+	flag++;
+	if (flag>0 &&flag<5){
 	geometry_msgs::Pose target_pose;
-	target_pose.position.x=4;
-	target_pose.position.y=2.5;
+	target_pose.position.x=7;
+	target_pose.position.y=0.5;
 	target_pose.orientation=robo_ctl.robo_ukf_pose.orientation;
 	robo_ctl.sendNavGoal(target_pose);
-	flag++;
-	if (flag>4) flag=0;
+	
+
 	}
 	ROS_INFO("MODE :  Search  %f  %f  %f",  robo_ctl.cmd_vel_msg.v_x, robo_ctl.cmd_vel_msg.v_y,robo_ctl.cmd_vel_msg.v_yaw);
 	robo_ctl.sendMCUMsg(1,1, robo_ctl.cmd_vel_msg.v_x,robo_ctl.cmd_vel_msg.v_y, robo_ctl.cmd_vel_msg.v_yaw, 0, 0, 0);

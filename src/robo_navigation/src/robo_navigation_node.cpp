@@ -23,7 +23,7 @@ public:
     void init();
     void cb_tar_pose(const geometry_msgs::PoseConstPtr& msg);
     void cb_cur_pose(const nav_msgs::Odometry &msg);
-    int findClosestPt(int x,int y);
+    int findClosestPt(double x,double y);
     void get_vel(double& vel_x,double& vel_y);
 };
 
@@ -41,9 +41,9 @@ void RoboNav::init(){
 }
 void RoboNav::cb_tar_pose(const geometry_msgs::PoseConstPtr& msg){
     int start_pt=findClosestPt(cur_pose.position.y,cur_pose.position.x);
-    int end_pt=findClosestPt(msg->position.x,msg->position.y);
+    int end_pt=findClosestPt(msg->position.y,msg->position.x);
     floyd.calcPath(start_pt,end_pt);
-    ROS_INFO("%f  %f ",msg->position.x,msg->position.y);
+    ROS_INFO("%f  %f   %f  %f ",cur_pose.position.y,cur_pose.position.x,msg->position.x,msg->position.y);
     ROS_INFO("GET GOAL start: %d  end: %d",start_pt,end_pt);
     floyd.printPath();
     path.assign(floyd.path.begin(), floyd.path.end()); 
@@ -53,17 +53,18 @@ void RoboNav::cb_cur_pose(const nav_msgs::Odometry& msg){
 cur_pose = msg.pose.pose;
 }
 
-int RoboNav::findClosestPt(int x,int y){
+int RoboNav::findClosestPt(double x,double y){
     vector<float> dis_list;
+    cout<<point_list<<endl;
     for (int i=0;i<point_list.rows;i++){
-        float dx=x-point_list.at<int>(i,0)*1.0/100;
-        float dy=y-point_list.at<int>(i,1)*1.0/100;
+        float dx=x-point_list.at<double>(i,0)*1.0/100;
+        float dy=y-point_list.at<double>(i,1)*1.0/100;
         float distance=sqrt(dx*dx+dy*dy);
         dis_list.push_back(distance);
     }
     
     vector<float>::iterator smallest = min_element(dis_list.begin(), dis_list.end()); 
-    cout<<"aaaaaaaaaaaaa  "<<*smallest<<endl;
+    
     int n=distance(dis_list.begin(), smallest);
     return n;
 }
@@ -71,25 +72,28 @@ int RoboNav::findClosestPt(int x,int y){
 
 void RoboNav::get_vel(double& vel_x, double& vel_y)
 {
-    double Kp=1;vel_x=0;vel_y=0;
+    double Kp=1;
+    double Limit=0.5;
+    vel_x=0;vel_y=0;
     if (path.size()>0){
 	int cur_local_goal=path[0];
-	double cur_local_goal_y=point_list.at<int>(cur_local_goal,0)*1.0/100;
-	double cur_local_goal_x=point_list.at<int>(cur_local_goal,1)*1.0/100;
+	double cur_local_goal_y=point_list.at<double>(cur_local_goal,0)*1.0/100;
+	double cur_local_goal_x=point_list.at<double>(cur_local_goal,1)*1.0/100;
 	// double path_yaw=tan((cur_local_goal_y-cur_pose.position.y)/(cur_local_goal_x-cur_pose.position.x));
 	// double car_yaw=tan((cur_local_goal_y-cur_pose.position.y)/(cur_local_goal_x-cur_pose.position.x));
 	double dx=cur_local_goal_x-cur_pose.position.x;
 	double dy=cur_local_goal_y-cur_pose.position.y;
-	ROS_INFO("num: %d  cur_x %f, cur_y %f, tar_x %f , tar_y %f",cur_local_goal,cur_local_goal_x,cur_local_goal_y,cur_pose.position.x,cur_pose.position.y);
-	if (dx<0.15 && dy <0.25){
+	ROS_INFO("num: %d  tar_x %f, tar_y %f,cur_x %f , cur_y %f",cur_local_goal,cur_local_goal_x,cur_local_goal_y,cur_pose.position.x,cur_pose.position.y);
+	if (abs(dx)< 0.05 && abs(dy) <0.05){
 	    path.erase(path.begin());
 	    return;
-	}
+	}else{
 	vel_x=dx*Kp;vel_y=dy*Kp;
-	if (vel_x>0.8) vel_x=0.8;
-	if (vel_x<0.1) vel_x=0.1;
-	if (vel_y>0.8) vel_y=0.8;
-	if (vel_y<0.1) vel_y=0.1;
+	if (vel_x>Limit) vel_x=Limit;
+	if (vel_x<-Limit) vel_x=-Limit;
+	if (vel_y>Limit) vel_y=Limit;
+	if (vel_y<-Limit) vel_y=-Limit;
+	}
     }
 }
 
@@ -159,18 +163,18 @@ int main(int argc,char **argv){
     ros::NodeHandle nh;
 
     RoboNav robo_nav;
-
+    robo_nav.init();
     ros::Subscriber cb_tar_pose = nh.subscribe("base/goal", 1, &RoboNav::cb_tar_pose, &robo_nav);
     ros::Subscriber cb_cur_pose = nh.subscribe("map/uwb/data", 1, &RoboNav::cb_cur_pose, &robo_nav);
     ros::Subscriber sub = nh.subscribe<sensor_msgs::LaserScan>("/scan", 1, scanCallback);
 
     ros::Publisher pub_vel = nh.advertise<geometry_msgs::Twist>("cmd_vel", 1);
 
-    ros::Rate rate(10);
+    ros::Rate rate(30);
     while (ros::ok()){
-	ROS_INFO("%d",robo_nav.path.size());
 	if (robo_nav.path.size()>0){
 	    geometry_msgs::Twist msg_vel;
+	    ROS_INFO("vel x: %f y:%f",msg_vel.linear.x,msg_vel.linear.y);
 	    robo_nav.get_vel(msg_vel.linear.x,msg_vel.linear.y);
 	    pub_vel.publish(msg_vel);
 	}
