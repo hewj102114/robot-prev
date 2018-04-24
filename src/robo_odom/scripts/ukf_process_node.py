@@ -99,6 +99,7 @@ def UKFinit():
     a_std_x = rospy.get_param('a_std_x',0.2)
     a_std_y = rospy.get_param('a_std_y',0.2)
     dt = rospy.get_param('dt',0.125) #80HZ
+     
 
     sigmas = MerweScaledSigmaPoints(6, alpha=.1, beta=2., kappa=-1.0)
     ukf = UKF(dim_x=6, dim_z=6, fx=f_cv, hx=h_cv, dt=dt, points=sigmas)
