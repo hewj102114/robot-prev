@@ -23,7 +23,7 @@ int main(int argc, char **argv) {
     clock_t start = clock(), end;
     
     int flag=-10;
-    ros::Rate rate(20);
+    ros::Rate rate(150);
     while (ros::ok())
     {
 	robo_ctl.readMCUData();

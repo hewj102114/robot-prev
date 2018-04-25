@@ -4,7 +4,9 @@
 #include <geometry_msgs/Pose.h>
 #include <visualization_msgs/Marker.h>
 #include <geometry_msgs/Twist.h>
+#include <geometry_msgs/Quaternion.h>
 #include <nav_msgs/Odometry.h>
+#include <tf/transform_datatypes.h> 
 #include "robo_navigation/global_planner.hpp"
 #include <opencv2/opencv.hpp>
 #include "sensor_msgs/LaserScan.h"
@@ -19,12 +21,14 @@ public:
     Mat arrArcs, point_list;
     vector<int> path;
     geometry_msgs::Pose cur_pose;
+    double fix_angle; 
     RoboNav();
     void init();
     void cb_tar_pose(const geometry_msgs::PoseConstPtr& msg);
     void cb_cur_pose(const nav_msgs::Odometry &msg);
     int findClosestPt(double x,double y);
-    void get_vel(double& vel_x,double& vel_y);
+    void get_vel(geometry_msgs::Twist& msg_vel);
+    void setFixAngle(geometry_msgs::Quaternion& qua);
 };
 
 RoboNav::RoboNav(){
@@ -70,31 +74,52 @@ int RoboNav::findClosestPt(double x,double y){
 }
 
 
-void RoboNav::get_vel(double& vel_x, double& vel_y)
+void RoboNav::get_vel(geometry_msgs::Twist& msg_vel)
 {
-    double Kp=1;
-    double Limit=0.5;
-    vel_x=0;vel_y=0;
-    if (path.size()>0){
-	int cur_local_goal=path[0];
-	double cur_local_goal_y=point_list.at<double>(cur_local_goal,0)*1.0/100;
-	double cur_local_goal_x=point_list.at<double>(cur_local_goal,1)*1.0/100;
-	// double path_yaw=tan((cur_local_goal_y-cur_pose.position.y)/(cur_local_goal_x-cur_pose.position.x));
-	// double car_yaw=tan((cur_local_goal_y-cur_pose.position.y)/(cur_local_goal_x-cur_pose.position.x));
-	double dx=cur_local_goal_x-cur_pose.position.x;
-	double dy=cur_local_goal_y-cur_pose.position.y;
-	ROS_INFO("num: %d  tar_x %f, tar_y %f,cur_x %f , cur_y %f, diff_x %f, diff_y %f",cur_local_goal,cur_local_goal_x,cur_local_goal_y,cur_pose.position.x,cur_pose.position.y,dx,dy);
-	if (abs(dx)< 0.05 && abs(dy) <0.05){
-	    path.erase(path.begin());
-	    return;
-	}else{
-	vel_x=dx*Kp;vel_y=dy*Kp;
-	if (vel_x>Limit) vel_x=Limit;
-	if (vel_x<-Limit) vel_x=-Limit;
-	if (vel_y>Limit) vel_y=Limit;
-	if (vel_y<-Limit) vel_y=-Limit;
-	}
+    double Kp_linear = 1;
+    double limit_linear = 0.5;
+    double Kp_angular = 1;
+    double limit_angular = 0.5;
+
+    vel_x = 0;
+    vel_y = 0;
+    vel_yaw = 0;
+    if (path.size() > 0) {
+        int cur_local_goal = path[0];
+        double cur_local_goal_y =point_list.at<double>(cur_local_goal, 0) * 1.0 / 100;
+        double cur_local_goal_x =point_list.at<double>(cur_local_goal, 1) * 1.0 / 100;
+        double cur_yaw=tf::getYaw(cur_pose.orientation)/3.14*180;
+        double dx = cur_local_goal_x - cur_pose.position.x;
+        double dy = cur_local_goal_y - cur_pose.position.y;
+        double dyaw=fix_angle-cur_yaw;
+        if (dyaw>360) dyaw=dyaw-360；
+        if (dyaw<-360) dyaw=dyaw+360;
+        ROS_INFO("num: %d  tar_x %f, tar_y %f,cur_x %f , cur_y %f, diff_x %f, diff_y %f",cur_local_goal, cur_local_goal_x, cur_local_goal_y,
+            cur_pose.position.x, cur_pose.position.y, dx, dy);
+        if (abs(dx) < 0.05 && abs(dy) < 0.05) {
+            path.erase(path.begin());
+        } else {
+            vel_x = dx * Kp_linear;
+            vel_y = dy * Kp_linear;
+            if (vel_x > limit_linear) vel_x = limit_linear;
+            if (vel_x < -limit_linear) vel_x = -limit_linear;
+            if (vel_y > limit_linear) vel_y = limit_linear;
+            if (vel_y < -limit_linear) vel_y = -limit_linear;
+            
+            vel_yaw=dyaw*Kp_angular;
+            if (vel_yaw > limit_angular) vel_yaw = limit_angular;
+            if (vel_yaw <-limit_angular) vel_yaw = -limit_angular;
+        }
     }
+
+    msg_vel.linear.x = vel_x； 
+    msg_vel.linear.y = vel_y； 
+    msg_vel.angular.z = vel_yaw;
+}
+
+void RoboNav::setFixAngle(geometry_msgs::Quaternion& qua){
+    
+    fix_angle=tf::getYaw(qua)/3.14*180;
 }
 
 #define OFFSET 20    //rplidar front offset
@@ -175,7 +200,7 @@ int main(int argc,char **argv){
 	if (robo_nav.path.size()>0){
 	    geometry_msgs::Twist msg_vel;
 	    //ROS_INFO("vel x: %f y:%f",msg_vel.linear.x,msg_vel.linear.y);
-	    robo_nav.get_vel(msg_vel.linear.x,msg_vel.linear.y);
+	    robo_nav.get_vel(msg_vel);
 	    pub_vel.publish(msg_vel);
 	}
         ros::spinOnce();
