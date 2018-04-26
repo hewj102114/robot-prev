@@ -4,7 +4,9 @@
 #include <geometry_msgs/Pose.h>
 #include <visualization_msgs/Marker.h>
 #include <geometry_msgs/Twist.h>
+#include <geometry_msgs/Quaternion.h>
 #include <nav_msgs/Odometry.h>
+#include <tf/transform_datatypes.h> 
 #include "robo_navigation/global_planner.hpp"
 #include <opencv2/opencv.hpp>
 #include "sensor_msgs/LaserScan.h"
@@ -19,12 +21,16 @@ public:
     Mat arrArcs, point_list;
     vector<int> path;
     geometry_msgs::Pose cur_pose;
+    geometry_msgs::Pose pre_goal;
+    double fix_angle;
+    
     RoboNav();
     void init();
     void cb_tar_pose(const geometry_msgs::PoseConstPtr& msg);
     void cb_cur_pose(const nav_msgs::Odometry &msg);
     int findClosestPt(double x,double y);
-    void get_vel(double& vel_x,double& vel_y);
+    void get_vel(geometry_msgs::Twist& msg_vel);
+    void setFixAngle(geometry_msgs::Quaternion& qua);
 };
 
 RoboNav::RoboNav(){
@@ -40,13 +46,22 @@ void RoboNav::init(){
     floyd.initFloydGraph();
 }
 void RoboNav::cb_tar_pose(const geometry_msgs::PoseConstPtr& msg){
+   // ROS_INFO("pre-tar %f  %f",pre_goal.position.x - msg->position.x ,pre_goal.position.y - msg->position.y);
+    if (cur_pose.position.y==0 & cur_pose.position.x==0)
+	return;
+   
+    if ((abs(pre_goal.position.x - msg->position.x )>0.1 ) || (abs(pre_goal.position.y - msg->position.y )>0.1)){
+	    
     int start_pt=findClosestPt(cur_pose.position.y,cur_pose.position.x);
     int end_pt=findClosestPt(msg->position.y,msg->position.x);
     floyd.calcPath(start_pt,end_pt);
-    ROS_INFO("%f  %f   %f  %f ",cur_pose.position.y,cur_pose.position.x,msg->position.x,msg->position.y);
+    ROS_INFO("start %f  %f  end   %f  %f ",cur_pose.position.x,cur_pose.position.y,msg->position.x,msg->position.y);
     ROS_INFO("GET GOAL start: %d  end: %d",start_pt,end_pt);
     floyd.printPath();
     path.assign(floyd.path.begin(), floyd.path.end()); 
+    pre_goal.position.x =msg->position.x;
+    pre_goal.position.y =msg->position.y;
+    }
 }
 
 void RoboNav::cb_cur_pose(const nav_msgs::Odometry& msg){
@@ -55,7 +70,7 @@ cur_pose = msg.pose.pose;
 
 int RoboNav::findClosestPt(double x,double y){
     vector<float> dis_list;
-    cout<<point_list<<endl;
+    //cout<<point_list<<endl;
     for (int i=0;i<point_list.rows;i++){
         float dx=x-point_list.at<double>(i,0)*1.0/100;
         float dy=y-point_list.at<double>(i,1)*1.0/100;
@@ -70,31 +85,61 @@ int RoboNav::findClosestPt(double x,double y){
 }
 
 
-void RoboNav::get_vel(double& vel_x, double& vel_y)
+void RoboNav::get_vel(geometry_msgs::Twist& msg_vel)
 {
-    double Kp=1;
-    double Limit=0.5;
-    vel_x=0;vel_y=0;
-    if (path.size()>0){
-	int cur_local_goal=path[0];
-	double cur_local_goal_y=point_list.at<double>(cur_local_goal,0)*1.0/100;
-	double cur_local_goal_x=point_list.at<double>(cur_local_goal,1)*1.0/100;
-	// double path_yaw=tan((cur_local_goal_y-cur_pose.position.y)/(cur_local_goal_x-cur_pose.position.x));
-	// double car_yaw=tan((cur_local_goal_y-cur_pose.position.y)/(cur_local_goal_x-cur_pose.position.x));
-	double dx=cur_local_goal_x-cur_pose.position.x;
-	double dy=cur_local_goal_y-cur_pose.position.y;
-	ROS_INFO("num: %d  tar_x %f, tar_y %f,cur_x %f , cur_y %f",cur_local_goal,cur_local_goal_x,cur_local_goal_y,cur_pose.position.x,cur_pose.position.y);
-	if (abs(dx)< 0.05 && abs(dy) <0.05){
-	    path.erase(path.begin());
-	    return;
-	}else{
-	vel_x=dx*Kp;vel_y=dy*Kp;
-	if (vel_x>Limit) vel_x=Limit;
-	if (vel_x<-Limit) vel_x=-Limit;
-	if (vel_y>Limit) vel_y=Limit;
-	if (vel_y<-Limit) vel_y=-Limit;
-	}
+    double Kp_linear = 1.5;
+    double limit_linear_max = 1;
+    double limit_linear_min = 0.05;
+    double Kp_angular = 0.02;
+    double limit_angular = 1.5;
+
+    double vel_x = 0;
+    double vel_y = 0;
+    double vel_yaw = 0;
+    if (path.size() > 0) {
+        int cur_local_goal = path[0];
+        double cur_local_goal_y =point_list.at<double>(cur_local_goal, 0) * 1.0 / 100;
+        double cur_local_goal_x =point_list.at<double>(cur_local_goal, 1) * 1.0 / 100;
+        double cur_yaw=tf::getYaw(cur_pose.orientation)/3.14*180;
+        double dx = cur_local_goal_x - cur_pose.position.x;
+        double dy = cur_local_goal_y - cur_pose.position.y;
+        double dyaw=fix_angle-cur_yaw;
+        if (dyaw>360) dyaw=dyaw-360;
+        if (dyaw<-360) dyaw=dyaw+360;
+	//ROS_INFO("angle: %f  fix angle : %f   dyaw %f",cur_yaw,fix_angle,dyaw);
+        //ROS_INFO("num: %d  tar_x %f, tar_y %f,cur_x %f , cur_y %f, diff_x %f, diff_y %f",cur_local_goal, cur_local_goal_x, cur_local_goal_y,
+         // cur_pose.position.x, cur_pose.position.y, dx, dy);
+        if (abs(dx) < 0.05 && abs(dy) < 0.05) {
+            path.erase(path.begin());
+        } else {
+            vel_x = dx * Kp_linear;
+            vel_y = dy * Kp_linear;
+            if (vel_x > limit_linear_max) vel_x = limit_linear_max;
+            if (vel_x < -limit_linear_max) vel_x = -limit_linear_max;
+	    if (vel_x>0 && vel_x<limit_linear_min) vel_x=limit_linear_min;
+	    if (vel_x<0 && vel_x>-limit_linear_min) vel_x=-limit_linear_min;
+	    
+            if (vel_y > limit_linear_max) vel_y = limit_linear_max;
+            if (vel_y < -limit_linear_max) vel_y = -limit_linear_max;
+            if (vel_y>0 && vel_y<limit_linear_min) vel_y=limit_linear_min;
+	    if (vel_y<0 && vel_y>-limit_linear_min) vel_y=-limit_linear_min;
+	    
+	    if (abs(dx) < 0.05) vel_x=0;
+	    if (abs(dy) < 0.05) vel_y=0;
+            vel_yaw=dyaw*Kp_angular;
+            if (vel_yaw > limit_angular) vel_yaw = limit_angular;
+            if (vel_yaw <-limit_angular) vel_yaw = -limit_angular;
+        }
     }
+
+    msg_vel.linear.x = vel_x;
+    msg_vel.linear.y = vel_y;
+    msg_vel.angular.z = vel_yaw;
+}
+
+void RoboNav::setFixAngle(geometry_msgs::Quaternion& qua){
+    
+    fix_angle=tf::getYaw(qua)/3.14*180;
 }
 
 #define OFFSET 20    //rplidar front offset
@@ -136,7 +181,7 @@ double Filter_ScanData(int index, const sensor_msgs::LaserScan::ConstPtr& sscan)
             m++;
         }
 
-    if(data<0.25)  data=8.0;
+    if(data<0.0)  data=8.0;
     else if(data>8.0)   data=8.0;
 
     return data;
@@ -155,7 +200,10 @@ void scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan)
         //left
         int index_l=OFFSET+i*90+30;
         obs_point[i][2]=Filter_ScanData(index_l,scan);
+	ROS_INFO("No %d   %f %f  %f ",i, obs_point[i][0],obs_point[i][1],obs_point[i][2]);
     }
+    
+    
 }
 
 int main(int argc,char **argv){
@@ -165,17 +213,17 @@ int main(int argc,char **argv){
     RoboNav robo_nav;
     robo_nav.init();
     ros::Subscriber cb_tar_pose = nh.subscribe("base/goal", 1, &RoboNav::cb_tar_pose, &robo_nav);
-    ros::Subscriber cb_cur_pose = nh.subscribe("map/uwb/data", 1, &RoboNav::cb_cur_pose, &robo_nav);
+    ros::Subscriber cb_cur_pose = nh.subscribe("odom", 1, &RoboNav::cb_cur_pose, &robo_nav);
     ros::Subscriber sub = nh.subscribe<sensor_msgs::LaserScan>("/scan", 1, scanCallback);
 
     ros::Publisher pub_vel = nh.advertise<geometry_msgs::Twist>("cmd_vel", 1);
 
-    ros::Rate rate(30);
+    ros::Rate rate(50);
     while (ros::ok()){
 	if (robo_nav.path.size()>0){
 	    geometry_msgs::Twist msg_vel;
-	    ROS_INFO("vel x: %f y:%f",msg_vel.linear.x,msg_vel.linear.y);
-	    robo_nav.get_vel(msg_vel.linear.x,msg_vel.linear.y);
+	    //ROS_INFO("vel x: %f y:%f",msg_vel.linear.x,msg_vel.linear.y);
+	    robo_nav.get_vel(msg_vel);
 	    pub_vel.publish(msg_vel);
 	}
         ros::spinOnce();

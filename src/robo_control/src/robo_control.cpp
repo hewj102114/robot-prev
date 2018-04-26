@@ -146,10 +146,10 @@ void RoboControl::sendNavGoal(geometry_msgs::Pose &target_pose) {
     ROS_INFO("tar: %f  %f  %f  %f", target_pose.position.x,
              target_pose.position.y, nav_current_goal.position.x,
              nav_current_goal.position.y);
-    if (abs(target_pose.position.x - nav_current_goal.position.x) > 0.2 ||
-        abs(target_pose.position.y - nav_current_goal.position.y) > 0.2) {
+//     if (abs(target_pose.position.x - nav_current_goal.position.x) > 0.2 ||
+//         abs(target_pose.position.y - nav_current_goal.position.y) > 0.2) {
         pub_nav_goal.publish(target_pose);
-    }
+//     }
 }
 
 bool RoboControl::judgeKeyPointPosition(KeyPoint currentPosition,
