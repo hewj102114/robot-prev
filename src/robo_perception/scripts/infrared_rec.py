@@ -48,6 +48,7 @@ def callback_image(image):
     bridge = CvBridge()
     try:
         cv_image = bridge.imgmsg_to_cv2(image, desired_encoding="8UC1")
+        print(cv_image.shape)
         #cv_image_depth = bridge.imgmsg_to_cv2(depth, desired_encoding="16UC1")
     except CvBridgeError as e:
         print(e)
