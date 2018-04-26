@@ -88,7 +88,7 @@ int RoboNav::findClosestPt(double x,double y){
 void RoboNav::get_vel(geometry_msgs::Twist& msg_vel)
 {
     double Kp_linear = 1.5;
-    double limit_linear_max = 1;
+    double limit_linear_max = 1.0;
     double limit_linear_min = 0.05;
     double Kp_angular = 0.02;
     double limit_angular = 1.5;
@@ -104,14 +104,21 @@ void RoboNav::get_vel(geometry_msgs::Twist& msg_vel)
         double dx = cur_local_goal_x - cur_pose.position.x;
         double dy = cur_local_goal_y - cur_pose.position.y;
         double dyaw=fix_angle-cur_yaw;
+
         if (dyaw>360) dyaw=dyaw-360;
         if (dyaw<-360) dyaw=dyaw+360;
 	//ROS_INFO("angle: %f  fix angle : %f   dyaw %f",cur_yaw,fix_angle,dyaw);
         //ROS_INFO("num: %d  tar_x %f, tar_y %f,cur_x %f , cur_y %f, diff_x %f, diff_y %f",cur_local_goal, cur_local_goal_x, cur_local_goal_y,
          // cur_pose.position.x, cur_pose.position.y, dx, dy);
-        if (abs(dx) < 0.05 && abs(dy) < 0.05) {
+        if (abs(dx) < 0.05 && abs(dy) < 0.05) 
+	{
             path.erase(path.begin());
-        } else {
+	    //rotation
+	    
+	    
+        }
+        else 
+	{
             vel_x = dx * Kp_linear;
             vel_y = dy * Kp_linear;
             if (vel_x > limit_linear_max) vel_x = limit_linear_max;

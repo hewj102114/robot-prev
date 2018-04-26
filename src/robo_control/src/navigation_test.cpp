@@ -26,8 +26,8 @@ int main(int argc, char **argv) {
     ros::Rate rate(150);
     geometry_msgs::Pose  target_pose;
     double tar_x,tar_y;
-    nh.setParam("px",1.5);
-    nh.setParam("py", 3);
+    nh.setParam("px",8);
+    nh.setParam("py", 5);
     
     while (ros::ok())
     {
