@@ -90,7 +90,7 @@ void RoboNav::get_vel(geometry_msgs::Twist& msg_vel)
     double Kp_linear = 1.5;
     double limit_linear_max = 1.0;
     double limit_linear_min = 0.05;
-    double Kp_angular = 0.02;
+    double Kp_angular = 1.15;
     double limit_angular = 1.5;
 
     double vel_x = 0;
@@ -101,7 +101,11 @@ void RoboNav::get_vel(geometry_msgs::Twist& msg_vel)
         double cur_local_goal_y =point_list.at<double>(cur_local_goal, 0) * 1.0 / 100;
         double cur_local_goal_x =point_list.at<double>(cur_local_goal, 1) * 1.0 / 100;
         double cur_yaw=tf::getYaw(cur_pose.orientation)/3.14*180;
-        double dx = cur_local_goal_x - cur_pose.position.x;
+	
+	double path_angle = atan2((cur_local_goal_y - cur_pose.position.y),(cur_local_goal_x - cur_pose.position.x));
+	double dis=sqrt((cur_local_goal_x - cur_pose.position.x)*(cur_local_goal_x - cur_pose.position.x)+(cur_local_goal_y - cur_pose.position.y)*(cur_local_goal_y - cur_pose.position.y));
+	ROS_INFO("angle %f d %f",path_angle,dis);
+        double dx = sin(path_angle-);
         double dy = cur_local_goal_y - cur_pose.position.y;
         double dyaw=fix_angle-cur_yaw;
 
@@ -207,7 +211,7 @@ void scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan)
         //left
         int index_l=OFFSET+i*90+30;
         obs_point[i][2]=Filter_ScanData(index_l,scan);
-	ROS_INFO("No %d   %f %f  %f ",i, obs_point[i][0],obs_point[i][1],obs_point[i][2]);
+	//ROS_INFO("No %d   %f %f  %f ",i, obs_point[i][0],obs_point[i][1],obs_point[i][2]);
     }
     
     

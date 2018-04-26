@@ -2,10 +2,28 @@ import rospy
 import roslib
 import cv2
 import numpy as np
+#import matplotlib.pyplot as plt 
+from sensor_msgs.msg import LaserScan
 
-rospy.init_node('scandata')
+def callback_scan(data):
+    #rho=data.ranges
+    print 'rho'
+    #theta=np.arrange(0,2*np.pi,1)
 
-sublidar = rospy.Subscriber('/scan', scan, callback_scan)
+    #plt.plot(theta,rho)
+
+    #plt.show()
+
+
+if __name__ == '__main__':
+    rospy.init_node('scandata')
+
+    sublidar = rospy.Subscriber('/scan', LaserScan, callback_scan)
+
+    rospy.spin()
+
+
+
 
 
 
