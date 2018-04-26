@@ -4,4 +4,4 @@ build/*
 *.kdev4
 .vscode/*
 */.vscode/*
-visual/
+*/visual/*

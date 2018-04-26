@@ -42,9 +42,9 @@ frame_rate = 0.0
 flag = True
 qn_ukf = [0, 0, 0, 0]
 
-video = cv2.VideoWriter('/home/ubuntu/catkin_ws/src/robo_perception/scripts/visual/demo.avi',
+video = cv2.VideoWriter('/home/ubuntu/robot/src/robo_perception/scripts/visual/demo.avi',
                         cv2.VideoWriter_fourcc(*"MJPG"),
-                        25,
+                        20,
                         (848, 480))
 
 
@@ -52,7 +52,7 @@ def DetectInit():
     global sess, model, mc
 
     detect_net = 'squeezeDet'
-    checkpoint = '/home/ubuntu/catkin_ws/src/robo_perception/scripts/weights/model.ckpt-99000'
+    checkpoint = '/home/ubuntu/robot/src/robo_perception/scripts/weights/model.ckpt-99000'
 
     assert detect_net == 'squeezeDet' or detect_net == 'squeezeDet+', \
         'Selected nueral net architecture not supported'
@@ -285,6 +285,7 @@ def TsDet_callback(infrared_image, pointcloud):
         cv2.putText(im, position_str, (10, 20), font, 0.7, (0, 255, 255), 2)
         # 是否录制视频
         if mc.DRAW_Video:
+            im = im.astype('uint8')
             video.write(im)
         # 是否存储图像
         if mc.DRAW_BOX:
