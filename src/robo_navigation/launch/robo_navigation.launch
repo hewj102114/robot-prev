@@ -17,5 +17,12 @@
     type="static_transform_publisher"
     args="0 0 0 3.14 0 0 base_link laser 40" />
 
-<node pkg="robo_navigation" type="robo_navigation" name="robo_navigation" output="screen"/>
+<node pkg="robo_navigation" type="robo_navigation" name="robo_navigation" output="screen">
+<param name="Kp_linear"  type="double" value="1.5"/>
+<param name="Ki_linear"  type="double" value="0.1"/>
+<param name="Kd_linear"  type="double" value="0"/>
+<param name="Kp_angular"  type="double" value="2.0"/>
+<param name="Ki_angular"  type="double" value="0.1"/>
+<param name="Kd_angular"  type="double" value="0"/>
+</node>
 </launch>

@@ -10,6 +10,7 @@
 #include "robo_navigation/global_planner.hpp"
 #include <opencv2/opencv.hpp>
 #include "sensor_msgs/LaserScan.h"
+#include "robo_navigation/PID.h"
 using namespace std;
 
 
@@ -23,6 +24,9 @@ public:
     geometry_msgs::Pose cur_pose;
     geometry_msgs::Pose pre_goal;
     double fix_angle;
+    PIDctrl pid_x;
+    PIDctrl pid_y;
+    PIDctrl pid_yaw;
     
     RoboNav();
     void init();
@@ -44,6 +48,21 @@ void RoboNav::init(){
     fs["Point"] >> point_list;
     floyd.loadMatrix(arrArcs);
     floyd.initFloydGraph();
+    
+    double Kp_linear,Ki_linear,Kd_linear;
+    double limit_linear_max = 1.0;
+    double Kp_angular,Ki_angular,Kd_angular;
+    double limit_angular = 1.5;
+    ros::param::param<double>("Kp_linear",Kp_linear,1.5);
+    ros::param::param<double>("Ki_linear",Ki_linear,0);
+    ros::param::param<double>("Kd_linear",Kd_linear,0);
+    ros::param::param<double>("Kp_angular",Kp_angular,2.0);
+    ros::param::param<double>("Ki_angular",Ki_angular,0);
+    ros::param::param<double>("Kd_angular",Kd_angular,0);
+    
+    pid_x.init(Kp_linear,Ki_linear,Kd_linear,limit_linear_max);
+    pid_y.init(Kp_linear,Ki_linear,Kd_linear,limit_linear_max);
+    pid_yaw.init(Kp_angular,Ki_angular,Kd_angular,limit_angular);
 }
 void RoboNav::cb_tar_pose(const geometry_msgs::PoseConstPtr& msg){
    // ROS_INFO("pre-tar %f  %f",pre_goal.position.x - msg->position.x ,pre_goal.position.y - msg->position.y);
@@ -61,6 +80,7 @@ void RoboNav::cb_tar_pose(const geometry_msgs::PoseConstPtr& msg){
     path.assign(floyd.path.begin(), floyd.path.end()); 
     pre_goal.position.x =msg->position.x;
     pre_goal.position.y =msg->position.y;
+    setFixAngle(cur_pose.orientation);
     }
 }
 
@@ -87,12 +107,9 @@ int RoboNav::findClosestPt(double x,double y){
 
 void RoboNav::get_vel(geometry_msgs::Twist& msg_vel)
 {
-    double Kp_linear = 1.5;
-    double limit_linear_max = 1.0;
-    double limit_linear_min = 0.05;
-    double Kp_angular = 1.15;
-    double limit_angular = 1.5;
-
+    
+    double limit_linear_min=0.1;
+    
     double vel_x = 0;
     double vel_y = 0;
     double vel_yaw = 0;
@@ -100,20 +117,21 @@ void RoboNav::get_vel(geometry_msgs::Twist& msg_vel)
         int cur_local_goal = path[0];
         double cur_local_goal_y =point_list.at<double>(cur_local_goal, 0) * 1.0 / 100;
         double cur_local_goal_x =point_list.at<double>(cur_local_goal, 1) * 1.0 / 100;
-        double cur_yaw=tf::getYaw(cur_pose.orientation)/3.14*180;
+        double cur_yaw=tf::getYaw(cur_pose.orientation);
 	
 	double path_angle = atan2((cur_local_goal_y - cur_pose.position.y),(cur_local_goal_x - cur_pose.position.x));
 	double dis=sqrt((cur_local_goal_x - cur_pose.position.x)*(cur_local_goal_x - cur_pose.position.x)+(cur_local_goal_y - cur_pose.position.y)*(cur_local_goal_y - cur_pose.position.y));
-	ROS_INFO("angle %f d %f",path_angle,dis);
-        double dx = sin(path_angle-);
-        double dy = cur_local_goal_y - cur_pose.position.y;
+	
+        double dx = cos(path_angle-cur_yaw)*dis;
+        double dy =  sin(path_angle-cur_yaw)*dis;
         double dyaw=fix_angle-cur_yaw;
-
-        if (dyaw>360) dyaw=dyaw-360;
-        if (dyaw<-360) dyaw=dyaw+360;
+	ROS_INFO("angle %f  cur %f dis %f",path_angle,cur_yaw,dis);
+	ROS_INFO("dx %f dy %f  dyaw %f ",dx,dy,dyaw);
+        if (dyaw>6.28) dyaw=dyaw-6.28;
+        if (dyaw<-6.28) dyaw=dyaw+6.28;
 	//ROS_INFO("angle: %f  fix angle : %f   dyaw %f",cur_yaw,fix_angle,dyaw);
-        //ROS_INFO("num: %d  tar_x %f, tar_y %f,cur_x %f , cur_y %f, diff_x %f, diff_y %f",cur_local_goal, cur_local_goal_x, cur_local_goal_y,
-         // cur_pose.position.x, cur_pose.position.y, dx, dy);
+        ROS_INFO("num: %d  tar_x %f, tar_y %f,cur_x %f , cur_y %f, diff_x %f, diff_y %f",cur_local_goal, cur_local_goal_x, cur_local_goal_y,
+          cur_pose.position.x, cur_pose.position.y, dx, dy);
         if (abs(dx) < 0.05 && abs(dy) < 0.05) 
 	{
             path.erase(path.begin());
@@ -123,23 +141,20 @@ void RoboNav::get_vel(geometry_msgs::Twist& msg_vel)
         }
         else 
 	{
-            vel_x = dx * Kp_linear;
-            vel_y = dy * Kp_linear;
-            if (vel_x > limit_linear_max) vel_x = limit_linear_max;
-            if (vel_x < -limit_linear_max) vel_x = -limit_linear_max;
+            vel_x=pid_x.calc(dx);
+	    vel_y=pid_y.calc(dy);
+	   
 	    if (vel_x>0 && vel_x<limit_linear_min) vel_x=limit_linear_min;
 	    if (vel_x<0 && vel_x>-limit_linear_min) vel_x=-limit_linear_min;
 	    
-            if (vel_y > limit_linear_max) vel_y = limit_linear_max;
-            if (vel_y < -limit_linear_max) vel_y = -limit_linear_max;
             if (vel_y>0 && vel_y<limit_linear_min) vel_y=limit_linear_min;
 	    if (vel_y<0 && vel_y>-limit_linear_min) vel_y=-limit_linear_min;
 	    
 	    if (abs(dx) < 0.05) vel_x=0;
 	    if (abs(dy) < 0.05) vel_y=0;
-            vel_yaw=dyaw*Kp_angular;
-            if (vel_yaw > limit_angular) vel_yaw = limit_angular;
-            if (vel_yaw <-limit_angular) vel_yaw = -limit_angular;
+	    
+            vel_yaw=pid_yaw.calc(dyaw);
+	    if (abs(dyaw)<0.1) vel_yaw=0;
         }
     }
 
@@ -150,7 +165,7 @@ void RoboNav::get_vel(geometry_msgs::Twist& msg_vel)
 
 void RoboNav::setFixAngle(geometry_msgs::Quaternion& qua){
     
-    fix_angle=tf::getYaw(qua)/3.14*180;
+    fix_angle=tf::getYaw(qua);
 }
 
 #define OFFSET 20    //rplidar front offset

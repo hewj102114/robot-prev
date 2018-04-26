@@ -80,7 +80,7 @@ void RoboControl::readMCUData() {
     uwb_odom_msg.header.stamp = time;
     uwb_odom_msg.header.frame_id = "odom";
     uwb_odom_msg.child_frame_id = "base_link";
-    uwb_odom_msg.pose.pose.position.x = msg_frommcu.uwb_x * 1.0 / 100 + 0.13;
+    uwb_odom_msg.pose.pose.position.x = msg_frommcu.uwb_x * 1.0 / 100;
     uwb_odom_msg.pose.pose.position.y = msg_frommcu.uwb_y * 1.0 / 100;
     uwb_odom_msg.pose.pose.orientation =
         tf::createQuaternionMsgFromRollPitchYaw(
