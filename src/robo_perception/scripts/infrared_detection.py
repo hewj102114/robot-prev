@@ -42,9 +42,9 @@ frame_rate = 0.0
 flag = True
 qn_ukf = [0, 0, 0, 0]
 
-video = cv2.VideoWriter('/home/ubuntu/catkin_ws/src/robo_perception/scripts/visual/demo.avi',
+video = cv2.VideoWriter('/home/ubuntu/robot/src/robo_perception/scripts/visual/demo.avi',
                         cv2.VideoWriter_fourcc(*"MJPG"),
-                        25,
+                        20,
                         (848, 480))
 
 
@@ -52,7 +52,7 @@ def DetectInit():
     global sess, model, mc
 
     detect_net = 'squeezeDet'
-    checkpoint = '/home/ubuntu/catkin_ws/src/robo_perception/scripts/weights/model.ckpt-99000'
+    checkpoint = '/home/ubuntu/robot/src/robo_perception/scripts/weights/model.ckpt-99000'
 
     assert detect_net == 'squeezeDet' or detect_net == 'squeezeDet+', \
         'Selected nueral net architecture not supported'
@@ -90,7 +90,6 @@ def TsDet_callback(infrared_image, pointcloud):
     try:
         cv_image_rgb = bridge.imgmsg_to_cv2(infrared_image, desired_encoding="8UC1")
         cv_image_rgb = cv2.cvtColor(cv_image_rgb, cv2.COLOR_GRAY2RGB)
-        print("image size:", cv_image_rgb.shape)
         # cv_image_depth = bridge.imgmsg_to_cv2(depth, desired_encoding="16UC1")
     except CvBridgeError as error:
         print(error)
@@ -134,6 +133,7 @@ def TsDet_callback(infrared_image, pointcloud):
 
     avgX, avgY, avgZ = 0, 0, 0
     robo_position = []
+    roi = [[0,0], [0,0]]
 
     if mc.DEBUG:
         print("boxes: %s, probs: %s, class: %s" % (final_class, final_probs, final_class))
@@ -166,8 +166,8 @@ def TsDet_callback(infrared_image, pointcloud):
             pointcloud_h = robo_bbox[3]
 
         # 使用中心位置的 pointcloud_w*pointcloud_h 的点云计算距离
-        # x_ = np.arange(int(cx - pointcloud_w/2), int(cx + pointcloud_w/2), 1)
-        # y_ = np.arange(int(cy - pointcloud_h/2), int(cy + pointcloud_h/2), 1)
+        #x_ = np.arange(int(cx - pointcloud_w/2), int(cx + pointcloud_w/2), 1)
+        #y_ = np.arange(int(cy - pointcloud_h/2), int(cy + pointcloud_h/2), 1)
 
         # 使用bbox下方的点云计算距离, 大概是装甲板的位置
         x_ = np.arange(int(cx - pointcloud_w / 2), int(cx + pointcloud_w / 2), 1)
@@ -274,7 +274,7 @@ def TsDet_callback(infrared_image, pointcloud):
     print(time_str)
 
     # # TODO(bichen): move this color dict to configuration file
-    cls2clr = {'red': (0, 0, 255), 'wheel': (0, 255, 0), 'blue': (255, 0, 0)}
+    cls2clr = {'robot': (0, 0, 255), 'wheel': (0, 255, 0)}
     if mc.VISUAL:
         im = _draw_box(im,
                            final_boxes,
@@ -283,8 +283,12 @@ def TsDet_callback(infrared_image, pointcloud):
         position_str = 'x=' + str(round(avgX, 3)) + ' y=' + str(round(avgY, 3)) + ' z=' + str(round(avgZ, 3))
         font = cv2.FONT_HERSHEY_SIMPLEX
         cv2.putText(im, position_str, (10, 20), font, 0.7, (0, 255, 255), 2)
+        cv2.rectangle(im, (roi[0][0], roi[0][1]), (roi[-1][0], roi[-1][1]), (255,0,0), 5)
+        
+        
         # 是否录制视频
         if mc.DRAW_Video:
+            im = im.astype('uint8')
             video.write(im)
         # 是否存储图像
         if mc.DRAW_BOX:
