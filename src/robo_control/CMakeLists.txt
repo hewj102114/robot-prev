@@ -13,7 +13,6 @@ find_package(catkin REQUIRED COMPONENTS
 nav_msgs
 sensor_msgs
 tf
-tf2
 move_base_msgs
 )
 
@@ -32,7 +31,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES serial
-CATKIN_DEPENDS geometry_msgs roscpp rospy std_msgs  nav_msgs tf sensor_msgs tf2 move_base_msgs message_runtime
+CATKIN_DEPENDS geometry_msgs roscpp rospy std_msgs  nav_msgs tf sensor_msgs  move_base_msgs message_runtime
 #  DEPENDS system_lib
 )
 
