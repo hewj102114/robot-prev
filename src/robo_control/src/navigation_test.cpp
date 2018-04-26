@@ -23,21 +23,23 @@ int main(int argc, char **argv) {
     clock_t start = clock(), end;
     
     int flag=-10;
-    ros::Rate rate(10);
+    ros::Rate rate(150);
+    geometry_msgs::Pose  target_pose;
+    double tar_x,tar_y;
+    nh.setParam("px",8);
+    nh.setParam("py", 5);
+    
     while (ros::ok())
     {
 	robo_ctl.readMCUData();
-	flag++;
-	if (flag>0 &&flag<5){
-	geometry_msgs::Pose target_pose;
-	target_pose.position.x=7;
-	target_pose.position.y=0.5;
+	nh.getParam("px", tar_x);
+	nh.getParam("py", tar_y);
+	target_pose.position.x=tar_x;
+	target_pose.position.y=tar_y;
 	target_pose.orientation=robo_ctl.robo_ukf_pose.orientation;
 	robo_ctl.sendNavGoal(target_pose);
 	
-
-	}
-	ROS_INFO("MODE :  Search  %f  %f  %f",  robo_ctl.cmd_vel_msg.v_x, robo_ctl.cmd_vel_msg.v_y,robo_ctl.cmd_vel_msg.v_yaw);
+	//ROS_INFO("MODE :  Search  %f  %f  %f",  robo_ctl.cmd_vel_msg.v_x, robo_ctl.cmd_vel_msg.v_y,robo_ctl.cmd_vel_msg.v_yaw);
 	robo_ctl.sendMCUMsg(1,1, robo_ctl.cmd_vel_msg.v_x,robo_ctl.cmd_vel_msg.v_y, robo_ctl.cmd_vel_msg.v_yaw, 0, 0, 0);
 	ros::spinOnce();
 	rate.sleep();

@@ -45,7 +45,11 @@ qn_ukf = [0, 0, 0, 0]
 video = cv2.VideoWriter('/home/ubuntu/catkin_ws/src/robo_perception/scripts/visual/demo.avi',
                         cv2.VideoWriter_fourcc(*"MJPG"),
                         25,
+<<<<<<< HEAD
                         (424, 240))
+=======
+                        (848, 480))
+>>>>>>> 9b3f1fce9961959f57a01e44edc9207a45a6d28e
 
 
 def DetectInit():
@@ -81,14 +85,24 @@ def DetectInit():
     saver.restore(sess, checkpoint)
 
 
+<<<<<<< HEAD
 def TsDet_callback(rgb, pointcloud):
+=======
+def TsDet_callback(infrared_image, pointcloud):
+>>>>>>> 9b3f1fce9961959f57a01e44edc9207a45a6d28e
     global count, sess, model, mc, video, frame_rate_list, frame_rate_idx, frame_rate
     print('I here rgb and pointcloud !', count)
     count = count + 1
 
     bridge = CvBridge()
     try:
+<<<<<<< HEAD
         cv_image_rgb = bridge.imgmsg_to_cv2(rgb, desired_encoding="bgr8")
+=======
+        cv_image_rgb = bridge.imgmsg_to_cv2(infrared_image, desired_encoding="8UC1")
+        cv_image_rgb = cv2.cvtColor(cv_image_rgb, cv2.COLOR_GRAY2RGB)
+        print("image size:", cv_image_rgb.shape)
+>>>>>>> 9b3f1fce9961959f57a01e44edc9207a45a6d28e
         # cv_image_depth = bridge.imgmsg_to_cv2(depth, desired_encoding="16UC1")
     except CvBridgeError as error:
         print(error)
@@ -273,6 +287,7 @@ def TsDet_callback(rgb, pointcloud):
 
     # # TODO(bichen): move this color dict to configuration file
     cls2clr = {'red': (0, 0, 255), 'wheel': (0, 255, 0), 'blue': (255, 0, 0)}
+<<<<<<< HEAD
     # 是否录制视频
     if mc.DRAW_Video:
         im = _draw_box(im,
@@ -310,6 +325,40 @@ def TsDet_callback(rgb, pointcloud):
         pub_dr.publish(Im_to_ros)
         print('Image detection output saved to {}'.format(out_file_name))
 
+=======
+    if mc.VISUAL:
+        im = _draw_box(im,
+                           final_boxes,
+                           [mc.CLASS_NAMES[idx] + ':%.2f' % prob for idx, prob in zip(final_class, final_probs)],
+                           cdict=cls2clr)
+        position_str = 'x=' + str(round(avgX, 3)) + ' y=' + str(round(avgY, 3)) + ' z=' + str(round(avgZ, 3))
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        cv2.putText(im, position_str, (10, 20), font, 0.7, (0, 255, 255), 2)
+        # 是否录制视频
+        if mc.DRAW_Video:
+            video.write(im)
+        # 是否存储图像
+        if mc.DRAW_BOX:
+            image_count = count
+            image_name = image_count % mc.SAVE_NUM
+            file_name = str(image_name) + '.jpg'
+            out_file_name = os.path.join('/home/ubuntu/robot/src/robo_perception/scripts/visual', 'out_' + file_name)
+            im = im.astype('uint8')
+            cv2.imwrite(out_file_name, im)
+
+        if mc.SHOW:
+            cv2.imshow('demo', im)
+            cv2.waitKey(3)
+
+            Im_to_ros = Image()
+            try:
+                Im_to_ros = bridge.cv2_to_imgmsg(im, "bgr8")
+            except CvBridgeError as e:
+                print(e)
+            Im_to_ros.header.stamp = rospy.Time.now()
+            Im_to_ros.header.frame_id = 'camera_link'
+            pub_dr.publish(Im_to_ros)
+>>>>>>> 9b3f1fce9961959f57a01e44edc9207a45a6d28e
 
 def callback_ukf(ukf):
     global qn_ukf, ukf_pos_x, ukf_pos_y
@@ -324,7 +373,11 @@ def callback_ukf(ukf):
 rospy.init_node('rgb_detection')
 DetectInit()
 
+<<<<<<< HEAD
 rgb_sub = message_filters.Subscriber('camera/color/image_raw', Image)
+=======
+rgb_sub = message_filters.Subscriber('/camera/infra1/image_rect_raw', Image)
+>>>>>>> 9b3f1fce9961959f57a01e44edc9207a45a6d28e
 # rgb_sub = message_filters.Subscriber('camera/infra1/image_rect_raw', Image)
 subukf = rospy.Subscriber('ukf/pos', Odometry, callback_ukf)
 pc_sub = message_filters.Subscriber('/camera/depth_registered/points', PointCloud2)

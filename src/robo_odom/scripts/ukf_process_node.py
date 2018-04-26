@@ -92,13 +92,15 @@ def h_cv(x):
 def UKFinit():
     global ukf
     ukf_fuse = []
-    p_std_x = rospy.get_param('p_std_x',0.03)
-    p_std_y = rospy.get_param('p_std_y',0.03)
-    v_std_x = rospy.get_param('v_std_x',0.03)
-    v_std_y = rospy.get_param('v_std_y',0.03)
-    a_std_x = rospy.get_param('a_std_x',0.2)
-    a_std_y = rospy.get_param('a_std_y',0.2)
-    dt = rospy.get_param('dt',0.125) #80HZ
+    p_std_x = rospy.get_param('~p_std_x',0.03)
+    p_std_y = rospy.get_param('~p_std_y',0.03)
+    v_std_x = rospy.get_param('~v_std_x',0.03)
+    v_std_y = rospy.get_param('~v_std_y',0.03)
+    a_std_x = rospy.get_param('~a_std_x',0.2)
+    a_std_y = rospy.get_param('~a_std_y',0.2)
+    dt = rospy.get_param('~dt',0.125) #80HZ
+    
+     
 
     sigmas = MerweScaledSigmaPoints(6, alpha=.1, beta=2., kappa=-1.0)
     ukf = UKF(dim_x=6, dim_z=6, fx=f_cv, hx=h_cv, dt=dt, points=sigmas)
@@ -146,7 +148,7 @@ def callback_imu(imu):
             incremental_pos_y = incremental_pos_y + vel_wheel_y * dt + 0.5 * acc_imu_y * dt * dt
             pos_fuse_y = pos_uwb_y + incremental_pos_y
         
-        #print 'uwb',pos_uwb_x, pos_uwb_y, 'wheel',vel_wheel_x, vel_wheel_y, 'imu', acc_imu_x, acc_imu_y, 'yaw',ukf_yaw
+        print 'uwb',pos_uwb_x, pos_uwb_y, 'wheel',vel_wheel_x, vel_wheel_y, 'imu', acc_imu_x, acc_imu_y, 'yaw',ukf_yaw
         #if acc_imu_x > 1 or acc_imu_y > 1:
         #    print 'imu', acc_imu_x, acc_imu_y
         imu_last_time = imu_time
@@ -158,9 +160,9 @@ def callback_imu(imu):
         ukf_out_pos_x = ukf.x[0]
         ukf_out_pos_y = ukf.x[3]
         #print ukf.x
-        print 'UWB x:',pos_uwb_x,'UWB y:',pos_uwb_y
-        print 'FUSE x',pos_fuse_x,'FUSE y',pos_fuse_y
-        print 'KALMAN x',ukf_out_pos_x,'KALMAN y',ukf_out_pos_y
+        #print 'UWB x:',pos_uwb_x,'UWB y:',pos_uwb_y
+        #print 'FUSE x',pos_fuse_x,'FUSE y',pos_fuse_y
+        #print 'KALMAN x',ukf_out_pos_x,'KALMAN y',ukf_out_pos_y
 
         ukf_pos = Odometry()
         ukf_pos.header.frame_id = "odom"
@@ -226,7 +228,7 @@ UKFinit()
 subimu = rospy.Subscriber('/map/imu/data', Imu, callback_imu)
 subuwb = rospy.Subscriber('/map/uwb/data', Odometry, callback_uwb)
 #subvel = rospy.Subscriber('/ukf/vel', Odometry, callback_vel)
-subwheel = rospy.Subscriber('/robo/wheel/data', Vector3Stamped, callback_wheel)
+subwheel = rospy.Subscriber('/robo/wheel/data', Vector3Stamped, callback_wheel,queue_size=1)
 subyaw = rospy.Subscriber('/ukf/yaw', Odometry, callback_yaw)
 
 pub_ukf_pos = rospy.Publisher('/ukf/pos', Odometry, queue_size=1)

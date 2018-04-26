@@ -71,17 +71,17 @@
 		<param name="out_prefix" value="map/imu"/>
   </node>
 
-	<node name="tf_broadcaster" pkg="robo_odom" type="tf_bro.py"  output="screen" >  
+	<node name="tf_broadcaster" pkg="robo_odom" type="tf_bro.py"  >  
   </node>
 
 
-  <node pkg="robo_odom" type="ukf_yaw_node.py" name="ukf_yaw_node" output="screen">
+  <node pkg="robo_odom" type="ukf_yaw_node.py" name="ukf_yaw_node">
     <param name="p_std_yaw" value="0.004"/>
 		<param name="v_std_yaw" value="0.008"/>
 		<param name="dt" value="0.125"/>
   </node>
 	
-  <node pkg="robo_odom" type="ukf_process_node.py" name="ukf_process_node" output="screen">
+  <node pkg="robo_odom" type="ukf_process_node.py" name="ukf_process_node" output = "screen">
     <param name="p_std_x" value="0.03"/>
 		<param name="p_std_y" value="0.03"/>
 		<param name="v_std_x" value="0.03"/>
