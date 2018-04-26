@@ -27,11 +27,16 @@ public:
 };
 
 void OdomBroadcaster::cb_ukf_pose(const nav_msgs::OdometryConstPtr& msg){
+	double cur_yaw=tf::getYaw(msg->pose.pose.orientation);
+
 	nav_msgs::Odometry odom_msg;
 	odom_msg.header=msg->header;
 	odom_msg.header.frame_id="odom";
 	odom_msg.child_frame_id="base_link";
-	odom_msg.pose=msg->pose;
+	odom_msg.pose.pose.position.x=msg->pose.pose.position.x+sin(cur_yaw)*0.13;
+	odom_msg.pose.pose.position.y=msg->pose.pose.position.y+cos(cur_yaw)*0.13;
+	odom_msg.pose.pose.position.z=0;
+	odom_msg.pose.pose.orientation=msg->pose.pose.orientation;
 	odom_msg.twist=msg->twist;
 	pub_odom.publish(odom_msg);
 	
@@ -39,8 +44,8 @@ void OdomBroadcaster::cb_ukf_pose(const nav_msgs::OdometryConstPtr& msg){
 	odom_trans.header.stamp = msg->header.stamp;
 	odom_trans.header.frame_id = "odom";
 	odom_trans.child_frame_id = "base_link";
-	odom_trans.transform.translation.x=msg->pose.pose.position.x;
-	odom_trans.transform.translation.y=msg->pose.pose.position.y;
+	odom_trans.transform.translation.x=msg->pose.pose.position.x+sin(cur_yaw)*0.13;
+	odom_trans.transform.translation.y=msg->pose.pose.position.y+cos(cur_yaw)*0.13;
 	odom_trans.transform.translation.z=0;
 	odom_trans.transform.rotation=msg->pose.pose.orientation;
 	odom_tf2.sendTransform(odom_trans);

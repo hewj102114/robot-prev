@@ -6,6 +6,7 @@
 #include <geometry_msgs/Twist.h>
 #include <geometry_msgs/Quaternion.h>
 #include <nav_msgs/Odometry.h>
+#include <tf/tf.h> 
 #include <tf/transform_datatypes.h> 
 #include "robo_navigation/global_planner.hpp"
 #include <opencv2/opencv.hpp>
@@ -119,42 +120,52 @@ void RoboNav::get_vel(geometry_msgs::Twist& msg_vel)
         double cur_local_goal_x =point_list.at<double>(cur_local_goal, 1) * 1.0 / 100;
         double cur_yaw=tf::getYaw(cur_pose.orientation);
 	
-	double path_angle = atan2((cur_local_goal_y - cur_pose.position.y),(cur_local_goal_x - cur_pose.position.x));
-	double dis=sqrt((cur_local_goal_x - cur_pose.position.x)*(cur_local_goal_x - cur_pose.position.x)+(cur_local_goal_y - cur_pose.position.y)*(cur_local_goal_y - cur_pose.position.y));
-	
-        double dx = cos(path_angle-cur_yaw)*dis;
-        double dy =  sin(path_angle-cur_yaw)*dis;
+        tf::Stamped<tf::Pose> ident (tf::Transform(tf::createIdentityQuaternion(),
+                                             tf::Vector3(cur_local_goal_x,cur_local_goal_y,0)),
+                                 ros::Time(), "odom");
+        tf::Stamped<tf::Pose> pose;
+        try
+        {
+        tf::Transformer tf;
+        tf.transformPose("base_link", ident, pose);
+        }
+        catch(tf::TransformException& e)
+        {
+        ROS_ERROR("Couldn't transform "
+                    "even though the message notifier is in use");
+        return;
+        }
+
+        double dx = pose.getOrigin().x();
+        double dy = pose.getOrigin().x();
         double dyaw=fix_angle-cur_yaw;
-	ROS_INFO("angle %f  cur %f dis %f",path_angle,cur_yaw,dis);
-	ROS_INFO("dx %f dy %f  dyaw %f ",dx,dy,dyaw);
+	    ROS_INFO("dx %f dy %f  dyaw %f ",dx,dy,dyaw);
         if (dyaw>6.28) dyaw=dyaw-6.28;
         if (dyaw<-6.28) dyaw=dyaw+6.28;
-	//ROS_INFO("angle: %f  fix angle : %f   dyaw %f",cur_yaw,fix_angle,dyaw);
+	    //ROS_INFO("angle: %f  fix angle : %f   dyaw %f",cur_yaw,fix_angle,dyaw);
         ROS_INFO("num: %d  tar_x %f, tar_y %f,cur_x %f , cur_y %f, diff_x %f, diff_y %f",cur_local_goal, cur_local_goal_x, cur_local_goal_y,
           cur_pose.position.x, cur_pose.position.y, dx, dy);
         if (abs(dx) < 0.05 && abs(dy) < 0.05) 
-	{
+	    {
             path.erase(path.begin());
-	    //rotation
-	    
 	    
         }
         else 
-	{
+	    {
             vel_x=pid_x.calc(dx);
-	    vel_y=pid_y.calc(dy);
-	   
-	    if (vel_x>0 && vel_x<limit_linear_min) vel_x=limit_linear_min;
-	    if (vel_x<0 && vel_x>-limit_linear_min) vel_x=-limit_linear_min;
-	    
-            if (vel_y>0 && vel_y<limit_linear_min) vel_y=limit_linear_min;
-	    if (vel_y<0 && vel_y>-limit_linear_min) vel_y=-limit_linear_min;
-	    
-	    if (abs(dx) < 0.05) vel_x=0;
-	    if (abs(dy) < 0.05) vel_y=0;
-	    
-            vel_yaw=pid_yaw.calc(dyaw);
-	    if (abs(dyaw)<0.1) vel_yaw=0;
+            vel_y=pid_y.calc(dy);
+        
+            if (vel_x>0 && vel_x<limit_linear_min) vel_x=limit_linear_min;
+            if (vel_x<0 && vel_x>-limit_linear_min) vel_x=-limit_linear_min;
+            
+                if (vel_y>0 && vel_y<limit_linear_min) vel_y=limit_linear_min;
+            if (vel_y<0 && vel_y>-limit_linear_min) vel_y=-limit_linear_min;
+            
+            if (abs(dx) < 0.05) vel_x=0;
+            if (abs(dy) < 0.05) vel_y=0;
+            
+                vel_yaw=pid_yaw.calc(dyaw);
+            if (abs(dyaw)<0.1) vel_yaw=0;
         }
     }
 
