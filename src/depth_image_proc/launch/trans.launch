@@ -1,6 +1,6 @@
 <launch>  
 
-  <arg name="manager" />
+  <arg name="manager" default="nodelet_manager"/>
   <arg name="points_xyz" default="true" />
   <arg name="rectify" default="true" />
 
@@ -11,8 +11,8 @@
   <node pkg="nodelet" type="nodelet" name="metric_rect"
         args="load depth_image_proc/convert_metric $(arg manager) $(arg bond)"
 	respawn="$(arg respawn)">
-    <remap from="camera/aligned_depth_to_infrared1/image_raw" to="image_rect_raw" />
-    <remap from="image"     to="camera/aligned_depth_to_infrared1/image_rect" />
+    <remap from="/camera/aligned_depth_to_infrared1/image_raw" to="image_rect_raw" />
+    <remap from="image"     to="/camera/aligned_depth_to_infrared1/image_rect" />
   </node>
 
   <node if="$(arg points_xyz)"
