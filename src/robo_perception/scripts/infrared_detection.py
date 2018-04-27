@@ -1,6 +1,6 @@
-#!/home/ubuntu/anaconda2/bin/python2.7
+#!/usr/bin/python2.7
 # coding=utf-8
-###!/usr/bin/python2.7
+###!/home/ubuntu/anaconda2/bin/python2.7
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -329,7 +329,7 @@ DetectInit()
 rgb_sub = message_filters.Subscriber('/camera/infra1/image_rect_raw', Image)
 # rgb_sub = message_filters.Subscriber('camera/infra1/image_rect_raw', Image)
 subukf = rospy.Subscriber('ukf/pos', Odometry, callback_ukf)
-pc_sub = message_filters.Subscriber('/camera/depth_registered/points', PointCloud2)
+pc_sub = message_filters.Subscriber('/camera/points', PointCloud2)
 # depth_sub = message_filters.Subscriber('camera/depth/image_rect_raw', Image)
 pub = rospy.Publisher('rgb_detection/enemy_position', ObjectList, queue_size=1)
 pub_dr = rospy.Publisher('rgb_detection/detection_result', Image, queue_size=1)

@@ -109,7 +109,8 @@ Processing enabled by this node:
   <arg name="depth_registered_processing"     default="true"/>
   <arg name="disparity_processing"            default="false"/>
   <arg name="disparity_registered_processing" default="false"/>
-  <arg name="hw_registered_processing"        default="$(arg align_depth)" />
+  <!-- <arg name="hw_registered_processing"        default="$(arg align_depth)" /> -->
+  <arg name="hw_registered_processing"        default="false" />
   <arg name="sw_registered_processing"        default="true" unless="$(arg align_depth)" />
   <arg name="sw_registered_processing"        default="false" if="$(arg align_depth)" />
 
@@ -194,6 +195,18 @@ Processing enabled by this node:
       </node>
     </group>
 
+
+
+      <node pkg="nodelet" type="nodelet" name="points"
+            args="load depth_image_proc/point_cloud_xyz $(arg manager) $(arg bond)"
+	        respawn="$(arg respawn)">
+        <remap from="image_rect" to="aligned_depth_to_infra1/image_raw"/>
+        <remap from="points" to="points"/>
+    <!-- Use raw image for efficiency -->
+    </node>
+
+
   </group>
+
 
 </launch>

@@ -62,7 +62,7 @@ void ConvertMetricNodelet::onInit()
 {
   ros::NodeHandle& nh = getNodeHandle();
   it_.reset(new image_transport::ImageTransport(nh));
-
+  ROS_INFO("fuck!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
   // Monitor whether anyone is subscribed to the output
   image_transport::SubscriberStatusCallback connect_cb = boost::bind(&ConvertMetricNodelet::connectCb, this);
   // Make sure we don't enter connectCb() between advertising and assigning to pub_depth_

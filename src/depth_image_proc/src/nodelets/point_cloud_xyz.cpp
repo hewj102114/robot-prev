@@ -47,6 +47,7 @@ namespace enc = sensor_msgs::image_encodings;
 
 class PointCloudXyzNodelet : public nodelet::Nodelet
 {
+
   // Subscriptions
   boost::shared_ptr<image_transport::ImageTransport> it_;
   image_transport::CameraSubscriber sub_depth_;
@@ -93,6 +94,7 @@ void PointCloudXyzNodelet::connectCb()
   }
   else if (!sub_depth_)
   {
+    
     image_transport::TransportHints hints("raw", ros::TransportHints(), getPrivateNodeHandle());
     sub_depth_ = it_->subscribeCamera("image_rect", queue_size_, &PointCloudXyzNodelet::depthCb, this, hints);
   }
