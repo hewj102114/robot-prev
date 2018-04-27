@@ -158,7 +158,7 @@ void RoboNav::get_vel(geometry_msgs::Twist& msg_vel)
 	pose_local.pose.orientation.w=1;
 	pub_local_goal_pose.publish(pose_local);
 	
-	    ROS_INFO("dx %f dy %f  dyaw %f ",dx,dy,dyaw);
+	ROS_INFO("dx %f dy %f  dyaw %f ",dx,dy,dyaw);
         if (dyaw>6.28) dyaw=dyaw-6.28;
         if (dyaw<-6.28) dyaw=dyaw+6.28;
 	    //ROS_INFO("angle: %f  fix angle : %f   dyaw %f",cur_yaw,fix_angle,dyaw);
