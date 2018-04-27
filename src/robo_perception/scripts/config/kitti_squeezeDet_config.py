@@ -45,9 +45,9 @@ def kitti_squeezeDet_config():
   mc.DRAW_Video = True
   mc.SHOW = True
   
-  mc.DEBUG = True
+  mc.DEBUG = False
   
-  mc.SAVE_NUM = 1000
+  mc.SAVE_NUM = 200
   return mc
 
 def set_anchors(mc):
