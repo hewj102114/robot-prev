@@ -1,6 +1,6 @@
 <launch>  
 
-  <arg name="manager" />
+  <arg name="manager" default="nodelet_manager"/>
   <arg name="points_xyz" default="true" />
   <arg name="rectify" default="true" />
 
