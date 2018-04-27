@@ -21,7 +21,7 @@
 <param name="Kp_linear"  type="double" value="1.5"/>
 <param name="Ki_linear"  type="double" value="0.1"/>
 <param name="Kd_linear"  type="double" value="0"/>
-<param name="Kp_angular"  type="double" value="2.0"/>
+<param name="Kp_angular"  type="double" value="1.6"/>
 <param name="Ki_angular"  type="double" value="0.1"/>
 <param name="Kd_angular"  type="double" value="0"/>
 </node>

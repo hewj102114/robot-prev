@@ -148,7 +148,7 @@ def callback_imu(imu):
             incremental_pos_y = incremental_pos_y + vel_wheel_y * dt + 0.5 * acc_imu_y * dt * dt
             pos_fuse_y = pos_uwb_y + incremental_pos_y
         
-        print 'uwb',pos_uwb_x, pos_uwb_y, 'wheel',vel_wheel_x, vel_wheel_y, 'imu', acc_imu_x, acc_imu_y, 'yaw',ukf_yaw
+        #print 'uwb',pos_uwb_x, pos_uwb_y, 'wheel',vel_wheel_x, vel_wheel_y, 'imu', acc_imu_x, acc_imu_y, 'yaw',ukf_yaw
         #if acc_imu_x > 1 or acc_imu_y > 1:
         #    print 'imu', acc_imu_x, acc_imu_y
         imu_last_time = imu_time
@@ -160,9 +160,9 @@ def callback_imu(imu):
         ukf_out_pos_x = ukf.x[0]
         ukf_out_pos_y = ukf.x[3]
         #print ukf.x
-        #print 'UWB x:',pos_uwb_x,'UWB y:',pos_uwb_y
-        #print 'FUSE x',pos_fuse_x,'FUSE y',pos_fuse_y
-        #print 'KALMAN x',ukf_out_pos_x,'KALMAN y',ukf_out_pos_y
+        print 'UWB x:',pos_uwb_x,'UWB y:',pos_uwb_y
+        print 'FUSE x',pos_fuse_x,'FUSE y',pos_fuse_y
+        print 'KALMAN x',ukf_out_pos_x,'KALMAN y',ukf_out_pos_y
 
         ukf_pos = Odometry()
         ukf_pos.header.frame_id = "odom"

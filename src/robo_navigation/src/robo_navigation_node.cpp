@@ -8,6 +8,7 @@
 #include <nav_msgs/Odometry.h>
 #include <tf/tf.h> 
 #include <tf/transform_datatypes.h> 
+#include <tf/transform_listener.h>
 #include "robo_navigation/global_planner.hpp"
 #include <opencv2/opencv.hpp>
 #include "sensor_msgs/LaserScan.h"
@@ -19,6 +20,7 @@ using namespace std;
 class RoboNav{
 public:
     ros::NodeHandle* pnh;
+    ros::Publisher pub_local_goal_pose;
     Floyd floyd;
     Mat arrArcs, point_list;
     vector<int> path;
@@ -28,6 +30,7 @@ public:
     PIDctrl pid_x;
     PIDctrl pid_y;
     PIDctrl pid_yaw;
+    tf::TransformListener* tf_;
     
     RoboNav();
     void init();
@@ -40,7 +43,8 @@ public:
 
 RoboNav::RoboNav(){
     pnh=new ros::NodeHandle("");
-    
+    pub_local_goal_pose=pnh->advertise<geometry_msgs::PoseStamped>("nav/local_goal",1);
+    tf_ = new tf::TransformListener();
 }
 
 void RoboNav::init(){
@@ -120,25 +124,40 @@ void RoboNav::get_vel(geometry_msgs::Twist& msg_vel)
         double cur_local_goal_x =point_list.at<double>(cur_local_goal, 1) * 1.0 / 100;
         double cur_yaw=tf::getYaw(cur_pose.orientation);
 	
-        tf::Stamped<tf::Pose> ident (tf::Transform(tf::createIdentityQuaternion(),
-                                             tf::Vector3(cur_local_goal_x,cur_local_goal_y,0)),
-                                 ros::Time(), "odom");
-        tf::Stamped<tf::Pose> pose;
-        try
-        {
-        tf::Transformer tf;
-        tf.transformPose("base_link", ident, pose);
-        }
-        catch(tf::TransformException& e)
-        {
-        ROS_ERROR("Couldn't transform "
-                    "even though the message notifier is in use");
-        return;
-        }
-
-        double dx = pose.getOrigin().x();
-        double dy = pose.getOrigin().x();
+//         tf::Stamped<tf::Pose> ident (tf::Transform(tf::createIdentityQuaternion(),
+//                                              tf::Vector3(cur_local_goal_x,cur_local_goal_y,0)),
+//                                  ros::Time(), "odom");
+//         tf::Stamped<tf::Pose> pose;
+// 	
+//         try
+//         {
+//         
+//         tf_->transformPose("base_link", ident, pose);
+//         }
+//         catch(tf::TransformException& e)
+//         {
+//         ROS_ERROR("Couldn't transform "
+//                     "even though the message notifier is in use");
+//         return;
+//         }
+	
+	
+	
+        double dx = (cur_local_goal_x- cur_pose.position.x)*cos(cur_yaw)+(cur_local_goal_y - cur_pose.position.y)*sin(cur_yaw);
+        double dy =-(cur_local_goal_x- cur_pose.position.x)*sin(cur_yaw)+(cur_local_goal_y - cur_pose.position.y)*cos(cur_yaw);
         double dyaw=fix_angle-cur_yaw;
+	geometry_msgs::PoseStamped pose_local;
+	pose_local.header.stamp=ros::Time::now();
+	pose_local.header.frame_id="base_link";
+	pose_local.pose.position.x=dx;
+	pose_local.pose.position.y=dy;
+	pose_local.pose.position.y=0;
+	pose_local.pose.orientation.x=0;
+	pose_local.pose.orientation.y=0;
+	pose_local.pose.orientation.z=0;
+	pose_local.pose.orientation.w=1;
+	pub_local_goal_pose.publish(pose_local);
+	
 	    ROS_INFO("dx %f dy %f  dyaw %f ",dx,dy,dyaw);
         if (dyaw>6.28) dyaw=dyaw-6.28;
         if (dyaw<-6.28) dyaw=dyaw+6.28;
