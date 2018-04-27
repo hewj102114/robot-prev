@@ -1,5 +1,6 @@
-#!/usr/bin/python2.7
-# coding=<encoding name> 例如，可添加# coding=utf-8
+#!/home/ubuntu/anaconda2/bin/python2.7
+# coding=utf-8
+###!/usr/bin/python2.7
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
