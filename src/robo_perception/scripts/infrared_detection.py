@@ -297,14 +297,14 @@ def TsDet_callback(infrared_image, pointcloud):
             cv2.imshow('demo', im)
             cv2.waitKey(3)
 
-            Im_to_ros = Image()
-            try:
-                Im_to_ros = bridge.cv2_to_imgmsg(im, "bgr8")
-            except CvBridgeError as e:
-                print(e)
-            Im_to_ros.header.stamp = rospy.Time.now()
-            Im_to_ros.header.frame_id = 'camera_link'
-            pub_dr.publish(Im_to_ros)
+            # Im_to_ros = Image()
+            # try:
+            #     Im_to_ros = bridge.cv2_to_imgmsg(im, "bgr8")
+            # except CvBridgeError as e:
+            #     print(e)
+            # Im_to_ros.header.stamp = rospy.Time.now()
+            # Im_to_ros.header.frame_id = 'camera_link'
+            # pub_dr.publish(Im_to_ros)
 
 
 def callback_ukf(ukf):
@@ -325,8 +325,8 @@ rgb_sub = message_filters.Subscriber('/camera/infra1/image_rect_raw', Image)
 subukf = rospy.Subscriber('ukf/pos', Odometry, callback_ukf)
 pc_sub = message_filters.Subscriber('/camera/points', PointCloud2)
 # depth_sub = message_filters.Subscriber('camera/depth/image_rect_raw', Image)
-pub = rospy.Publisher('rgb_detection/enemy_position', ObjectList, queue_size=1)
-pub_dr = rospy.Publisher('rgb_detection/detection_result', Image, queue_size=1)
+pub = rospy.Publisher('infrared_detection/enemy_position', ObjectList, queue_size=1)
+# pub_dr = rospy.Publisher('rgb_detection/detection_result', Image, queue_size=1)
 
 # TODO 在后面的试验中调调整slop
 TsDet = message_filters.ApproximateTimeSynchronizer(
