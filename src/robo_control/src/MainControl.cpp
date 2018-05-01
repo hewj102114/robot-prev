@@ -96,12 +96,13 @@ int main(int argc, char **argv)
 	gimbal 1:serach 2:shoot
 	chassis 1:velcity 2:angle pose 3:init
 	*/
+	geometry_msgs::Pose target_pose;
 	int work_state = 0;
 	while (ros::ok())
 	{
 		// 读取 MCU 数据
 		robo_ctl.readMCUData();
-		switch (work_state)
+		switch(work_state)
 		{
 			ROS_INFO("======================================================\n================================================");
 		/*************************************************************************
@@ -112,15 +113,15 @@ int main(int argc, char **argv)
 		case 0:
 			
 			ROS_INFO("阶段 0: 抢占中点!!!!!!");
-			geometry_msgs::Pose target_pose;
+			
 			target_pose.position.x = 4.0;
 			target_pose.position.y = 2.5;
 			target_pose.orientation = robo_ctl.robo_ukf_pose.orientation;
 			robo_ctl.sendNavGoal(target_pose);
-			robo_ctl.sendMCUMsg(1, 2, robo_ctl.cmd_vel_msg.v_x, robo_ctl.cmd_vel_msg.v_y, robo_ctl.cmd_vel_msg.v_yaw, 0, 0, 0);
+			robo_ctl.sendMCUMsg(1, 1, robo_ctl.cmd_vel_msg.v_x, robo_ctl.cmd_vel_msg.v_y, robo_ctl.cmd_vel_msg.v_yaw, 0, 0, 0);
 			// 到达中点并停留 n 秒, 结束本阶段
 			end = clock();
-			if ((double)(end - start) / CLOCKS_PER_SEC > 20)
+			if ((double)(end - start) / CLOCKS_PER_SEC > 30)
 			{
 				// 没有发现敌人
 				if (true)

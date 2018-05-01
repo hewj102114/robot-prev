@@ -14,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
 #   message_generation
 )
 
+add_definitions(-std=c++11) 
 
 ################################################
 ## Declare ROS messages, services and actions ##

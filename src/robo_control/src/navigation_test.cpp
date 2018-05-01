@@ -3,7 +3,7 @@
 
 int main(int argc, char **argv)
 {
-    ros::init(argc, argv, "robo_control");
+    ros::init(argc, argv, "navigation_control");
     ros::NodeHandle nh;
 
     RoboControl robo_ctl;

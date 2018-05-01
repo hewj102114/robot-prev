@@ -1,5 +1,5 @@
 <launch>
-<node pkg="robo_control" type="robo_control" name="robo_control" output="screen"/>
+<node pkg="robo_control" type="control_node" name="control_node" output="screen"/>
 <node pkg="robo_control" type="odom_broadcaster" name="odom_broadcaster"/>
 
 </launch>

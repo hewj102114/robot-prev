@@ -14,7 +14,7 @@
 #include "sensor_msgs/LaserScan.h"
 #include "robo_navigation/PID.h"
 using namespace std;
-
+#define OFFSET 0    //rplidar front offset
 
 
 class RoboNav{
@@ -31,6 +31,15 @@ public:
     PIDctrl pid_y;
     PIDctrl pid_yaw;
     tf::TransformListener* tf_;
+    /*obs_point record the valid obs point in four directions
+ * for rplidar (360 degree and 360 points), point steps by one degree
+ *  obs_point[0][]  -----forward  [0][0]=20
+ *  obs_point[1][]  -----left
+ *  obs_point[2][]  -----backward
+ *  obs_point[3][]  -----right
+ *  
+ */
+    double obs_point[4][3]; //90,+-60
     
     RoboNav();
     void init();
@@ -39,9 +48,12 @@ public:
     int findClosestPt(double x,double y);
     void get_vel(geometry_msgs::Twist& msg_vel);
     void setFixAngle(geometry_msgs::Quaternion& qua);
+    void cb_scan(const sensor_msgs::LaserScan::ConstPtr& scan);
+    geometry_msgs::Pose adjustlocalgoal();
 };
 
 RoboNav::RoboNav(){
+    obs_point[4][3]={0};
     pnh=new ros::NodeHandle("");
     pub_local_goal_pose=pnh->advertise<geometry_msgs::PoseStamped>("nav/local_goal",1);
     tf_ = new tf::TransformListener();
@@ -109,6 +121,34 @@ int RoboNav::findClosestPt(double x,double y){
     return n;
 }
 
+geometry_msgs::Pose RoboNav::adjustlocalgoal()
+{
+    geometry_msgs::Pose local_goal;
+    int local_goal_index=path[0];
+    double local_goal_y=point_list.at<double>(local_goal_index, 0) * 1.0 / 100;
+    double local_goal_x=point_list.at<double>(local_goal_index, 1) * 1.0 / 100;
+    local_goal.position.y=point_list.at<double>(local_goal_index, 0) * 1.0 / 100;
+    local_goal.position.x=point_list.at<double>(local_goal_index, 1) * 1.0 / 100;
+    
+    int flag_1=obs_point[0][1]<0.43||obs_point[0][0]<0.47||obs_point[0][2]<0.47;
+    if(flag_1==1)
+	local_goal.position.x=local_goal_x-0.1;
+    
+    int flag_2=obs_point[1][1]<0.35||obs_point[1][0]<0.40||obs_point[1][2]<0.40;
+    if(flag_2==1)
+	local_goal.position.y=local_goal_y-0.1;
+    
+    int flag_3=obs_point[2][1]<0.43||obs_point[2][0]<0.47||obs_point[2][2]<0.47;
+    if(flag_3==1) 
+	local_goal.position.x=local_goal_x+0.1;
+	
+    int flag_4=obs_point[3][1]<0.35||obs_point[3][0]<0.40||obs_point[3][2]<0.40;
+    if(flag_4==1)
+	local_goal.position.y=local_goal_y+0.1;
+    ROS_INFO("adjgoal x: %f, y: %f", local_goal.position.x, local_goal.position.y);
+    return local_goal;
+	
+}
 
 void RoboNav::get_vel(geometry_msgs::Twist& msg_vel)
 {
@@ -119,9 +159,9 @@ void RoboNav::get_vel(geometry_msgs::Twist& msg_vel)
     double vel_y = 0;
     double vel_yaw = 0;
     if (path.size() > 0) {
-        int cur_local_goal = path[0];
-        double cur_local_goal_y =point_list.at<double>(cur_local_goal, 0) * 1.0 / 100;
-        double cur_local_goal_x =point_list.at<double>(cur_local_goal, 1) * 1.0 / 100;
+        geometry_msgs::Pose cur_local_goal=adjustlocalgoal();
+        double cur_local_goal_y =cur_local_goal.position.y;
+        double cur_local_goal_x =cur_local_goal.position.x;
         double cur_yaw=tf::getYaw(cur_pose.orientation);
 	
 //         tf::Stamped<tf::Pose> ident (tf::Transform(tf::createIdentityQuaternion(),
@@ -162,7 +202,7 @@ void RoboNav::get_vel(geometry_msgs::Twist& msg_vel)
         if (dyaw>6.28) dyaw=dyaw-6.28;
         if (dyaw<-6.28) dyaw=dyaw+6.28;
 	    //ROS_INFO("angle: %f  fix angle : %f   dyaw %f",cur_yaw,fix_angle,dyaw);
-        ROS_INFO("num: %d  tar_x %f, tar_y %f,cur_x %f , cur_y %f, diff_x %f, diff_y %f",cur_local_goal, cur_local_goal_x, cur_local_goal_y,
+        ROS_INFO(" tar_x %f, tar_y %f,cur_x %f , cur_y %f, diff_x %f, diff_y %f", cur_local_goal_x, cur_local_goal_y,
           cur_pose.position.x, cur_pose.position.y, dx, dy);
         if (abs(dx) < 0.05 && abs(dy) < 0.05) 
 	    {
@@ -198,17 +238,9 @@ void RoboNav::setFixAngle(geometry_msgs::Quaternion& qua){
     fix_angle=tf::getYaw(qua);
 }
 
-#define OFFSET 20    //rplidar front offset
 
-/*obs_point record the valid obs point in four directions
- * for rplidar (360 degree and 360 points), point steps by one degree
- *  obs_point[0][]  -----forward  [0][0]=20
- *  obs_point[1][]  -----left
- *  obs_point[2][]  -----backward
- *  obs_point[3][]  -----right
- *  
- */
-double obs_point[4][3]={0}; //90,+-60
+
+
 
 double Filter_ScanData(int index, const sensor_msgs::LaserScan::ConstPtr& sscan)
 {
@@ -220,7 +252,7 @@ double Filter_ScanData(int index, const sensor_msgs::LaserScan::ConstPtr& sscan)
             if(index+m<0) Cindex=360+index+m;
             else if(index+m>=360) Cindex=index+m-360;
             else Cindex=index+m;
-            if(sscan->intensities[Cindex]==47)
+            if(sscan->ranges[Cindex]>0.25&&sscan->ranges[Cindex]<10)
             {
                 data=sscan->ranges[Cindex];
                 break;
@@ -229,21 +261,18 @@ double Filter_ScanData(int index, const sensor_msgs::LaserScan::ConstPtr& sscan)
             if(index-m<0) Cindex=360+index-m;
             else if(index-m>=360) Cindex=index-m-360;
             else Cindex=index-m;
-            if(sscan->intensities[Cindex]==47)
+            if(sscan->ranges[Cindex]>0.25&&sscan->ranges[Cindex]<10)
             {
                 data=sscan->ranges[Cindex];
                 break;
             }
             m++;
         }
-
-    if(data<0.0)  data=8.0;
-    else if(data>8.0)   data=8.0;
-
+        
     return data;
 }
 
-void scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan)
+void RoboNav::cb_scan(const sensor_msgs::LaserScan::ConstPtr& scan)
 {
     for(int i=0;i<4;i++)
     {
@@ -259,7 +288,6 @@ void scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan)
 	//ROS_INFO("No %d   %f %f  %f ",i, obs_point[i][0],obs_point[i][1],obs_point[i][2]);
     }
     
-    
 }
 
 int main(int argc,char **argv){
@@ -270,7 +298,7 @@ int main(int argc,char **argv){
     robo_nav.init();
     ros::Subscriber cb_tar_pose = nh.subscribe("base/goal", 1, &RoboNav::cb_tar_pose, &robo_nav);
     ros::Subscriber cb_cur_pose = nh.subscribe("odom", 1, &RoboNav::cb_cur_pose, &robo_nav);
-    ros::Subscriber sub = nh.subscribe<sensor_msgs::LaserScan>("/scan", 1, scanCallback);
+    ros::Subscriber sub = nh.subscribe<sensor_msgs::LaserScan>("/scan", 1, &RoboNav::cb_scan,&robo_nav);
 
     ros::Publisher pub_vel = nh.advertise<geometry_msgs::Twist>("cmd_vel", 1);
 
