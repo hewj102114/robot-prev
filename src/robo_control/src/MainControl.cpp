@@ -17,6 +17,7 @@ int main(int argc, char **argv)
 	ros::Subscriber sub_move_base_status = nh.subscribe("move_base/status", 1, &RoboControl::cb_move_base_status, &robo_ctl);
 	ros::Subscriber sub_another_robo_pose = nh.subscribe("/DeepWhuRobot1/odom", 1, &RoboControl::cb_another_robo_odom, &robo_ctl);
 
+
 	int init_flag = 1;
 	geometry_msgs::Pose nav_goal; // goal of navigation
 	int armor_lost_count = 0;
@@ -25,7 +26,6 @@ int main(int argc, char **argv)
 
 	while (0)
 	{
-		//TODO: jump to next point if time out
 		robo_ctl.readMCUData();
 		KeyPoint goalKeyPoint = robo_ctl.KEY_POINT[key_point_no];
 		KeyPoint currentPosition = robo_ctl.KEY_POINT[key_point_no];
@@ -92,6 +92,10 @@ int main(int argc, char **argv)
 	2. 看到敌人(realsense) -> 敌我判断 -> 到敌人附近 -> 攻击
 	3. 没有看到敌人 -> 继续巡图
 	*/
+	/* 重要参数: 
+	gimbal 1:serach 2:shoot
+	chassis 1:velcity 2:angle pose 3:init
+	*/
 	int work_state = 0;
 	while (ros::ok())
 	{
@@ -108,8 +112,13 @@ int main(int argc, char **argv)
 		case 0:
 			ROS_INFO("阶段 0: 抢占中点!!!!!!");
 
+			target_pose.position.x = 4.0;
+			target_pose.position.y = 2.5;
+			target_pose.orientation = robo_ctl.robo_ukf_pose.orientation;
+			robo_ctl.sendNavGoal(target_pose);
+			robo_ctl.sendMCUMsg(1, 2, robo_ctl.cmd_vel_msg.v_x, robo_ctl.cmd_vel_msg.v_y, robo_ctl.cmd_vel_msg.v_yaw, 0, 0, 0);
 			// 到达中点并停留 n 秒, 结束本阶段
-			if (true)
+			if (0)
 			{
 				// 没有发现敌人
 				if (true)
@@ -140,7 +149,7 @@ int main(int argc, char **argv)
 		*************************************************************************/
 		case 2:
 			ROS_INFO("阶段 2: 发现敌人, 靠近敌人并攻击!!!!!!")
-			
+
 			break;
 
 		default:

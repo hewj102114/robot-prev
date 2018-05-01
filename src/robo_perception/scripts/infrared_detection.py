@@ -56,8 +56,7 @@ def DetectInit():
     detect_net = 'squeezeDet'
     checkpoint = '/home/ubuntu/robot/src/robo_perception/scripts/weights/Infrared-Image/model.ckpt-99000'
 
-    assert detect_net == 'squeezeDet' or detect_net == 'squeezeDet+', \
-        'Selected nueral net architecture not supported'
+    assert detect_net == 'squeezeDet' or detect_net == 'squeezeDet+', 'Selected nueral net architecture not supported'
 
     tf.Graph().as_default()
     # Load model
