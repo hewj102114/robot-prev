@@ -112,7 +112,7 @@ int main(int argc, char **argv)
 		case 0:
 			
 			ROS_INFO("阶段 0: 抢占中点!!!!!!");
-
+			geometry_msgs::Pose target_pose;
 			target_pose.position.x = 4.0;
 			target_pose.position.y = 2.5;
 			target_pose.orientation = robo_ctl.robo_ukf_pose.orientation;
@@ -150,7 +150,7 @@ int main(int argc, char **argv)
 		*
 		*************************************************************************/
 		case 2:
-			ROS_INFO("阶段 2: 发现敌人, 靠近敌人并攻击!!!!!!")
+			ROS_INFO("阶段 2: 发现敌人, 靠近敌人并攻击!!!!!!");
 
 			break;
 
