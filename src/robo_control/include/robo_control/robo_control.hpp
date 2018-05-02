@@ -103,6 +103,7 @@ class RoboControl
                                float x_threshold, float y_threshold, float yaw_threshold);
     int getClosestKeyPoint(float pose_x, float pose_y);
 
+    void cb_finish_navigation(const std_msgs::Bool &msg);
     ros::NodeHandle *pnh;
 
     ros::Publisher pub_game_info;
@@ -152,6 +153,15 @@ class RoboControl
 
 
     std_msgs::Bool finish_navigation;
+
+
+    // 各种 flag
+    bool finish_goto_center = false;
+    int key_point_count = 1;
+    float x[4] = {1.30, 6.70, 6.70, 1.30};
+    float y[4] = {0.80, 0.80, 4.20, 4.20};
+
+
     // yaw: 1 -> 2
     KeyPoint KEY_POINT[30] = {
         {0, 1.30, 0.80, 0 * PI / 180.0},

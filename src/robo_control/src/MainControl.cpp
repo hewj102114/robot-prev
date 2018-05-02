@@ -22,7 +22,7 @@ int main(int argc, char **argv)
 	geometry_msgs::Pose nav_goal; // goal of navigation
 	int armor_lost_count = 0;
 	int key_point_no = 1;
-	clock_t start = clock(), end;
+	clock_t start, end;
 
 	while (0)
 	{
@@ -120,8 +120,27 @@ int main(int argc, char **argv)
 			robo_ctl.sendNavGoal(target_pose);
 			robo_ctl.sendMCUMsg(1, 1, robo_ctl.cmd_vel_msg.v_x, robo_ctl.cmd_vel_msg.v_y, robo_ctl.cmd_vel_msg.v_yaw, 0, 0, 0);
 			// 到达中点并停留 n 秒, 结束本阶段
-			end = clock();
-			if (robo_ctl.finish_navigation || (double)(end - start) / CLOCKS_PER_SEC > 30)
+			
+			if (robo_ctl.finish_navigation.data)
+			{
+				ROS_INFO("Arrived goal!!!!");
+				start = clock();
+				while(1)
+				{
+					end = clock();
+					if((double)(end - start) / CLOCKS_PER_SEC > 5)
+					{
+						robo_ctl.finish_goto_center = true;
+						break;
+					}
+				}
+			}
+			else
+			{
+				ROS_INFO("Going to goal!!!!");
+			}
+			
+			if (robo_ctl.finish_goto_center == true)
 			{
 				// 没有发现敌人
 				if (true)
@@ -141,8 +160,33 @@ int main(int argc, char **argv)
 		*
 		*************************************************************************/
 		case 1:
+			/* 
+			TODO: 刚到达中点的巡图: 按照固定顺序进行
+			TODO: 丢失敌人之后的巡图: 根据敌人丢失的位置巡图
+			go_on_patrol(flag, current_position, enemy_position)
+			*/ 
 			ROS_INFO("Stage 1: Not find enemy, finding enemy!!!!!!");
+
+			target_pose.position.x = robo_ctl.x[robo_ctl.key_point_count];
+			target_pose.position.y = robo_ctl.y[robo_ctl.key_point_count];
+			target_pose.orientation = robo_ctl.robo_ukf_pose.orientation;
+			robo_ctl.sendNavGoal(target_pose);
+			robo_ctl.sendMCUMsg(1, 1, robo_ctl.cmd_vel_msg.v_x, robo_ctl.cmd_vel_msg.v_y, robo_ctl.cmd_vel_msg.v_yaw, 0, 0, 0);
+			// 到达中点并停留 n 秒, 结束本阶段
 			
+			if (robo_ctl.finish_navigation.data ==  true)
+			{
+				ROS_INFO("Arrived goal!!!!");
+				robo_ctl.key_point_count++;
+				if(robo_ctl.key_point_count > 3)
+				{
+					robo_ctl.key_point_count = 0;
+				}
+			}
+			else
+			{
+				ROS_INFO("Going to goal!!!!");
+			}
 			break;
 
 		/*************************************************************************

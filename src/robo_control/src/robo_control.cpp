@@ -28,10 +28,7 @@ void RoboControl::cb_move_base(const move_base_msgs::MoveBaseActionFeedback &msg
     }
 }
 
-void RoboControl::cb_finish_navigation(const std_msgs::Bool &msg)
-{
-    finish_navigation = msg;
-}
+
 
 
 void RoboControl::cb_enemy_pose(const geometry_msgs::TransformStamped &msg)
@@ -42,8 +39,7 @@ void RoboControl::cb_enemy_pose(const geometry_msgs::TransformStamped &msg)
     enemy_found_flag = 1;
 }
 
-void RoboControl::cb_enemy_pnp_pose(
-    const geometry_msgs::TransformStamped &msg)
+void RoboControl::cb_enemy_pnp_pose(const geometry_msgs::TransformStamped &msg)
 {
     enemy_odom_pnp_pose.position.x = msg.transform.translation.x - 0.2;
     enemy_odom_pnp_pose.position.y = msg.transform.translation.y - 0.2;
@@ -136,8 +132,7 @@ void RoboControl::readMCUData()
     camera_trans.transform.translation.x = 0.15;
     camera_trans.transform.translation.y = 0;
     camera_trans.transform.translation.z = 0.0;
-    camera_trans.transform.rotation =
-        tf::createQuaternionMsgFromRollPitchYaw(-1.57, 0, -1.57);
+    camera_trans.transform.rotation = tf::createQuaternionMsgFromRollPitchYaw(-1.57, 0, -1.57);
     camera_tf.sendTransform(camera_trans);
 }
 
@@ -248,4 +243,30 @@ int RoboControl::getClosestKeyPoint(float pose_x, float pose_y)
         }
     }
     return num;
+}
+
+void RoboControl::cb_finish_navigation(const std_msgs::Bool &msg)
+{
+    finish_navigation = msg;
+}
+
+void RoboControl::go_on_patrol(int flag, float current_position, float enemy_position)
+{
+    /*************************************************************************
+    *  函数名称：go_on_patrol
+    *  功能说明：巡图
+    *  参数说明：   flag: 1 -> 从中点开始的巡图, 2 -> 丢失敌人巡图
+    *               current_position: 自身当前位置
+    *               enemy_position: 敌人最后一次出现的位置
+    *  函数返回：无
+    *************************************************************************/
+   if(flag == 1)
+   {
+       // 在中点处的巡图
+       
+   }
+   if(flag == 2)
+   {
+       // 丢失敌人之后的巡图
+   }
 }
