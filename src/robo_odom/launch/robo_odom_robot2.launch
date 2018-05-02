@@ -1,6 +1,5 @@
 <?xml version="1.0"?>
 <launch>
-
 	<!-- vim: set ft=xml noet : -->
 	<!-- example launch script for PX4 based FCU's -->
 	<arg name="fcu_url" default="/dev/ttyACM0:921600" />
@@ -90,6 +89,5 @@
 		<param name="a_std_y" value="1.5"/>
 		<param name="dt" value="0.125"/>
   </node>
-  
 
 </launch>

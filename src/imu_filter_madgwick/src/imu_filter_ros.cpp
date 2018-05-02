@@ -126,26 +126,26 @@ ImuFilterRos::ImuFilterRos(ros::NodeHandle nh, ros::NodeHandle nh_private):
   int queue_size = 5;
 
   imu_subscriber_.reset(new ImuSubscriber(
-    nh_, ros::names::resolve("/mavros/imu") + "/data_raw", queue_size));
+    nh_, ros::names::resolve("mavros/imu") + "/data_raw", queue_size));
 
   if (use_mag_)
   {
     if (use_magnetic_field_msg_)
     {
       mag_subscriber_.reset(new MagSubscriber(
-        nh_, ros::names::resolve("/mavros/imu") + "/mag", queue_size));
+        nh_, ros::names::resolve("mavros/imu") + "/mag", queue_size));
     }
     else
     {
       mag_subscriber_.reset(new MagSubscriber(
-        nh_, ros::names::resolve("/mavros/imu") + "/magnetic_field", queue_size));
+        nh_, ros::names::resolve("mavros/imu") + "/magnetic_field", queue_size));
 
       // Initialize the shim to support republishing Vector3Stamped messages from /mag as MagneticField
       // messages on the /magnetic_field topic.
       mag_republisher_ = nh_.advertise<MagMsg>(
-        ros::names::resolve("/mavros/imu") + "/magnetic_field", 1);
+        ros::names::resolve("mavros/imu") + "/magnetic_field", 1);
       vector_mag_subscriber_.reset(new MagVectorSubscriber(
-        nh_, ros::names::resolve("/mavros/imu") + "/mag", queue_size));
+        nh_, ros::names::resolve("mavros/imu") + "/mag", queue_size));
       vector_mag_subscriber_->registerCallback(&ImuFilterRos::imuMagVectorCallback, this);
     }
 
