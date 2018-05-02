@@ -41,6 +41,8 @@ void Floyd::calcPath(int start, int end) {
             path.push_back(end);
         }
     }
+    else
+        path.clear();
 }
 
 

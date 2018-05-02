@@ -94,18 +94,23 @@ void RoboNav::cb_tar_pose(const geometry_msgs::PoseConstPtr& msg){
     if(dis<0.5) state.data=true;
     else state.data=false;
     ROS_INFO("dis: %f", dis);
-    if ((abs(pre_goal.position.x - msg->position.x )>0.1 ) || (abs(pre_goal.position.y - msg->position.y )>0.1)){
-	    
-    int start_pt=findClosestPt(cur_pose.position.y,cur_pose.position.x);
-    int end_pt=findClosestPt(msg->position.y,msg->position.x);
-    floyd.calcPath(start_pt,end_pt);
-    ROS_INFO("start %f  %f  end   %f  %f ",cur_pose.position.x,cur_pose.position.y,msg->position.x,msg->position.y);
-    ROS_INFO("GET GOAL start: %d  end: %d",start_pt,end_pt);
-    floyd.printPath();
-    path.assign(floyd.path.begin(), floyd.path.end()); 
-    pre_goal.position.x =msg->position.x;
-    pre_goal.position.y =msg->position.y;
-    setFixAngle(cur_pose.orientation);
+    if ((abs(pre_goal.position.x - msg->position.x) > 0.1) || (abs(pre_goal.position.y - msg->position.y) > 0.1))
+    {
+        int start_pt = findClosestPt(cur_pose.position.y, cur_pose.position.x);
+        int end_pt = findClosestPt(msg->position.y, msg->position.x);
+        if (start_pt != end_pt)
+        {
+            floyd.calcPath(start_pt, end_pt);
+            ROS_INFO("start %f  %f  end   %f  %f ", cur_pose.position.x, cur_pose.position.y, msg->position.x, msg->position.y);
+            ROS_INFO("GET GOAL start: %d  end: %d", start_pt, end_pt);
+            floyd.printPath();
+            path.assign(floyd.path.begin(), floyd.path.end());
+            pre_goal.position.x = msg->position.x;
+            pre_goal.position.y = msg->position.y;
+            setFixAngle(cur_pose.orientation);
+        }
+        else
+            path.clear();
     }
 }
 
@@ -246,62 +251,61 @@ void RoboNav::cb_scan(const sensor_msgs::LaserScan::ConstPtr& scan)
 geometry_msgs::Pose RoboNav::adjustlocalgoal()
 {
     geometry_msgs::Pose local_goal;
-    int local_goal_index=path[0];
-    double local_goal_y=point_list.at<double>(local_goal_index, 0) * 1.0 / 100;
-    double local_goal_x=point_list.at<double>(local_goal_index, 1) * 1.0 / 100;
-    local_goal.position.y=point_list.at<double>(local_goal_index, 0) * 1.0 / 100;
-    local_goal.position.x=point_list.at<double>(local_goal_index, 1) * 1.0 / 100;
-    
-    if(obs_min[0]<0.35)
+    int local_goal_index = path[0];
+    double local_goal_y = point_list.at<double>(local_goal_index, 0) * 1.0 / 100;
+    double local_goal_x = point_list.at<double>(local_goal_index, 1) * 1.0 / 100;
+    local_goal.position.y = point_list.at<double>(local_goal_index, 0) * 1.0 / 100;
+    local_goal.position.x = point_list.at<double>(local_goal_index, 1) * 1.0 / 100;
+
+    if (obs_min[0] < 0.35)
     {
-	pid_x.stop=true;
+        pid_x.stop = true;
     }
-    else if(obs_min[0]<DEFFENCE)
+    else if (obs_min[0] < DEFFENCE)
     {
-	pid_x.stop=false;
-	local_goal.position.x=local_goal_x-0.1;
-    }
-    else
-	pid_x.stop=false;
-    
-    if(obs_min[1]<0.30)
-    {
-	pid_y.stop=true;
-    }
-    else if(obs_min[1]<DEFFENCE)
-    {
-	pid_y.stop=false;
-	local_goal.position.y=local_goal_y-0.07;
+        pid_x.stop = false;
+        local_goal.position.x = local_goal_x - 0.1;
     }
     else
-	pid_y.stop=false;
-    
-    if(obs_min[2]<0.35)
+        pid_x.stop = false;
+
+    if (obs_min[1] < 0.30)
     {
-	pid_x.stop=true;
+        pid_y.stop = true;
     }
-    else if(obs_min[2]<DEFFENCE) 
+    else if (obs_min[1] < DEFFENCE)
     {
-	pid_x.stop=false;
-	local_goal.position.x=local_goal_x+0.1;
-    }
-    else 
-	pid_x.stop=false;
-    
-    if(obs_min[3]<0.30)
-    {
-	pid_y.stop=true;
-    }
-    else if(obs_min[3]<DEFFENCE)
-    {
-	pid_y.stop=false;
-	local_goal.position.y=local_goal_y+0.07;
+        pid_y.stop = false;
+        local_goal.position.y = local_goal_y - 0.07;
     }
     else
-	pid_y.stop=false;
+        pid_y.stop = false;
+
+    if (obs_min[2] < 0.35)
+    {
+        pid_x.stop = true;
+    }
+    else if (obs_min[2] < DEFFENCE)
+    {
+        pid_x.stop = false;
+        local_goal.position.x = local_goal_x + 0.1;
+    }
+    else
+        pid_x.stop = false;
+
+    if (obs_min[3] < 0.30)
+    {
+        pid_y.stop = true;
+    }
+    else if (obs_min[3] < DEFFENCE)
+    {
+        pid_y.stop = false;
+        local_goal.position.y = local_goal_y + 0.07;
+    }
+    else
+        pid_y.stop = false;
     //ROS_INFO("adjgoal x: %f, y: %f", local_goal.position.x, local_goal.position.y);
     return local_goal;
-	
 }
 
 int main(int argc,char **argv){
