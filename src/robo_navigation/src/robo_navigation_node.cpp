@@ -39,7 +39,7 @@ public:
  *  obs_point[3][]  -----right
  *  
  */
-    double obs_point[4][3]; //90,+-60
+    double obs_min[4]; //90,+-60
     
     RoboNav();
     void init();
@@ -119,35 +119,6 @@ int RoboNav::findClosestPt(double x,double y){
     
     int n=distance(dis_list.begin(), smallest);
     return n;
-}
-
-geometry_msgs::Pose RoboNav::adjustlocalgoal()
-{
-    geometry_msgs::Pose local_goal;
-    int local_goal_index=path[0];
-    double local_goal_y=point_list.at<double>(local_goal_index, 0) * 1.0 / 100;
-    double local_goal_x=point_list.at<double>(local_goal_index, 1) * 1.0 / 100;
-    local_goal.position.y=point_list.at<double>(local_goal_index, 0) * 1.0 / 100;
-    local_goal.position.x=point_list.at<double>(local_goal_index, 1) * 1.0 / 100;
-    
-    int flag_1=obs_point[0][1]<0.43||obs_point[0][0]<0.47||obs_point[0][2]<0.47;
-    if(flag_1==1)
-	local_goal.position.x=local_goal_x-0.1;
-    
-    int flag_2=obs_point[1][1]<0.35||obs_point[1][0]<0.40||obs_point[1][2]<0.40;
-    if(flag_2==1)
-	local_goal.position.y=local_goal_y-0.1;
-    
-    int flag_3=obs_point[2][1]<0.43||obs_point[2][0]<0.47||obs_point[2][2]<0.47;
-    if(flag_3==1) 
-	local_goal.position.x=local_goal_x+0.1;
-	
-    int flag_4=obs_point[3][1]<0.35||obs_point[3][0]<0.40||obs_point[3][2]<0.40;
-    if(flag_4==1)
-	local_goal.position.y=local_goal_y+0.1;
-    ROS_INFO("adjgoal x: %f, y: %f", local_goal.position.x, local_goal.position.y);
-    return local_goal;
-	
 }
 
 void RoboNav::get_vel(geometry_msgs::Twist& msg_vel)
@@ -245,28 +216,17 @@ void RoboNav::setFixAngle(geometry_msgs::Quaternion& qua){
 double Filter_ScanData(int index, const sensor_msgs::LaserScan::ConstPtr& sscan)
 {
     int Cindex=index;
-    double data=0;
+    double data=8;
     int m=0;
-        while(1)
+        for(int i=-45; i<45;i++)
         {
-            if(index+m<0) Cindex=360+index+m;
-            else if(index+m>=360) Cindex=index+m-360;
-            else Cindex=index+m;
-            if(sscan->ranges[Cindex]>0.25&&sscan->ranges[Cindex]<10)
+            if(index+i<0) Cindex=360+index+i;
+            else if(index+i>=360) Cindex=index+i-360;
+            else Cindex=index+i;
+            if(sscan->ranges[Cindex]>0.25&&sscan->ranges[Cindex]<data)
             {
                 data=sscan->ranges[Cindex];
-                break;
             }
-
-            if(index-m<0) Cindex=360+index-m;
-            else if(index-m>=360) Cindex=index-m-360;
-            else Cindex=index-m;
-            if(sscan->ranges[Cindex]>0.25&&sscan->ranges[Cindex]<10)
-            {
-                data=sscan->ranges[Cindex];
-                break;
-            }
-            m++;
         }
         
     return data;
@@ -276,18 +236,39 @@ void RoboNav::cb_scan(const sensor_msgs::LaserScan::ConstPtr& scan)
 {
     for(int i=0;i<4;i++)
     {
-        //right
-        int index_r=OFFSET+i*90-30;
-        obs_point[i][0]=Filter_ScanData(index_r,scan);
-        //center
         int index=OFFSET+i*90;
-        obs_point[i][1]=Filter_ScanData(index,scan);
-        //left
-        int index_l=OFFSET+i*90+30;
-        obs_point[i][2]=Filter_ScanData(index_l,scan);
-	//ROS_INFO("No %d   %f %f  %f ",i, obs_point[i][0],obs_point[i][1],obs_point[i][2]);
+        obs_min[i]=Filter_ScanData(index,scan);
     }
+    ROS_INFO("min Front: %f, Left: %f  Behind: %f, Right: %f ", obs_min[0],obs_min[1],obs_min[2],obs_min[3]);
+}
+
+geometry_msgs::Pose RoboNav::adjustlocalgoal()
+{
+    geometry_msgs::Pose local_goal;
+    int local_goal_index=path[0];
+    double local_goal_y=point_list.at<double>(local_goal_index, 0) * 1.0 / 100;
+    double local_goal_x=point_list.at<double>(local_goal_index, 1) * 1.0 / 100;
+    local_goal.position.y=point_list.at<double>(local_goal_index, 0) * 1.0 / 100;
+    local_goal.position.x=point_list.at<double>(local_goal_index, 1) * 1.0 / 100;
     
+    int flag_1=obs_min[0]<0.45;
+    if(flag_1==1)
+	local_goal.position.x=local_goal_x-0.1;
+    
+    int flag_2=obs_min[1]<0.35;
+    if(flag_2==1)
+	local_goal.position.y=local_goal_y-0.1;
+    
+    int flag_3=obs_min[2]<0.45;
+    if(flag_3==1) 
+	local_goal.position.x=local_goal_x+0.1;
+	
+    int flag_4=obs_min[3]<0.35;
+    if(flag_4==1)
+	local_goal.position.y=local_goal_y+0.1;
+    ROS_INFO("adjgoal x: %f, y: %f", local_goal.position.x, local_goal.position.y);
+    return local_goal;
+	
 }
 
 int main(int argc,char **argv){
