@@ -9,7 +9,9 @@
 #include <geometry_msgs/Vector3Stamped.h>
 #include <sensor_msgs/Imu.h>
 #include <nav_msgs/Odometry.h>
+
 #include <std_msgs/Int16.h>
+#include <std_msgs/Bool.h>
 
 #include <geometry_msgs/TransformStamped.h>
 #include <tf/transform_datatypes.h>
@@ -30,7 +32,8 @@ using namespace std;
 #define KYAW 70
 
 //Armor Info Data
-struct ArmorInfo {
+struct ArmorInfo
+{
     int mode;
     float image_dx;
     float image_dy;
@@ -40,22 +43,26 @@ struct ArmorInfo {
 };
 
 //Chassis Velocity Data
-struct ChassisCMD {
-    float v_x=0;
-    float v_y=0;
-    float v_yaw=0;
+struct ChassisCMD
+{
+    float v_x = 0;
+    float v_y = 0;
+    float v_yaw = 0;
 };
 
-struct KeyPoint{
+struct KeyPoint
+{
     int idx;   // index of KeyPoint
-    float x;        // x coordinate of keypoint
-    float y;        // y coordinate of keypoint
-    float yaw;  // the direction of keypoint
+    float x;   // x coordinate of keypoint
+    float y;   // y coordinate of keypoint
+    float yaw; // the direction of keypoint
 };
 
-class RoboControl {
-   public:
-    RoboControl() {
+class RoboControl
+{
+  public:
+    RoboControl()
+    {
         pnh = new ros::NodeHandle("");
 
         pub_game_info = pnh->advertise<robo_control::GameInfo>("base/game_info", 1);
@@ -64,18 +71,18 @@ class RoboControl {
             pnh->advertise<geometry_msgs::Vector3Stamped>("robo/wheel/data", 1);
         pub_imu_data = pnh->advertise<sensor_msgs::Imu>("gimbal/imu/data_raw", 1);
         pub_nav_goal = pnh->advertise<geometry_msgs::Pose>("base/goal", 1);
-        
+
         serial = new Serial("/dev/ttyUSBA1");
         serial->configurePort();
 
         pre_uwb_ready_flag = 0;
         enemy_found_flag = 0;
         armor_ready_flag = 0;
-	init_flag=0;
-	nav_start_time=ros::Time::now();
+        init_flag = 0;
+        nav_start_time = ros::Time::now();
     };
 
-//ROS CallBack Function
+    //ROS CallBack Function
     void cb_armorInfo(const robo_vision::ArmorInfo &msg);
     void cb_cmd_vel(const geometry_msgs::Twist &msg);
     void cb_move_base(const move_base_msgs::MoveBaseActionFeedback &msg);
@@ -91,10 +98,10 @@ class RoboControl {
     void sendMCUMsg(int _chassis_mode, int _gimbal_mode, float _velocity_x, float _velocity_y,
                     float _velocity_yaw, float _gimbal_yaw, float _gimbal_pitch,
                     float _enemy_distance);
-    bool judgeKeyPointPosition(KeyPoint currentPosition, 
-                                        KeyPoint goalKeyPoint, 
-                                        float x_threshold, float y_threshold, float yaw_threshold);
-    int getClosestKeyPoint(float pose_x,float pose_y);
+    bool judgeKeyPointPosition(KeyPoint currentPosition,
+                               KeyPoint goalKeyPoint,
+                               float x_threshold, float y_threshold, float yaw_threshold);
+    int getClosestKeyPoint(float pose_x, float pose_y);
 
     ros::NodeHandle *pnh;
 
@@ -107,14 +114,14 @@ class RoboControl {
     tf2_ros::TransformBroadcaster gimbal_tf;
     tf2_ros::TransformBroadcaster camera_tf;
 
-    Serial* serial;
+    Serial *serial;
 
     int uwb_ready_flag; //current UWB flag  valid if = 2
     int pre_uwb_ready_flag;
 
-    int enemy_found_flag; //if enemy found in realsence -> 1
+    int enemy_found_flag;     //if enemy found in realsence -> 1
     int enemy_found_pnp_flag; //if enemy found in pnp -> 1
-    int armor_ready_flag;//armor data come ->1  not = find armor
+    int armor_ready_flag;     //armor data come ->1  not = find armor
     int init_flag;
     ArmorInfo armor_info_msg;
 
@@ -123,7 +130,7 @@ class RoboControl {
     geometry_msgs::Pose robo_uwb_pose;
     geometry_msgs::Pose robo_ukf_pose;
     geometry_msgs::Pose enemy_odom_pose;
-        geometry_msgs::Pose enemy_odom_pnp_pose;
+    geometry_msgs::Pose enemy_odom_pnp_pose;
     geometry_msgs::Pose another_robo_pose;
 
     /* uint8 PENDING=0
@@ -136,47 +143,50 @@ class RoboControl {
      *  uint8 RECALLING=7
      *  uint8 RECALLED=8
      *  uint8 LOST=9*/
-    int nav_status;//status from move_base pkg
+    int nav_status; //status from move_base pkg
 
     geometry_msgs::Pose nav_current_goal;
+    
     bool keyPointNav(int keypoint_num);
     ros::Time nav_start_time;
-    
+
+
+    std_msgs::Bool finish_navigation;
     // yaw: 1 -> 2
     KeyPoint KEY_POINT[30] = {
-        {0, 1.30, 0.80, 0*PI/180.0},       
-        {1, 2.60, 0.80, 90*PI/180.0},
-        {2, 2.60, 1.50, 90*PI/180.0},
-        {3, 2.60, 2.50, 90*PI/180.0},
-        
+        {0, 1.30, 0.80, 0 * PI / 180.0},
+        {1, 2.60, 0.80, 90 * PI / 180.0},
+        {2, 2.60, 1.50, 90 * PI / 180.0},
+        {3, 2.60, 2.50, 90 * PI / 180.0},
+
         //{4, 2.00, 3.20, 0*PI/180.0},
         //{5, 3.00, 3.50, 0*PI/180.0},
-        
-        {6, 4.00, 2.50, -90*PI/180.0},
-        {7, 4.00, 1.50, -90*PI/180.0},
-        {8, 4.00, 0.50, 0*PI/180.0},
-        {9, 5.00, 0.50, 0*PI/180.0},
-        {10, 6.40, 0.50, 0*PI/180.0},
-        {11, 7.50, 1.0, 90*PI/180.0},
+
+        {6, 4.00, 2.50, -90 * PI / 180.0},
+        {7, 4.00, 1.50, -90 * PI / 180.0},
+        {8, 4.00, 0.50, 0 * PI / 180.0},
+        {9, 5.00, 0.50, 0 * PI / 180.0},
+        {10, 6.40, 0.50, 0 * PI / 180.0},
+        {11, 7.50, 1.0, 90 * PI / 180.0},
         //{12, 7.10, 1.80, 90*PI/180.0},
         //{13, 6.70, 2.50, 90*PI/180.0},
-        {14, 6.70, 3.50, 90*PI/180.0},
-        {15, 6.70, 4.20, 180*PI/180.0},
-        {16, 5.40, 4.20, -90*PI/180.0},
-        {17, 5.40, 3.50, -90*PI/180.0},
-        {18, 5.40, 2.50, -90*PI/180.0},
-        
+        {14, 6.70, 3.50, 90 * PI / 180.0},
+        {15, 6.70, 4.20, 180 * PI / 180.0},
+        {16, 5.40, 4.20, -90 * PI / 180.0},
+        {17, 5.40, 3.50, -90 * PI / 180.0},
+        {18, 5.40, 2.50, -90 * PI / 180.0},
+
         //{19, 6.00, 1.80, 180*PI/180.0},
         //{20, 5.00, 1.50, 180*PI/180.0},
-        
-        {21, 4.00, 2.50, 90*PI/180.0},
-        {22, 4.00, 3.50, 90*PI/180.0},
-        {23, 3.80, 4.20, 180*PI/180.0},
-        {24, 3.00, 4.50, 180*PI/180.0},
-        {25, 1.60, 4.50, 180*PI/180.0},
-        {26, 0.60, 4.50, -90*PI/180.0},
+
+        {21, 4.00, 2.50, 90 * PI / 180.0},
+        {22, 4.00, 3.50, 90 * PI / 180.0},
+        {23, 3.80, 4.20, 180 * PI / 180.0},
+        {24, 3.00, 4.50, 180 * PI / 180.0},
+        {25, 1.60, 4.50, 180 * PI / 180.0},
+        {26, 0.60, 4.50, -90 * PI / 180.0},
         //{27, 0.90, 3.20, -90*PI/180.0},
-        {28, 1.30, 2.50, -90*PI/180.0},
-        {29, 1.30, 1.50, -90*PI/180.0},
+        {28, 1.30, 2.50, -90 * PI / 180.0},
+        {29, 1.30, 1.50, -90 * PI / 180.0},
     };
 };
