@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <ros/ros.h>
+#include <std_msgs/Bool.h>
 #include <geometry_msgs/Pose.h>
 #include <visualization_msgs/Marker.h>
 #include <geometry_msgs/Twist.h>
@@ -15,7 +16,7 @@
 #include "robo_navigation/PID.h"
 using namespace std;
 #define OFFSET 0    //rplidar front offset
-
+#define DEFFENCE 0.45
 
 class RoboNav{
 public:
@@ -53,7 +54,7 @@ public:
 };
 
 RoboNav::RoboNav(){
-    obs_point[4][3]={0};
+    obs_min[4]={0};
     pnh=new ros::NodeHandle("");
     pub_local_goal_pose=pnh->advertise<geometry_msgs::PoseStamped>("nav/local_goal",1);
     tf_ = new tf::TransformListener();
@@ -251,21 +252,53 @@ geometry_msgs::Pose RoboNav::adjustlocalgoal()
     local_goal.position.y=point_list.at<double>(local_goal_index, 0) * 1.0 / 100;
     local_goal.position.x=point_list.at<double>(local_goal_index, 1) * 1.0 / 100;
     
-    int flag_1=obs_min[0]<0.45;
-    if(flag_1==1)
+    if(obs_min[0]<0.33)
+    {
+	pid_x.stop=true;
+    }
+    else if(obs_min[0]<DEFFENCE)
+    {
+	pid_x.stop=false;
 	local_goal.position.x=local_goal_x-0.1;
+    }
+    else
+	pid_x.stop=false;
     
-    int flag_2=obs_min[1]<0.35;
-    if(flag_2==1)
-	local_goal.position.y=local_goal_y-0.1;
+    if(obs_min[1]<0.26)
+    {
+	pid_y.stop=true;
+    }
+    else if(obs_min[1]<DEFFENCE)
+    {
+	pid_y.stop=false;
+	local_goal.position.y=local_goal_y-0.07;
+    }
+    else
+	pid_y.stop=false;
     
-    int flag_3=obs_min[2]<0.45;
-    if(flag_3==1) 
+    if(obs_min[2]<0.33)
+    {
+	pid_x.stop=true;
+    }
+    else if(obs_min[2]<DEFFENCE) 
+    {
+	pid_x.stop=false;
 	local_goal.position.x=local_goal_x+0.1;
-	
-    int flag_4=obs_min[3]<0.35;
-    if(flag_4==1)
-	local_goal.position.y=local_goal_y+0.1;
+    }
+    else 
+	pid_x.stop=false;
+    
+    if(obs_min[3]<0.26)
+    {
+	pid_y.stop=true;
+    }
+    else if(obs_min[3]<DEFFENCE)
+    {
+	pid_y.stop=false;
+	local_goal.position.y=local_goal_y+0.07;
+    }
+    else
+	pid_y.stop=false;
     ROS_INFO("adjgoal x: %f, y: %f", local_goal.position.x, local_goal.position.y);
     return local_goal;
 	
@@ -279,18 +312,25 @@ int main(int argc,char **argv){
     robo_nav.init();
     ros::Subscriber cb_tar_pose = nh.subscribe("base/goal", 1, &RoboNav::cb_tar_pose, &robo_nav);
     ros::Subscriber cb_cur_pose = nh.subscribe("odom", 1, &RoboNav::cb_cur_pose, &robo_nav);
-    ros::Subscriber sub = nh.subscribe<sensor_msgs::LaserScan>("/scan", 1, &RoboNav::cb_scan,&robo_nav);
+    ros::Subscriber sub = nh.subscribe<sensor_msgs::LaserScan>("scan", 1, &RoboNav::cb_scan,&robo_nav);
 
     ros::Publisher pub_vel = nh.advertise<geometry_msgs::Twist>("cmd_vel", 1);
+    ros::Publisher pub_state=nh.advertise<std_msgs::Bool>("nav_state",1);
 
     ros::Rate rate(50);
+    std_msgs::Bool state;
     while (ros::ok()){
 	if (robo_nav.path.size()>0){
 	    geometry_msgs::Twist msg_vel;
 	    //ROS_INFO("vel x: %f y:%f",msg_vel.linear.x,msg_vel.linear.y);
 	    robo_nav.get_vel(msg_vel);
 	    pub_vel.publish(msg_vel);
+	    state.data=false;
+	    
 	}
+	else
+	    state.data=true;
+	pub_state.publish(state);
         ros::spinOnce();
         rate.sleep();
     }

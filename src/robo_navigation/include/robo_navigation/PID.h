@@ -12,6 +12,7 @@ class PIDctrl
 	double dErr;
 	double output;
 	double outMax;//输出最大值
+	bool stop;
 	
 	PIDctrl()
 	{
@@ -30,6 +31,7 @@ void PIDctrl::init(double _Kp, double _Ki, double _Kd, double _max)
     Ki=_Ki;
     Kd=_Kd;
     outMax=_max;
+    stop=false;
 }
 
 
@@ -57,5 +59,7 @@ double PIDctrl::calc(double &curErr)
 	{
 		output=outMax*output/abs(output);
 	}
+	
+	if(stop==true) output=0;
 	return output;
 }
