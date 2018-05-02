@@ -18,6 +18,7 @@ using namespace std;
 #define OFFSET 0    //rplidar front offset
 #define DEFFENCE 0.45
 
+
 class RoboNav{
 public:
     ros::NodeHandle* pnh;
@@ -32,6 +33,7 @@ public:
     PIDctrl pid_y;
     PIDctrl pid_yaw;
     tf::TransformListener* tf_;
+    std_msgs::Bool state;
     /*obs_point record the valid obs point in four directions
  * for rplidar (360 degree and 360 points), point steps by one degree
  *  obs_point[0][]  -----forward  [0][0]=20
@@ -67,6 +69,8 @@ void RoboNav::init(){
     floyd.loadMatrix(arrArcs);
     floyd.initFloydGraph();
     
+    state.data=false;
+    
     double Kp_linear,Ki_linear,Kd_linear;
     double limit_linear_max = 1.0;
     double Kp_angular,Ki_angular,Kd_angular;
@@ -86,7 +90,10 @@ void RoboNav::cb_tar_pose(const geometry_msgs::PoseConstPtr& msg){
    // ROS_INFO("pre-tar %f  %f",pre_goal.position.x - msg->position.x ,pre_goal.position.y - msg->position.y);
     if (cur_pose.position.y==0 & cur_pose.position.x==0)
 	return;
-   
+    double dis=sqrt(pow(cur_pose.position.x-msg->position.x,2)+pow(cur_pose.position.y-msg->position.y,2));
+    if(dis<0.5) state.data=true;
+    else state.data=false;
+    ROS_INFO("dis: %f", dis);
     if ((abs(pre_goal.position.x - msg->position.x )>0.1 ) || (abs(pre_goal.position.y - msg->position.y )>0.1)){
 	    
     int start_pt=findClosestPt(cur_pose.position.y,cur_pose.position.x);
@@ -184,7 +191,6 @@ void RoboNav::get_vel(geometry_msgs::Twist& msg_vel)
 	    {
             vel_x=pid_x.calc(dx);
             vel_y=pid_y.calc(dy);
-        
             
             if (abs(dx) < 0.05) vel_x=0;
             if (abs(dy) < 0.05) vel_y=0;
@@ -234,7 +240,7 @@ void RoboNav::cb_scan(const sensor_msgs::LaserScan::ConstPtr& scan)
         int index=OFFSET+i*90;
         obs_min[i]=Filter_ScanData(index,scan);
     }
-    ROS_INFO("min Front: %f, Left: %f  Behind: %f, Right: %f ", obs_min[0],obs_min[1],obs_min[2],obs_min[3]);
+    //ROS_INFO("min Front: %f, Left: %f  Behind: %f, Right: %f ", obs_min[0],obs_min[1],obs_min[2],obs_min[3]);
 }
 
 geometry_msgs::Pose RoboNav::adjustlocalgoal()
@@ -312,19 +318,18 @@ int main(int argc,char **argv){
     ros::Publisher pub_state=nh.advertise<std_msgs::Bool>("nav_state",1);
 
     ros::Rate rate(50);
-    std_msgs::Bool state;
+
     while (ros::ok()){
 	if (robo_nav.path.size()>0){
 	    geometry_msgs::Twist msg_vel;
-	    //ROS_INFO("vel x: %f y:%f",msg_vel.linear.x,msg_vel.linear.y);
+	    ROS_INFO("vel x: %f y:%f",msg_vel.linear.x,msg_vel.linear.y);
+        ROS_INFO("NUM: %d", robo_nav.path[0], robo_nav.path.size());
 	    robo_nav.get_vel(msg_vel);
 	    pub_vel.publish(msg_vel);
-	    state.data=false;
+	  
 	    
 	}
-	else
-	    state.data=true;
-	pub_state.publish(state);
+	pub_state.publish(robo_nav.state);
         ros::spinOnce();
         rate.sleep();
     }

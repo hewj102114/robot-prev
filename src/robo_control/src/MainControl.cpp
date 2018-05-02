@@ -133,6 +133,9 @@ int main(int argc, char **argv)
 						robo_ctl.finish_goto_center = true;
 						break;
 					}
+					robo_ctl.readMCUData();
+					robo_ctl.sendMCUMsg(1, 1, robo_ctl.cmd_vel_msg.v_x, robo_ctl.cmd_vel_msg.v_y, robo_ctl.cmd_vel_msg.v_yaw, 0, 0, 0);
+					ros::spinOnce();
 				}
 			}
 			else
