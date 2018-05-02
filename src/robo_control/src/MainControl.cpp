@@ -118,7 +118,7 @@ int main(int argc, char **argv)
 			target_pose.position.y = 2.5;
 			target_pose.orientation = robo_ctl.robo_ukf_pose.orientation;
 			robo_ctl.sendNavGoal(target_pose);
-			robo_ctl.sendMCUMsg(1, 1, robo_ctl.cmd_vel_msg.v_x, robo_ctl.cmd_vel_msg.v_y, robo_ctl.cmd_vel_msg.v_yaw, 0, 0, 0);
+			
 			// 到达中点并停留 n 秒, 结束本阶段
 			
 			if (robo_ctl.finish_navigation.data)
@@ -166,14 +166,7 @@ int main(int argc, char **argv)
 			go_on_patrol(flag, current_position, enemy_position)
 			*/ 
 			ROS_INFO("Stage 1: Not find enemy, finding enemy!!!!!!");
-
-			target_pose.position.x = robo_ctl.x_go_on_patrol[robo_ctl.key_point_count];
-			target_pose.position.y = robo_ctl.y_go_on_patrol[robo_ctl.key_point_count];
-			target_pose.orientation = robo_ctl.robo_ukf_pose.orientation;
-			robo_ctl.sendNavGoal(target_pose);
-			robo_ctl.sendMCUMsg(1, 1, robo_ctl.cmd_vel_msg.v_x, robo_ctl.cmd_vel_msg.v_y, robo_ctl.cmd_vel_msg.v_yaw, 0, 0, 0);
-			// 到达中点并停留 n 秒, 结束本阶段
-			
+			robo_ctl.go_on_patrol(1, robo_ctl.key_point_count, 0, 0);
 			if (robo_ctl.finish_navigation.data ==  true)
 			{
 				ROS_INFO("Arrived goal!!!!");
@@ -202,7 +195,7 @@ int main(int argc, char **argv)
 		default:
 			break;
 		}
-
+		robo_ctl.sendMCUMsg(1, 1, robo_ctl.cmd_vel_msg.v_x, robo_ctl.cmd_vel_msg.v_y, robo_ctl.cmd_vel_msg.v_yaw, 0, 0, 0);
 		ros::spinOnce();
 	}
 

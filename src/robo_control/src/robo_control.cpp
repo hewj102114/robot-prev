@@ -29,8 +29,6 @@ void RoboControl::cb_move_base(const move_base_msgs::MoveBaseActionFeedback &msg
 }
 
 
-
-
 void RoboControl::cb_enemy_pose(const geometry_msgs::TransformStamped &msg)
 {
     enemy_odom_pose.position.x = msg.transform.translation.x;
@@ -250,7 +248,7 @@ void RoboControl::cb_finish_navigation(const std_msgs::Bool &msg)
     finish_navigation = msg;
 }
 
-geometry_msgs::Point RoboControl::go_on_patrol(int flag, float current_position, float enemy_position)
+void RoboControl::go_on_patrol(int flag, int key_point_count, float current_position, float enemy_position)
 {
     /*************************************************************************
     *  函数名称：go_on_patrol
@@ -260,17 +258,20 @@ geometry_msgs::Point RoboControl::go_on_patrol(int flag, float current_position,
     *               enemy_position: 敌人最后一次出现的位置
     *  函数返回：返回下次去的位置
     *************************************************************************/
-   geometry_msgs::Point goal_position;
+   geometry_msgs::Pose target_pose;
    if(flag == 1)
    {
-
        // 从中点开始的巡图
-        goal_position.x = 0;
-        goal_position.y = 0;
+       float x_go_on_patrol[4] = {1.30, 6.70, 6.70, 1.30};
+       float y_go_on_patrol[4] = {0.80, 0.80, 4.20, 4.20};
+       
+       target_pose.position.x = robo_ctl.x_go_on_patrol[key_point_count];
+       target_pose.position.y = robo_ctl.y_go_on_patrol[key_point_count];
+       target_pose.orientation = robo_ctl.robo_ukf_pose.orientation;
+       robo_ctl.sendNavGoal(target_pose);
    }
    if(flag == 2)
    {
        // 丢失敌人之后的巡图
    }
-   return goal_position;
 }
