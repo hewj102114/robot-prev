@@ -226,11 +226,11 @@ def callback_wheel(wheel):
 
 rospy.init_node('ukf_process_node')
 UKFinit()
-subimu = rospy.Subscriber('/map/imu/data', Imu, callback_imu)
-subuwb = rospy.Subscriber('/map/uwb/data', Odometry, callback_uwb)
-#subvel = rospy.Subscriber('/ukf/vel', Odometry, callback_vel)
-subwheel = rospy.Subscriber('/robo/wheel/data', Vector3Stamped, callback_wheel,queue_size=1)
-subyaw = rospy.Subscriber('/ukf/yaw', Odometry, callback_yaw)
+subimu = rospy.Subscriber('map/imu/data', Imu, callback_imu)
+subuwb = rospy.Subscriber('map/uwb/data', Odometry, callback_uwb)
+#subvel = rospy.Subscriber('ukf/vel', Odometry, callback_vel)
+subwheel = rospy.Subscriber('robo/wheel/data', Vector3Stamped, callback_wheel,queue_size=1)
+subyaw = rospy.Subscriber('ukf/yaw', Odometry, callback_yaw)
 
-pub_ukf_pos = rospy.Publisher('/ukf/pos', Odometry, queue_size=1)
+pub_ukf_pos = rospy.Publisher('ukf/pos', Odometry, queue_size=1)
 rospy.spin()

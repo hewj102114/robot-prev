@@ -201,8 +201,8 @@ def callback_uwb(uwb):
 rospy.init_node('ukf_yaw_node')
 UKFinit()
 
-subimu = rospy.Subscriber('/px4/imu/data', Imu, callback_imu)
-subuwb = rospy.Subscriber('/map/uwb/data', Odometry, callback_uwb)
+subimu = rospy.Subscriber('px4/imu/data', Imu, callback_imu)
+subuwb = rospy.Subscriber('map/uwb/data', Odometry, callback_uwb)
 
-pub_ukf_yaw = rospy.Publisher('/ukf/yaw', Odometry, queue_size=1)
+pub_ukf_yaw = rospy.Publisher('ukf/yaw', Odometry, queue_size=1)
 rospy.spin()

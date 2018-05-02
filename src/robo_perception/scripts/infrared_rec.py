@@ -75,7 +75,7 @@ def callback_image(image):
 
 rospy.init_node('rgb_detection')
 
-image_sub = rospy.Subscriber('/camera/infra1/image_rect_raw', Image, callback_image)
+image_sub = rospy.Subscriber('camera/infra1/image_rect_raw', Image, callback_image)
 
 
 

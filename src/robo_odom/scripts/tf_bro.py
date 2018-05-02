@@ -58,7 +58,7 @@ def callback_imu(imu):
 if __name__ == '__main__':  
     rospy.init_node('turtle_tf_broadcaster')  
 
-    usb_ukf_yaw = rospy.Subscriber('/ukf/yaw', Odometry, callback_ukf)
-    subimu = rospy.Subscriber('/robo/imu/data', Imu, callback_imu)
+    usb_ukf_yaw = rospy.Subscriber('ukf/yaw', Odometry, callback_ukf)
+    subimu = rospy.Subscriber('robo/imu/data', Imu, callback_imu)
 
     rospy.spin()  

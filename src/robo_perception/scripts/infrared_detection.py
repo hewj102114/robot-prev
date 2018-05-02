@@ -320,10 +320,10 @@ def callback_ukf(ukf):
 rospy.init_node('rgb_detection')
 DetectInit()
 
-rgb_sub = message_filters.Subscriber('/camera/infra1/image_rect_raw', Image)
+rgb_sub = message_filters.Subscriber('camera/infra1/image_rect_raw', Image)
 # rgb_sub = message_filters.Subscriber('camera/infra1/image_rect_raw', Image)
 subukf = rospy.Subscriber('ukf/pos', Odometry, callback_ukf)
-pc_sub = message_filters.Subscriber('/camera/points', PointCloud2)
+pc_sub = message_filters.Subscriber('camera/points', PointCloud2)
 # depth_sub = message_filters.Subscriber('camera/depth/image_rect_raw', Image)
 pub = rospy.Publisher('infrared_detection/enemy_position', ObjectList, queue_size=1)
 # pub_dr = rospy.Publisher('rgb_detection/detection_result', Image, queue_size=1)
