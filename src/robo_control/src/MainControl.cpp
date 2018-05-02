@@ -167,8 +167,8 @@ int main(int argc, char **argv)
 			*/ 
 			ROS_INFO("Stage 1: Not find enemy, finding enemy!!!!!!");
 
-			target_pose.position.x = robo_ctl.x[robo_ctl.key_point_count];
-			target_pose.position.y = robo_ctl.y[robo_ctl.key_point_count];
+			target_pose.position.x = robo_ctl.x_go_on_patrol[robo_ctl.key_point_count];
+			target_pose.position.y = robo_ctl.y_go_on_patrol[robo_ctl.key_point_count];
 			target_pose.orientation = robo_ctl.robo_ukf_pose.orientation;
 			robo_ctl.sendNavGoal(target_pose);
 			robo_ctl.sendMCUMsg(1, 1, robo_ctl.cmd_vel_msg.v_x, robo_ctl.cmd_vel_msg.v_y, robo_ctl.cmd_vel_msg.v_yaw, 0, 0, 0);

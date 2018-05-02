@@ -104,7 +104,7 @@ class RoboControl
     int getClosestKeyPoint(float pose_x, float pose_y);
 
     void cb_finish_navigation(const std_msgs::Bool &msg);
-    void go_on_patrol(int flag, float current_position, float enemy_position);
+    geometry_msgs::Point go_on_patrol(int flag, float current_position, float enemy_position);
     ros::NodeHandle *pnh;
 
     ros::Publisher pub_game_info;
@@ -159,9 +159,8 @@ class RoboControl
     // 各种 flag
     bool finish_goto_center = false;
     int key_point_count = 1;
-    float x[4] = {1.30, 6.70, 6.70, 1.30};
-    float y[4] = {0.80, 0.80, 4.20, 4.20};
-
+    float x_go_on_patrol[4] = {1.30, 6.70, 6.70, 1.30};
+    float y_go_on_patrol[4] = {0.80, 0.80, 4.20, 4.20};
 
     // yaw: 1 -> 2
     KeyPoint KEY_POINT[30] = {
