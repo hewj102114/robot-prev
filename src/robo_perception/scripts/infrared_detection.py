@@ -54,7 +54,7 @@ def DetectInit():
     global sess, model, mc
 
     detect_net = 'squeezeDet'
-    checkpoint = '/home/ubuntu/robot/src/robo_perception/scripts/weights/Infrared-Image/model.ckpt-99000'
+    checkpoint = '/home/ubuntu/robot/src/robo_perception/scripts/weights/Infrared-Image/model.ckpt-99999'
 
     assert detect_net == 'squeezeDet' or detect_net == 'squeezeDet+', 'Selected nueral net architecture not supported'
 
