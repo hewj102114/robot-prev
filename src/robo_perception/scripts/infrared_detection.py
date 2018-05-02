@@ -43,6 +43,7 @@ frame_rate_idx = 0
 frame_rate = 0.0
 flag = True
 qn_ukf = [0, 0, 0, 0]
+team_x = team_y = 0
 
 video = cv2.VideoWriter('/home/ubuntu/robot/src/robo_perception/scripts/visual/demo.avi',
                         cv2.VideoWriter_fourcc(*"MJPG"),
@@ -80,6 +81,7 @@ def DetectInit():
     # with tf.Session(config=config) as sess:
     sess = tf.Session(config=config)
     saver.restore(sess, checkpoint)
+
 
 
 def TsDet_callback(infrared_image, pointcloud):
@@ -316,13 +318,17 @@ def callback_ukf(ukf):
               ukf.pose.pose.orientation.w]
     # (ukf_roll,ukf_pitch,ukf_yaw) = euler_from_quaternion(qn_ukf)
 
+def callback_team(team):
+    global team_x, team_y
+    team_x = team.pose.pose.position.x
+    team_y = team.pose.pose.position.y
 
 rospy.init_node('rgb_detection')
 DetectInit()
-
 rgb_sub = message_filters.Subscriber('camera/infra1/image_rect_raw', Image)
 # rgb_sub = message_filters.Subscriber('camera/infra1/image_rect_raw', Image)
 subukf = rospy.Subscriber('ukf/pos', Odometry, callback_ukf)
+subteam = rospy.Subscriber('/ukf/pos', Odometry, callback_team)
 pc_sub = message_filters.Subscriber('camera/points', PointCloud2)
 # depth_sub = message_filters.Subscriber('camera/depth/image_rect_raw', Image)
 pub = rospy.Publisher('infrared_detection/enemy_position', ObjectList, queue_size=1)
@@ -332,6 +338,7 @@ pub = rospy.Publisher('infrared_detection/enemy_position', ObjectList, queue_siz
 TsDet = message_filters.ApproximateTimeSynchronizer(
     [rgb_sub, pc_sub], queue_size=5, slop=0.1, allow_headerless=False)
 TsDet.registerCallback(TsDet_callback)
+
 
 rospy.spin()
 video.release()
