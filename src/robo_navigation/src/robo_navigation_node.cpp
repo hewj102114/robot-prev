@@ -125,7 +125,6 @@ int RoboNav::findClosestPt(double x,double y){
 void RoboNav::get_vel(geometry_msgs::Twist& msg_vel)
 {
     
-    double limit_linear_min=0.1;
     
     double vel_x = 0;
     double vel_y = 0;
@@ -170,7 +169,7 @@ void RoboNav::get_vel(geometry_msgs::Twist& msg_vel)
 	pose_local.pose.orientation.w=1;
 	pub_local_goal_pose.publish(pose_local);
 	
-	ROS_INFO("dx %f dy %f  dyaw %f ",dx,dy,dyaw);
+	//ROS_INFO("dx %f dy %f  dyaw %f ",dx,dy,dyaw);
         if (dyaw>6.28) dyaw=dyaw-6.28;
         if (dyaw<-6.28) dyaw=dyaw+6.28;
 	    //ROS_INFO("angle: %f  fix angle : %f   dyaw %f",cur_yaw,fix_angle,dyaw);
@@ -178,7 +177,7 @@ void RoboNav::get_vel(geometry_msgs::Twist& msg_vel)
         //  cur_pose.position.x, cur_pose.position.y, dx, dy);
         if (abs(dx) < 0.05 && abs(dy) < 0.05) 
 	    {
-            path.erase(path.begin());
+            path.erase(path.begin()); 
 	    
         }
         else 
@@ -186,11 +185,6 @@ void RoboNav::get_vel(geometry_msgs::Twist& msg_vel)
             vel_x=pid_x.calc(dx);
             vel_y=pid_y.calc(dy);
         
-            if (vel_x>0 && vel_x<limit_linear_min) vel_x=limit_linear_min;
-            if (vel_x<0 && vel_x>-limit_linear_min) vel_x=-limit_linear_min;
-            
-                if (vel_y>0 && vel_y<limit_linear_min) vel_y=limit_linear_min;
-            if (vel_y<0 && vel_y>-limit_linear_min) vel_y=-limit_linear_min;
             
             if (abs(dx) < 0.05) vel_x=0;
             if (abs(dy) < 0.05) vel_y=0;
@@ -252,7 +246,7 @@ geometry_msgs::Pose RoboNav::adjustlocalgoal()
     local_goal.position.y=point_list.at<double>(local_goal_index, 0) * 1.0 / 100;
     local_goal.position.x=point_list.at<double>(local_goal_index, 1) * 1.0 / 100;
     
-    if(obs_min[0]<0.33)
+    if(obs_min[0]<0.35)
     {
 	pid_x.stop=true;
     }
@@ -264,7 +258,7 @@ geometry_msgs::Pose RoboNav::adjustlocalgoal()
     else
 	pid_x.stop=false;
     
-    if(obs_min[1]<0.26)
+    if(obs_min[1]<0.30)
     {
 	pid_y.stop=true;
     }
@@ -276,7 +270,7 @@ geometry_msgs::Pose RoboNav::adjustlocalgoal()
     else
 	pid_y.stop=false;
     
-    if(obs_min[2]<0.33)
+    if(obs_min[2]<0.35)
     {
 	pid_x.stop=true;
     }
@@ -288,7 +282,7 @@ geometry_msgs::Pose RoboNav::adjustlocalgoal()
     else 
 	pid_x.stop=false;
     
-    if(obs_min[3]<0.26)
+    if(obs_min[3]<0.30)
     {
 	pid_y.stop=true;
     }
@@ -299,7 +293,7 @@ geometry_msgs::Pose RoboNav::adjustlocalgoal()
     }
     else
 	pid_y.stop=false;
-    ROS_INFO("adjgoal x: %f, y: %f", local_goal.position.x, local_goal.position.y);
+    //ROS_INFO("adjgoal x: %f, y: %f", local_goal.position.x, local_goal.position.y);
     return local_goal;
 	
 }
