@@ -104,7 +104,7 @@ class RoboControl
     int getClosestKeyPoint(float pose_x, float pose_y);
 
     void cb_finish_navigation(const std_msgs::Bool &msg);
-    RoboControl::go_on_patrol(int flag, int key_point_count, float current_position, float enemy_position);
+    void go_on_patrol(int flag, int key_point_count, float current_position, float enemy_position);
     ros::NodeHandle *pnh;
 
     ros::Publisher pub_game_info;
