@@ -265,10 +265,10 @@ void RoboControl::go_on_patrol(int flag, int key_point_count, float current_posi
        float x_go_on_patrol[4] = {1.30, 6.70, 6.70, 1.30};
        float y_go_on_patrol[4] = {0.80, 0.80, 4.20, 4.20};
        
-       target_pose.position.x = robo_ctl.x_go_on_patrol[key_point_count];
-       target_pose.position.y = robo_ctl.y_go_on_patrol[key_point_count];
-       target_pose.orientation = robo_ctl.robo_ukf_pose.orientation;
-       robo_ctl.sendNavGoal(target_pose);
+       target_pose.position.x = x_go_on_patrol[key_point_count];
+       target_pose.position.y = y_go_on_patrol[key_point_count];
+       target_pose.orientation = robo_ukf_pose.orientation;
+       sendNavGoal(target_pose);
    }
    if(flag == 2)
    {
