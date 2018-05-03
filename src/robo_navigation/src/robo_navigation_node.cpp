@@ -107,11 +107,14 @@ void RoboNav::cb_tar_pose(const geometry_msgs::PoseConstPtr& msg){
             path.assign(floyd.path.begin(), floyd.path.end());
             pre_goal.position.x = msg->position.x;
             pre_goal.position.y = msg->position.y;
-            setFixAngle(cur_pose.orientation);
+            
         }
         else
             path.clear();
     }
+    //isolated rotation control
+    //setFixAngle(cur_pose.orientation);
+    setFixAngle(msg->orientation);    //orientation fixed all the time in every frame. 
 }
 
 void RoboNav::cb_cur_pose(const nav_msgs::Odometry& msg){
