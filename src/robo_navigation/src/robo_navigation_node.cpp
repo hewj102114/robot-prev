@@ -16,7 +16,8 @@
 #include "robo_navigation/PID.h"
 using namespace std;
 #define OFFSET 0 //rplidar front offset
-#define DEFFENCE 0.45
+#define DEFFENCE 0.40
+#define DEFF_CORNER 0.55
 
 class RoboNav
 {
@@ -42,7 +43,7 @@ class RoboNav
  *  obs_point[3][]  -----right
  *  
  */
-    double obs_min[4]; //90,+-60
+    double obs_min[4][2]; //90,+-60
 
     RoboNav();
     void init();
@@ -57,7 +58,7 @@ class RoboNav
 
 RoboNav::RoboNav()
 {
-    obs_min[4] = {0};
+    obs_min[4][2] = {0};
     pnh = new ros::NodeHandle("");
     pub_local_goal_pose = pnh->advertise<geometry_msgs::PoseStamped>("nav/local_goal", 1);
     tf_ = new tf::TransformListener();
@@ -234,7 +235,7 @@ double Filter_ScanData(int index, const sensor_msgs::LaserScan::ConstPtr &sscan)
     int Cindex = index;
     double data = 8;
     int m = 0;
-    for (int i = -45; i < 45; i++)
+    for (int i = -23; i < 23; i++)
     {
         if (index + i < 0)
             Cindex = 360 + index + i;
@@ -256,9 +257,12 @@ void RoboNav::cb_scan(const sensor_msgs::LaserScan::ConstPtr &scan)
     for (int i = 0; i < 4; i++)
     {
         int index = OFFSET + i * 90;
-        obs_min[i] = Filter_ScanData(index, scan);
+        int indexC = OFFSET + i * 90+45;
+        obs_min[i][0] = Filter_ScanData(index, scan);
+        obs_min[i][1]=Filter_ScanData(indexC,scan);
     }
-    ROS_INFO("min Front: %f, Left: %f  Behind: %f, Right: %f ", obs_min[0],obs_min[1],obs_min[2],obs_min[3]);
+    //ROS_INFO("min Front: %f, Left: %f  Behind: %f, Right: %f ", obs_min[0][0],obs_min[1][0],obs_min[2][0],obs_min[3][0]);
+    //ROS_INFO("min corner Front: %f, Left: %f  Behind: %f, Right: %f ", obs_min[0][1],obs_min[1][1],obs_min[2][1],obs_min[3][1]);
 }
 
 geometry_msgs::Pose RoboNav::adjustlocalgoal()
@@ -270,11 +274,11 @@ geometry_msgs::Pose RoboNav::adjustlocalgoal()
     local_goal.position.y = point_list.at<double>(local_goal_index, 0) * 1.0 / 100;
     local_goal.position.x = point_list.at<double>(local_goal_index, 1) * 1.0 / 100;
 
-    if (obs_min[0] < 0.40)
+    if (obs_min[0][0] < 0.35)  //front 
     {
         pid_x.stop = true;
     }
-    else if (obs_min[0] < DEFFENCE)
+    else if (obs_min[0][0] < DEFFENCE)
     {
         pid_x.stop = false;
         local_goal.position.x = local_goal_x - 0.1;
@@ -282,11 +286,27 @@ geometry_msgs::Pose RoboNav::adjustlocalgoal()
     else
         pid_x.stop = false;
 
-    if (obs_min[1] < 0.40)
+    if (obs_min[0][1] < 0.45)  //front-left
+    {
+        pid_x.stop = true;
+        pid_y.stop=true;
+    }
+    else if (obs_min[0][1] < DEFF_CORNER)
+    {
+        pid_x.stop = false; pid_y.stop = false;
+        local_goal.position.x = local_goal_x - 0.1;
+        local_goal.position.y = local_goal_y - 0.1;
+    }
+    else
+        {
+            pid_x.stop = false;pid_y.stop = false;
+        }
+
+    if (obs_min[1][0] < 0.30)  //left
     {
         pid_y.stop = true;
     }
-    else if (obs_min[1] < DEFFENCE)
+    else if (obs_min[1][0] < DEFFENCE)
     {
         pid_y.stop = false;
         local_goal.position.y = local_goal_y - 0.07;
@@ -294,11 +314,26 @@ geometry_msgs::Pose RoboNav::adjustlocalgoal()
     else
         pid_y.stop = false;
 
-    if (obs_min[2] < 0.40)
+
+    if (obs_min[1][1] < 0.45)  //left-back
+    {
+        pid_x.stop = true;
+        pid_y.stop = true;
+    }
+    else if (obs_min[1][1] < DEFF_CORNER)
+    {
+        pid_x.stop = false;pid_y.stop = false;
+        local_goal.position.x = local_goal_x + 0.1;
+        local_goal.position.y = local_goal_y - 0.1;
+    }
+    else
+        {pid_x.stop = false;pid_y.stop = false;}
+
+    if (obs_min[2][0] < 0.35) //back
     {
         pid_x.stop = true;
     }
-    else if (obs_min[2] < DEFFENCE)
+    else if (obs_min[2][0] < DEFFENCE)
     {
         pid_x.stop = false;
         local_goal.position.x = local_goal_x + 0.1;
@@ -306,17 +341,46 @@ geometry_msgs::Pose RoboNav::adjustlocalgoal()
     else
         pid_x.stop = false;
 
-    if (obs_min[3] < 0.40)
+
+    if (obs_min[2][1] < 0.45) //back-right
+    {
+        pid_x.stop = true;
+        pid_y.stop = true;
+    }
+    else if (obs_min[2][1] < DEFF_CORNER)
+    {
+        pid_x.stop = false;pid_y.stop = false;
+        local_goal.position.x = local_goal_x + 0.1;
+        local_goal.position.y = local_goal_y + 0.1;
+    }
+    else
+        {pid_x.stop = false; pid_y.stop = false;}
+
+    if (obs_min[3][0] < 0.30) //right
     {
         pid_y.stop = true;
     }
-    else if (obs_min[3] < DEFFENCE)
+    else if (obs_min[3][0] < DEFFENCE)
     {
         pid_y.stop = false;
         local_goal.position.y = local_goal_y + 0.07;
     }
     else
         pid_y.stop = false;
+    
+    if (obs_min[3][1] < 0.45)  //right-front
+    {
+        pid_x.stop = true;
+        pid_y.stop = true;
+    }
+    else if (obs_min[3][1] < DEFF_CORNER)
+    {
+        pid_x.stop = false;pid_y.stop = false;
+        local_goal.position.x = local_goal_x + 0.1;
+        local_goal.position.y = local_goal_y - 0.1;
+    }
+    else
+        {pid_x.stop = false;pid_y.stop = false;}
     //ROS_INFO("adjgoal x: %f, y: %f", local_goal.position.x, local_goal.position.y);
     return local_goal;
 }
