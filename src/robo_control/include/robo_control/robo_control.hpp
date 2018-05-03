@@ -2,6 +2,8 @@
 #include <string>
 #include <cmath>
 #include <time.h>
+#include <iostream>
+#include <vector>
 
 #include <ros/ros.h>
 #include <geometry_msgs/Quaternion.h>
@@ -22,6 +24,8 @@
 #include <move_base_msgs/MoveBaseActionFeedback.h>
 
 #include <actionlib_msgs/GoalStatusArray.h>
+
+#include <opencv2/opencv.hpp>
 
 #include "robo_control/serial.h"
 #include "robo_vision/ArmorInfo.h"
@@ -107,6 +111,8 @@ class RoboControl
     void cb_finish_navigation(const std_msgs::Bool &msg);
     void go_on_patrol(int flag, int key_point_count, float current_position, float enemy_position);
     void cb_enemy_information(const robo_perception::ObjectList &msg);
+    void read_xml_file();
+    int find_enemy_self_closest_point(double enemy_x, double enemy_y, double self_x, double self_y);
     ros::NodeHandle *pnh;
 
     ros::Publisher pub_game_info;
@@ -162,6 +168,8 @@ class RoboControl
     bool finish_goto_center = false;
 
     int key_point_count = 1;
+
+    cv::Mat point_list;
 
     // yaw: 1 -> 2
     KeyPoint KEY_POINT[30] = {

@@ -196,8 +196,11 @@ def TsDet_callback(infrared_image, pointcloud):
             avgX = np.mean(positionX)
             avgY = np.mean(positionY)
             avgZ = np.mean(positionZ)
-            robo_position.append([avgX, avgY, avgZ])
-
+            if np.isnan(avgX) or np.isnan(avgY) or np.isnan(avgZ):
+                print("continue")                                
+                continue
+            else:
+                robo_position.append([avgX, avgY, avgZ])
             if mc.DEBUG:
                 print('enemy position:', avgX, avgY, avgZ)
 

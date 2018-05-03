@@ -24,6 +24,7 @@ int main(int argc, char **argv)
 	int armor_lost_count = 0;
 	int key_point_no = 1;
 	clock_t start, end;
+	robo_ctl.read_xml_file();
 
 	while (0)
 	{
@@ -158,6 +159,7 @@ int main(int argc, char **argv)
 					work_state = 2;
 				}
 			}
+			robo_ctl.sendMCUMsg(1, 1, robo_ctl.cmd_vel_msg.v_x, robo_ctl.cmd_vel_msg.v_y, robo_ctl.cmd_vel_msg.v_yaw, 0, 0, 0);		
 			break;
 		}
 
@@ -181,7 +183,6 @@ int main(int argc, char **argv)
 			{
 				robo_ctl.readMCUData();
 				robo_ctl.sendMCUMsg(1, 1, robo_ctl.cmd_vel_msg.v_x, robo_ctl.cmd_vel_msg.v_y, robo_ctl.cmd_vel_msg.v_yaw, 0, 0, 0);
-				ROS_INFO("vx: %f, vy: %f", robo_ctl.cmd_vel_msg.v_x, robo_ctl.cmd_vel_msg.v_y);
 				ros::spinOnce();
 			}
 			if (robo_ctl.finish_navigation.data == true)
@@ -201,6 +202,7 @@ int main(int argc, char **argv)
 			{
 				work_state = 2;
 			}
+			robo_ctl.sendMCUMsg(1, 1, robo_ctl.cmd_vel_msg.v_x, robo_ctl.cmd_vel_msg.v_y, robo_ctl.cmd_vel_msg.v_yaw, 0, 0, 0);
 			break;
 		}
 
@@ -212,14 +214,14 @@ int main(int argc, char **argv)
 		case 2:
 		{
 			ROS_INFO("Stage 2: Find enemy, close to and stack enemy!!!!!!");
-
+			
+			robo_ctl.sendMCUMsg(1, 1, 0, 0, 0, 0, 0, 0);
 			break;
 		}
 
 		default:
 			break;
 		}
-		robo_ctl.sendMCUMsg(1, 1, robo_ctl.cmd_vel_msg.v_x, robo_ctl.cmd_vel_msg.v_y, robo_ctl.cmd_vel_msg.v_yaw, 0, 0, 0);
 		ros::spinOnce();
 		loop_rate.sleep();
 	}

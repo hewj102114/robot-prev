@@ -195,7 +195,7 @@ void RoboNav::get_vel(geometry_msgs::Twist &msg_vel)
             dyaw = dyaw - 6.28;
         if (dyaw < -6.28)
             dyaw = dyaw + 6.28;
-        ROS_INFO("angle: %f  fix angle : %f   dyaw %f",cur_yaw,fix_angle,dyaw);
+        //ROS_INFO("angle: %f  fix angle : %f   dyaw %f",cur_yaw,fix_angle,dyaw);
         //ROS_INFO(" tar_x %f, tar_y %f,cur_x %f , cur_y %f, diff_x %f, diff_y %f", cur_local_goal_x, cur_local_goal_y,
         //  cur_pose.position.x, cur_pose.position.y, dx, dy);
         if (abs(dx) < 0.05 && abs(dy) < 0.05)
@@ -258,7 +258,7 @@ void RoboNav::cb_scan(const sensor_msgs::LaserScan::ConstPtr &scan)
         int index = OFFSET + i * 90;
         obs_min[i] = Filter_ScanData(index, scan);
     }
-    //ROS_INFO("min Front: %f, Left: %f  Behind: %f, Right: %f ", obs_min[0],obs_min[1],obs_min[2],obs_min[3]);
+    ROS_INFO("min Front: %f, Left: %f  Behind: %f, Right: %f ", obs_min[0],obs_min[1],obs_min[2],obs_min[3]);
 }
 
 geometry_msgs::Pose RoboNav::adjustlocalgoal()
@@ -270,7 +270,7 @@ geometry_msgs::Pose RoboNav::adjustlocalgoal()
     local_goal.position.y = point_list.at<double>(local_goal_index, 0) * 1.0 / 100;
     local_goal.position.x = point_list.at<double>(local_goal_index, 1) * 1.0 / 100;
 
-    if (obs_min[0] < 0.35)
+    if (obs_min[0] < 0.40)
     {
         pid_x.stop = true;
     }
@@ -282,7 +282,7 @@ geometry_msgs::Pose RoboNav::adjustlocalgoal()
     else
         pid_x.stop = false;
 
-    if (obs_min[1] < 0.30)
+    if (obs_min[1] < 0.40)
     {
         pid_y.stop = true;
     }
@@ -294,7 +294,7 @@ geometry_msgs::Pose RoboNav::adjustlocalgoal()
     else
         pid_y.stop = false;
 
-    if (obs_min[2] < 0.35)
+    if (obs_min[2] < 0.40)
     {
         pid_x.stop = true;
     }
@@ -306,7 +306,7 @@ geometry_msgs::Pose RoboNav::adjustlocalgoal()
     else
         pid_x.stop = false;
 
-    if (obs_min[3] < 0.30)
+    if (obs_min[3] < 0.40)
     {
         pid_y.stop = true;
     }
