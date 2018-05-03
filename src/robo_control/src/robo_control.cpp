@@ -248,6 +248,11 @@ void RoboControl::cb_finish_navigation(const std_msgs::Bool &msg)
     finish_navigation = msg;
 }
 
+void RoboControl::cb_enemy_information(const robo_perception::ObjectList &msg)
+{
+    enemy_information = msg;
+}
+
 void RoboControl::go_on_patrol(int flag, int key_point_count, float current_position, float enemy_position)
 {
     /*************************************************************************
@@ -262,12 +267,13 @@ void RoboControl::go_on_patrol(int flag, int key_point_count, float current_posi
    if(flag == 1)
    {
        // 从中点开始的巡图
-       float x_go_on_patrol[4] = {1.30, 6.70, 6.70, 1.30};
+       float x_go_on_patrol[4] = {0.80, 7.20, 7.20, 0.80};
        float y_go_on_patrol[4] = {0.80, 0.80, 4.20, 4.20};
        
        target_pose.position.x = x_go_on_patrol[key_point_count];
        target_pose.position.y = y_go_on_patrol[key_point_count];
-       target_pose.orientation = robo_ukf_pose.orientation;
+       target_pose.orientation= tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
+       ROS_INFO("orientation: %f, %f, %f, %f", target_pose.orientation.x, target_pose.orientation.y, target_pose.orientation.z, target_pose.orientation.w);
        sendNavGoal(target_pose);
    }
    if(flag == 2)

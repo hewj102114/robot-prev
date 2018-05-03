@@ -17,6 +17,7 @@ int main(int argc, char **argv)
 	ros::Subscriber sub_move_base_status = nh.subscribe("move_base/status", 1, &RoboControl::cb_move_base_status, &robo_ctl);
 	ros::Subscriber sub_another_robo_pose = nh.subscribe("/DeepWhuRobot1/odom", 1, &RoboControl::cb_another_robo_odom, &robo_ctl);
 	ros::Subscriber sub_finish_navigation = nh.subscribe("nav_state", 1, &RoboControl::cb_finish_navigation, &robo_ctl);
+	ros::Subscriber sub_enemy_information = nh.subscribe("infrared_detection/enemy_position", 1, &RoboControl::cb_enemy_information, &robo_ctl);
 
 	int init_flag = 1;
 	geometry_msgs::Pose nav_goal; // goal of navigation
@@ -117,7 +118,8 @@ int main(int argc, char **argv)
 
 			target_pose.position.x = 4.0;
 			target_pose.position.y = 2.5;
-			target_pose.orientation = robo_ctl.robo_ukf_pose.orientation;
+			target_pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
+		
 			robo_ctl.sendNavGoal(target_pose);
 
 			// 到达中点并停留 n 秒, 结束本阶段
@@ -177,7 +179,9 @@ int main(int argc, char **argv)
 			ros::Duration timeout(0.1); // Timeout of 2 seconds
 			while (ros::Time::now() - start_time < timeout)
 			{
+				robo_ctl.readMCUData();
 				robo_ctl.sendMCUMsg(1, 1, robo_ctl.cmd_vel_msg.v_x, robo_ctl.cmd_vel_msg.v_y, robo_ctl.cmd_vel_msg.v_yaw, 0, 0, 0);
+				ROS_INFO("vx: %f, vy: %f", robo_ctl.cmd_vel_msg.v_x, robo_ctl.cmd_vel_msg.v_y);
 				ros::spinOnce();
 			}
 			if (robo_ctl.finish_navigation.data == true)
@@ -192,6 +196,10 @@ int main(int argc, char **argv)
 			else
 			{
 				ROS_INFO("Going to goal!!!!");
+			}
+			if (robo_ctl.enemy_information.num > 0)
+			{
+				work_state = 2;
 			}
 			break;
 		}

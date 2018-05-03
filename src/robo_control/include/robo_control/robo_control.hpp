@@ -26,6 +26,7 @@
 #include "robo_control/serial.h"
 #include "robo_vision/ArmorInfo.h"
 #include "robo_control/GameInfo.h"
+#include "robo_perception/ObjectList.h"
 
 using namespace std;
 #define PI 3.1415926535898
@@ -105,6 +106,7 @@ class RoboControl
 
     void cb_finish_navigation(const std_msgs::Bool &msg);
     void go_on_patrol(int flag, int key_point_count, float current_position, float enemy_position);
+    void cb_enemy_information(const robo_perception::ObjectList &msg);
     ros::NodeHandle *pnh;
 
     ros::Publisher pub_game_info;
@@ -154,6 +156,7 @@ class RoboControl
 
     std_msgs::Bool finish_navigation;
 
+    robo_perception::ObjectList enemy_information;
 
     // 各种 flag
     bool finish_goto_center = false;

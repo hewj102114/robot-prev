@@ -50,7 +50,7 @@ class RoboNav
     void cb_cur_pose(const nav_msgs::Odometry &msg);
     int findClosestPt(double x, double y);
     void get_vel(geometry_msgs::Twist &msg_vel);
-    void setFixAngle(geometry_msgs::Quaternion &qua);
+    void setFixAngle(const geometry_msgs::Quaternion &qua);
     void cb_scan(const sensor_msgs::LaserScan::ConstPtr &scan);
     geometry_msgs::Pose adjustlocalgoal();
 };
@@ -195,7 +195,7 @@ void RoboNav::get_vel(geometry_msgs::Twist &msg_vel)
             dyaw = dyaw - 6.28;
         if (dyaw < -6.28)
             dyaw = dyaw + 6.28;
-        //ROS_INFO("angle: %f  fix angle : %f   dyaw %f",cur_yaw,fix_angle,dyaw);
+        ROS_INFO("angle: %f  fix angle : %f   dyaw %f",cur_yaw,fix_angle,dyaw);
         //ROS_INFO(" tar_x %f, tar_y %f,cur_x %f , cur_y %f, diff_x %f, diff_y %f", cur_local_goal_x, cur_local_goal_y,
         //  cur_pose.position.x, cur_pose.position.y, dx, dy);
         if (abs(dx) < 0.05 && abs(dy) < 0.05)
@@ -223,7 +223,7 @@ void RoboNav::get_vel(geometry_msgs::Twist &msg_vel)
     msg_vel.angular.z = vel_yaw;
 }
 
-void RoboNav::setFixAngle(geometry_msgs::Quaternion &qua)
+void RoboNav::setFixAngle(const geometry_msgs::Quaternion &qua)
 {
 
     fix_angle = tf::getYaw(qua);
@@ -342,9 +342,9 @@ int main(int argc, char **argv)
         if (robo_nav.path.size() > 0)
         {
             geometry_msgs::Twist msg_vel;
+            robo_nav.get_vel(msg_vel);
             ROS_INFO("vel x: %f y:%f", msg_vel.linear.x, msg_vel.linear.y);
             ROS_INFO("NUM: %d, SIZE: %ld", robo_nav.path[0], robo_nav.path.size());
-            robo_nav.get_vel(msg_vel);
             pub_vel.publish(msg_vel);
         }
         pub_state.publish(robo_nav.state);
