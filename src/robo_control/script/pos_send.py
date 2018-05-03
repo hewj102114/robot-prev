@@ -21,7 +21,7 @@ def callback_odom(msg):
 rospy.init_node('pos_socket_send')
 subimu = rospy.Subscriber('odom', Odometry, callback_odom)
 s =  socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
-ip=rospy.get_param('~ip_addr','127.0.0.1')
+ip=rospy.get_param('~ip_addr_send','127.0.0.1')
 print ip
 addr = (ip,10001)
 

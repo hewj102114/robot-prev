@@ -288,8 +288,10 @@ geometry_msgs::Pose RoboNav::adjustlocalgoal()
     
     if (obs_min[0][1] < 0.45)  //front-left
     {
-	pid_x.stop = true;
-	pid_y.stop=true;
+	double dis_x=abs(local_goal_x-cur_pose.position.x);
+	double dis_y=abs(local_goal_y-cur_pose.position.y);
+	if(dis_x>dis_y) pid_x.stop = true;
+	if(dis_x<dis_y) pid_y.stop = true;
     }
     else if (obs_min[0][1] < DEFF_CORNER)
     {
@@ -319,8 +321,10 @@ geometry_msgs::Pose RoboNav::adjustlocalgoal()
     
     if (obs_min[1][1] < 0.45)  //left-back
     {
-	pid_x.stop = true;
-	pid_y.stop = true;
+	double dis_x=abs(local_goal_x-cur_pose.position.x);
+	double dis_y=abs(local_goal_y-cur_pose.position.y);
+	if(dis_x>dis_y) pid_x.stop = true;
+	if(dis_x<dis_y) pid_y.stop = true;
     }
     else if (obs_min[1][1] < DEFF_CORNER)
     {
@@ -350,8 +354,10 @@ geometry_msgs::Pose RoboNav::adjustlocalgoal()
     
     if (obs_min[2][1] < 0.45) //back-right
     {
-	pid_x.stop = true;
-	pid_y.stop = true;
+	double dis_x=abs(local_goal_x-cur_pose.position.x);
+	double dis_y=abs(local_goal_y-cur_pose.position.y);
+	if(dis_x>dis_y) pid_x.stop = true;
+	if(dis_x<dis_y) pid_y.stop = true;
     }
     else if (obs_min[2][1] < DEFF_CORNER)
     {
@@ -380,8 +386,10 @@ geometry_msgs::Pose RoboNav::adjustlocalgoal()
     
     if (obs_min[3][1] < 0.45)  //right-front
     {
-	pid_x.stop = true;
-	pid_y.stop = true;
+	double dis_x=abs(local_goal_x-cur_pose.position.x);
+	double dis_y=abs(local_goal_y-cur_pose.position.y);
+	if(dis_x>dis_y) pid_x.stop = true;
+	if(dis_x<dis_y) pid_y.stop = true;
     }
     else if (obs_min[3][1] < DEFF_CORNER)
     {
