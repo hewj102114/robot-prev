@@ -98,11 +98,12 @@ int main(int argc, char **argv)
 	*/
 	geometry_msgs::Pose target_pose;
 	int work_state = 0;
+	ros::Rate loop_rate(150);
 	while (ros::ok())
 	{
 		// 读取 MCU 数据
 		robo_ctl.readMCUData();
-		switch(work_state)
+		switch (work_state)
 		{
 			ROS_INFO("======================================================\n================================================");
 		/*************************************************************************
@@ -111,24 +112,24 @@ int main(int argc, char **argv)
 		*
 		*************************************************************************/
 		case 0:
-			
+		{
 			ROS_INFO("Stage 0: Go to center!!!!!!");
-			
+
 			target_pose.position.x = 4.0;
 			target_pose.position.y = 2.5;
 			target_pose.orientation = robo_ctl.robo_ukf_pose.orientation;
 			robo_ctl.sendNavGoal(target_pose);
-			
+
 			// 到达中点并停留 n 秒, 结束本阶段
-			
+
 			if (robo_ctl.finish_navigation.data)
 			{
 				ROS_INFO("Arrived goal!!!!");
 				start = clock();
-				while(1)
+				while (1)
 				{
 					end = clock();
-					if((double)(end - start) / CLOCKS_PER_SEC > 5)
+					if ((double)(end - start) / CLOCKS_PER_SEC > 5)
 					{
 						robo_ctl.finish_goto_center = true;
 						break;
@@ -142,7 +143,7 @@ int main(int argc, char **argv)
 			{
 				ROS_INFO("Going to goal!!!!");
 			}
-			
+
 			if (robo_ctl.finish_goto_center == true)
 			{
 				// 没有发现敌人
@@ -156,6 +157,7 @@ int main(int argc, char **argv)
 				}
 			}
 			break;
+		}
 
 		/*************************************************************************
 		*
@@ -163,18 +165,26 @@ int main(int argc, char **argv)
 		*
 		*************************************************************************/
 		case 1:
+		{
 			/* 
 			TODO: 刚到达中点的巡图: 按照固定顺序进行
 			TODO: 丢失敌人之后的巡图: 根据敌人丢失的位置巡图
 			go_on_patrol(flag, current_position, enemy_position)
-			*/ 
+			*/
 			ROS_INFO("Stage 1: Not find enemy, finding enemy!!!!!!");
 			robo_ctl.go_on_patrol(1, robo_ctl.key_point_count, 0, 0);
-			if (robo_ctl.finish_navigation.data ==  true)
+			ros::Time start_time = ros::Time::now();
+			ros::Duration timeout(0.1); // Timeout of 2 seconds
+			while (ros::Time::now() - start_time < timeout)
+			{
+				robo_ctl.sendMCUMsg(1, 1, robo_ctl.cmd_vel_msg.v_x, robo_ctl.cmd_vel_msg.v_y, robo_ctl.cmd_vel_msg.v_yaw, 0, 0, 0);
+				ros::spinOnce();
+			}
+			if (robo_ctl.finish_navigation.data == true)
 			{
 				ROS_INFO("Arrived goal!!!!");
 				robo_ctl.key_point_count++;
-				if(robo_ctl.key_point_count > 3)
+				if (robo_ctl.key_point_count > 3)
 				{
 					robo_ctl.key_point_count = 0;
 				}
@@ -184,6 +194,7 @@ int main(int argc, char **argv)
 				ROS_INFO("Going to goal!!!!");
 			}
 			break;
+		}
 
 		/*************************************************************************
 		*
@@ -191,15 +202,18 @@ int main(int argc, char **argv)
 		*
 		*************************************************************************/
 		case 2:
+		{
 			ROS_INFO("Stage 2: Find enemy, close to and stack enemy!!!!!!");
 
 			break;
+		}
 
 		default:
 			break;
 		}
 		robo_ctl.sendMCUMsg(1, 1, robo_ctl.cmd_vel_msg.v_x, robo_ctl.cmd_vel_msg.v_y, robo_ctl.cmd_vel_msg.v_yaw, 0, 0, 0);
 		ros::spinOnce();
+		loop_rate.sleep();
 	}
 
 	//gimbal 1:serach 2:shoot
