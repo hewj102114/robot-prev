@@ -253,10 +253,10 @@ def TsDet_callback(infrared_image, pointcloud):
         enemy_position.header.frame_id = 'enemy'
         enemy_position.num = 0
         enemy_position.object = []
-
-
-
     pub.publish(enemy_position)
+
+
+    
     t_filter = time.time()
     times['filter'] = t_filter - t_detect
     times['total'] = time.time() - t_start
