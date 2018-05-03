@@ -25,7 +25,7 @@ ip=rospy.get_param('~ip_addr_send','127.0.0.1')
 print ip
 addr = (ip,10001)
 
-rate = rospy.Rate(10) 
+rate = rospy.Rate(60) 
 while not rospy.is_shutdown():
     if not pos_x == 0:
         data_send="%f  %f   %f"%(pos_x,pos_y,pos_yaw)
