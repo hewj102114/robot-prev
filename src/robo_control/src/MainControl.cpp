@@ -120,7 +120,7 @@ int main(int argc, char **argv)
 			target_pose.position.x = 4.0;
 			target_pose.position.y = 2.5;
 			target_pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
-		
+
 			robo_ctl.sendNavGoal(target_pose);
 
 			// 到达中点并停留 n 秒, 结束本阶段
@@ -159,7 +159,7 @@ int main(int argc, char **argv)
 					work_state = 2;
 				}
 			}
-			robo_ctl.sendMCUMsg(1, 1, robo_ctl.cmd_vel_msg.v_x, robo_ctl.cmd_vel_msg.v_y, robo_ctl.cmd_vel_msg.v_yaw, 0, 0, 0);		
+			robo_ctl.sendMCUMsg(1, 1, robo_ctl.cmd_vel_msg.v_x, robo_ctl.cmd_vel_msg.v_y, robo_ctl.cmd_vel_msg.v_yaw, 0, 0, 0);
 			break;
 		}
 
@@ -214,8 +214,14 @@ int main(int argc, char **argv)
 		case 2:
 		{
 			ROS_INFO("Stage 2: Find enemy, close to and stack enemy!!!!!!");
-			
-			robo_ctl.sendMCUMsg(1, 1, 0, 0, 0, 0, 0, 0);
+
+			int target_num = robo_ctl.find_enemy_self_closest_point(robo_ctl.enemy_odom_pose.position.x, robo_ctl.enemy_odom_pose.position.y, robo_ctl.robo_ukf_pose.position.x, robo_ctl.robo_ukf_pose.position.y);
+			geometry_msgs::Pose target_pose;
+			target_pose.position.x = robo_ctl.point_list.at<double>(target_num, 0);
+			target_pose.position.y = robo_ctl.point_list.at<double>(target_num, 1);
+			target_pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
+			robo_ctl.sendNavGoal(target_pose);
+			robo_ctl.sendMCUMsg(1, 1, robo_ctl.cmd_vel_msg.v_x, robo_ctl.cmd_vel_msg.v_y, robo_ctl.cmd_vel_msg.v_yaw, 0, 0, 0);
 			break;
 		}
 
