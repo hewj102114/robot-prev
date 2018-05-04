@@ -14,7 +14,7 @@ int main(int argc, char** argv){
         geometry_msgs::TransformStamped transformStamped;
         try
         {
-            transformStamped = tfBuffer.lookupTransform("odom", "robot0", ros::Time(0));
+            transformStamped = tfBuffer.lookupTransform("odom", "red0", ros::Time(0));
         }
         catch (tf2::TransformException &ex)
         {

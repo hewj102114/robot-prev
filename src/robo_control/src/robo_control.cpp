@@ -272,7 +272,7 @@ void RoboControl::go_on_patrol(int flag, int key_point_count, float current_posi
        
        target_pose.position.x = x_go_on_patrol[key_point_count];
        target_pose.position.y = y_go_on_patrol[key_point_count];
-       target_pose.orientation= tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
+       target_pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
        sendNavGoal(target_pose);
    }
    if(flag == 2)
@@ -313,4 +313,16 @@ int RoboControl::find_enemy_self_closest_point(double enemy_x, double enemy_y, d
 
     int n = distance(dis_list.begin(), smallest);
     return n;
+}
+
+void RoboControl::sendEnemyTarget(const geometry_msgs::Pose &msg)
+{
+    nav_msgs::Odometry enemy_odom_target_msg;
+    enemy_odom_target_msg.header.stamp = ros::Time::now();;
+    enemy_odom_target_msg.header.frame_id = "odom";
+    enemy_odom_target_msg.child_frame_id = "target";
+    enemy_odom_target_msg.pose.pose.position.x = msg.position.x;
+    enemy_odom_target_msg.pose.pose.position.y = msg.position.y;
+    enemy_odom_target_msg.pose.pose.orientation = msg.orientation;
+    pub_enemy_target.publish(enemy_odom_target_msg);
 }

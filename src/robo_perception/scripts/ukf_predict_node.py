@@ -68,6 +68,7 @@ RS_LAST_AVAILABLE = False
 RS_DATA_AVAILABLE = False
 RS_PREDICT_INIT = True
 PNP_PREDICT_INIT = True
+UNABLE_PREDICT = 0
 
 BULLET_SPEED = 17
 PNP_CLOSE_THRESH = 0.1 #判断pnp是否瞄准到了正确目标
@@ -76,9 +77,10 @@ RS_CLOSE_THRESH = 0.05 #判断rs是否瞄准到了正确目标
 ukf_result = []
 robo_vel_x = robo_vel_y = 0
 pnp_vel_x = pnp_vel_y = pnp_pos_x = pnp_pos_y = last_pnp_pos_x = last_pnp_pos_y = 0
-ukf_yaw = ukf_pos_x = ukf_pos_y = ukf_vel_x = ukf_vel_y = 0
+odom_yaw = odom_pos_x = odom_pos_y = odom_vel_x = odom_vel_y = 0
 rs_pos_x = rs_pos_Y = rs_vel_x = rs_vel_y = last_pnp_pos_x = last_pnp_pos_y = 0
 gimbal_roll = gambal_pitch = gimbal_yaw = 0
+aimtheta = aimdistance = 0
 
 # S（i+1） = S（i） + V*dt
 def f_cv(x, dt):
@@ -186,11 +188,11 @@ def callback_enemy(enemy):
             enemy_1_x = 0
             enemy_1_y = 0
             
-        if np.sqrt((aim_target_x - enemy_0_x) ** 2 + (aim_target_x - enemy_0_y) ** 2) < 0.02:
+        if np.sqrt((aim_target_x - enemy_0_x) ** 2 + (aim_target_y - enemy_0_y) ** 2) < 0.02:
             rs_pos_x = enemy_0_x
             rs_pos_y = enemy_0_y
             FIND_RS = True
-        elif np.sqrt((aim_target_x - enemy_1_x) ** 2 + (aim_target_x - enemy_1_y) ** 2) < 0.02:
+        elif np.sqrt((aim_target_x - enemy_1_x) ** 2 + (aim_target_y - enemy_1_y) ** 2) < 0.02:
             rs_pos_x = enemy_1_x
             rs_pos_y = enemy_1_y
             FIND_RS = True
@@ -260,7 +262,7 @@ def callback_pnp(pnp):
             FIND_PNP = False
 
         # wrong target judgement   
-        if np.sqrt((aim_target_x - pnp_pos_x) ** 2 + (aim_target_x - pnp_pos_y) ** 2) > PNP_CLOSE_THRESH:
+        if np.sqrt((aim_target_x - pnp_pos_x) ** 2 + (aim_target_y - pnp_pos_y) ** 2) > PNP_CLOSE_THRESH:
             FIND_PNP = False
             PNP_LAST_AVAILABLE = False
         # pnp position not change
@@ -293,17 +295,17 @@ def callback_pnp(pnp):
         
                 
 #TODO see weather to combine self speed. or leave it to other code    
-def callback_ukf(ukf):
-    global ukf_yaw, ukf_pos_x, ukf_pos_y, ukf_vel_x, ukf_vel_y
+def callback_odom(odom):
+    global odom_yaw, odom_pos_x, odom_pos_y, odom_vel_x, odom_vel_y
     #only yaw are available
-    ukf_pos_x = ukf.pose.pose.position.x
-    ukf_pos_y = ukf.pose.pose.position.y
+    odom_pos_x = odom.pose.pose.position.x
+    odom_pos_y = odom.pose.pose.position.y
 
-    ukf_vel_x = ukf.twist.twist.linear.x
-    ukf_vel_x = ukf.twist.twist.linear.y
+    odom_vel_x = odom.twist.twist.linear.x
+    odom_vel_y = odom.twist.twist.linear.y
 
-    qn_ukf = [ukf.pose.pose.orientation.x, ukf.pose.pose.orientation.y, ukf.pose.pose.orientation.z, ukf.pose.pose.orientation.w]
-    (ukf_roll,ukf_pitch,ukf_yaw) = euler_from_quaternion(qn_ukf)
+    qn_odom = [odom.pose.pose.orientation.x, odom.pose.pose.orientation.y, odom.pose.pose.orientation.z, odom.pose.pose.orientation.w]
+    (odom_roll,odom_pitch,odom_yaw) = euler_from_quaternion(qn_odom)
 
 def TFinit():
     global tfBuffer
@@ -311,10 +313,17 @@ def TFinit():
     listener = tf2_ros.TransformListener(tfBuffer)
 
 def callback_target(target):
-    global aim_target_x, aim_target_y, ENABLE_PREDICT
+    global aim_target_x, aim_target_y, ENABLE_PREDICT, aimtheta, aimdistance
     aim_target_x = target.pose.pose.position.x
     aim_target_y = target.pose.pose.position.y
-    ENABLE_PREDICT = target.pose.pose.position.z
+
+    team_relative_x = aim_target_x - odom_pos_x
+    team_relative_y = aim_target_y - odom_pos_y
+
+    aimtheta = np.arctan2(team_relative_y, team_relative_x)
+    aimdistance = np.sqrt(team_relative_x**2 + team_relative_y**2)
+
+    ENABLE_PREDICT = target.pose.pose.orientation.w
 
 rospy.init_node('ukf_predict_node')
 UKFRsInit(0.033,np.array([0., 0., 0., 0.]))
@@ -322,14 +331,15 @@ UKFPnpInit(0.033,np.array([0., 0., 0., 0.]))
 TFinit()
 subenemy = rospy.Subscriber('infrared_detection/enemy_position', ObjectList, callback_enemy)
 subpnp = rospy.Subscriber('base/armor_pose', PoseStamped, callback_pnp)
-subukf = rospy.Subscriber('odom', Odometry, callback_ukf)
+subodom = rospy.Subscriber('odom', Odometry, callback_odom)
 subtarget = rospy.Subscriber('enemy/target', Odometry, callback_target)
 
 pub_ukf_vel = rospy.Publisher('ukf/enemy', Odometry, queue_size=1)
 
 rate = rospy.Rate(30) # 30hz
 while not rospy.is_shutdown():
-    global BULLET_SPEED, pnp_pos_x, pnp_vel_x, pnp_pos_y, pnp_vel_y, pnp_vel_x, pnp_vel_y, pnp_pos_x, pnp_pos_y, gimbal_roll, gambal_pitch, gimbal_yaw, ukf_vel_x, ukf_vel_y
+    global BULLET_SPEED, pnp_pos_x, pnp_vel_x, pnp_pos_y, pnp_vel_y, pnp_vel_x, pnp_vel_y, pnp_pos_x, pnp_pos_y, gimbal_roll, gambal_pitch, gimbal_yaw, odom_vel_x, odom_vel_y
+    global UNABLE_PREDICT, aimtheta, aimdistance
 
     #rs有数据就用rs的进行更新，第一次直接初始化，第二次再更新   
     if RS_DATA_AVAILABLE and RS_PREDICT_INIT:
@@ -374,14 +384,17 @@ while not rospy.is_shutdown():
         ukf_out_pos_x = ukf_rs_pos_x 
         ukf_out_pos_y = ukf_rs_pos_y 
         ukf_out_vel_x = ukf_rs_vel_x 
-        ukf_out_vel_y = ukf_rs_vel_y 
+        ukf_out_vel_y = ukf_rs_vel_y
+        UNABLE_PREDICT = 0 
     elif: PNP_DATA_AVAILABLE:
         ukf_out_pos_x = ukf_pnp_pos_x 
         ukf_out_pos_y = ukf_pnp_pos_y 
         ukf_out_vel_x = ukf_pnp_vel_x 
         ukf_out_vel_y = ukf_pnp_vel_y
+        UNABLE_PREDICT = 0
     else:
         print 'unable to predict!' 
+        UNABLE_PREDICT = 1
 
     #print 'PNP','X',ukf_input[0],'Y',ukf_input[2]
     print 'PNP','VX',ukf_input[1],'VY',ukf_input[3]
@@ -408,14 +421,14 @@ while not rospy.is_shutdown():
 
     if PNP_DATA_AVAILABLE or RS_DATA_AVAILABLE:
         #计算相对速度
-        relative_speed_x = ukf_out_vel_x - ukf_vel_x
-        relative_speed_y = ukf_out_vel_y - ukf_vel_y
+        relative_speed_x = ukf_out_vel_x - odom_vel_x
+        relative_speed_y = ukf_out_vel_y - odom_vel_y
         #计算水平于枪口方向的速度            
         V_verticle = relative_speed_x * np.cos(gimbal_yaw) + relative_speed_y * np.sin(gimbal_yaw)
-        #print V_verticle, ukf_yaw
-        #print 'cos',ukf_out_vel_x * np.cos(ukf_yaw),'sin',ukf_out_vel_y * np.sin(ukf_yaw)
+        #print V_verticle, odom_yaw
+        #print 'cos',ukf_out_vel_x * np.cos(odom_yaw),'sin',ukf_out_vel_y * np.sin(odom_yaw)
         #计算检测到的目标和我自身的距离
-        distance_to_enemy = np.sqrt((ukf_out_pos_x - ukf_pos_x)**2 +(ukf_out_pos_y - ukf_pos_y)**2)
+        distance_to_enemy = np.sqrt((ukf_out_pos_x - odom_pos_x)**2 +(ukf_out_pos_y - odom_pos_y)**2)
         #计算子弹飞行时间
         T_FLY = distance_to_enemy / BULLET_SPEED
         #反解算出需要的预瞄角度
@@ -429,9 +442,9 @@ while not rospy.is_shutdown():
     predict_pos.twist.twist.linear.x = ukf_out_vel_x
     predict_pos.twist.twist.linear.y = ukf_out_vel_y
 
-    predict_pos.pose.pose.orientation.y = 0    
-    predict_pos.pose.pose.orientation.y = 0
-    predict_pos.pose.pose.orientation.z = 0
+    predict_pos.pose.pose.orientation.y = UNABLE_PREDICT    
+    predict_pos.pose.pose.orientation.y = aimtheta
+    predict_pos.pose.pose.orientation.z = aimdistance
     predict_pos.pose.pose.orientation.w = predict_angle
 
     pub_ukf_vel.publish(predict_pos) 

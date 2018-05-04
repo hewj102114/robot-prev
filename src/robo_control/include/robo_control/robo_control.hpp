@@ -72,10 +72,10 @@ class RoboControl
 
         pub_game_info = pnh->advertise<robo_control::GameInfo>("base/game_info", 1);
         pub_uwb_odom = pnh->advertise<nav_msgs::Odometry>("map/uwb/data", 1);
-        pub_wheel_vel =
-            pnh->advertise<geometry_msgs::Vector3Stamped>("robo/wheel/data", 1);
+        pub_wheel_vel = pnh->advertise<geometry_msgs::Vector3Stamped>("robo/wheel/data", 1);
         pub_imu_data = pnh->advertise<sensor_msgs::Imu>("gimbal/imu/data_raw", 1);
         pub_nav_goal = pnh->advertise<geometry_msgs::Pose>("base/goal", 1);
+        pub_enemy_target = pnh->advertise<nav_msgs::Odometry>("enemy/target", 1);
 
         serial = new Serial("/dev/ttyUSBA1");
         serial->configurePort();
@@ -113,6 +113,7 @@ class RoboControl
     void cb_enemy_information(const robo_perception::ObjectList &msg);
     void read_xml_file();
     int find_enemy_self_closest_point(double enemy_x, double enemy_y, double self_x, double self_y);
+    void sendEnemyTarget(const geometry_msgs::Pose &msg);
     ros::NodeHandle *pnh;
 
     ros::Publisher pub_game_info;
@@ -120,6 +121,7 @@ class RoboControl
     ros::Publisher pub_wheel_vel;
     ros::Publisher pub_imu_data;
     ros::Publisher pub_nav_goal;
+    ros::Publisher pub_enemy_target;
 
     tf2_ros::TransformBroadcaster gimbal_tf;
     tf2_ros::TransformBroadcaster camera_tf;

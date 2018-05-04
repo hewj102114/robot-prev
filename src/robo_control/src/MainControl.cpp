@@ -215,13 +215,41 @@ int main(int argc, char **argv)
 		{
 			ROS_INFO("Stage 2: Find enemy, close to and stack enemy!!!!!!");
 
-			int target_num = robo_ctl.find_enemy_self_closest_point(robo_ctl.enemy_odom_pose.position.x, robo_ctl.enemy_odom_pose.position.y, robo_ctl.robo_ukf_pose.position.x, robo_ctl.robo_ukf_pose.position.y);
+			int target_num = robo_ctl.find_enemy_self_closest_point(robo_ctl.enemy_odom_pose.position.x, 
+																	robo_ctl.enemy_odom_pose.position.y, 
+																	robo_ctl.robo_ukf_pose.position.x, 
+																	robo_ctl.robo_ukf_pose.position.y);
 			geometry_msgs::Pose target_pose;
 			target_pose.position.x = robo_ctl.point_list.at<double>(target_num, 0);
 			target_pose.position.y = robo_ctl.point_list.at<double>(target_num, 1);
 			target_pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
 			robo_ctl.sendNavGoal(target_pose);
-			robo_ctl.sendMCUMsg(1, 1, robo_ctl.cmd_vel_msg.v_x, robo_ctl.cmd_vel_msg.v_y, robo_ctl.cmd_vel_msg.v_yaw, 0, 0, 0);
+			ros::Time start_time = ros::Time::now();
+			ros::Duration timeout(0.1); // Timeout of 2 seconds
+			while (ros::Time::now() - start_time < timeout)
+			{
+				robo_ctl.readMCUData();
+				robo_ctl.sendMCUMsg(1, 1, robo_ctl.cmd_vel_msg.v_x, robo_ctl.cmd_vel_msg.v_y, robo_ctl.cmd_vel_msg.v_yaw, 0, 0, 0);
+				ros::spinOnce();
+			}
+			if (robo_ctl.finish_navigation.data == true)
+			{
+				robo_ctl.sendMCUMsg(1, 1, 0, 0, 0, 0, 0, 0);
+				work_state = 3;
+			}
+			else
+			{
+				robo_ctl.sendMCUMsg(1, 1, robo_ctl.cmd_vel_msg.v_x, robo_ctl.cmd_vel_msg.v_y, robo_ctl.cmd_vel_msg.v_yaw, 0, 0, 0);
+			}
+			break;
+		}
+
+		case 3:
+		{
+			ROS_INFO("Stage 3: Close to enemy, stacking enemy!!!!!!");
+    		robo_ctl.enemy_odom_pose.orientation.w = 1;
+			robo_ctl.sendEnemyTarget(robo_ctl.enemy_odom_pose);
+			robo_ctl.sendMCUMsg(1, 1, 0, 0, 0, 0, 0, 0);
 			break;
 		}
 
