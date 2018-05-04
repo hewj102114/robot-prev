@@ -274,22 +274,24 @@ geometry_msgs::Pose RoboNav::adjustlocalgoal()
     local_goal.position.y = point_list.at<double>(local_goal_index, 0) * 1.0 / 100;
     local_goal.position.x = point_list.at<double>(local_goal_index, 1) * 1.0 / 100;
     
-    if (obs_min[0][0] < 0.35)  //front 
-    {
-	pid_x.stop = true;
-    }
-    else if (obs_min[0][0] < DEFFENCE)
+    
+    double dis_x=abs(local_goal_x-cur_pose.position.x);
+    double dis_y=abs(local_goal_y-cur_pose.position.y);
+    
+    if (obs_min[0][0] < DEFFENCE) //front
     {
 	pid_x.stop = false;
+	pid_y.stop = true;
 	local_goal.position.x = local_goal_x - 0.1;
     }
     else
+    {
 	pid_x.stop = false;
+	pid_y.stop = false;
+    }
     
     if (obs_min[0][1] < 0.45)  //front-left
     {
-	double dis_x=abs(local_goal_x-cur_pose.position.x);
-	double dis_y=abs(local_goal_y-cur_pose.position.y);
 	if(dis_x>dis_y) pid_x.stop = true;
 	if(dis_x<dis_y) pid_y.stop = true;
     }
@@ -306,18 +308,18 @@ geometry_msgs::Pose RoboNav::adjustlocalgoal()
 	pid_y.stop = false;
     }
     
-    if (obs_min[1][0] < 0.30)  //left
+   
+    if (obs_min[1][0] < DEFFENCE)  //left
     {
-	pid_y.stop = true;
-    }
-    else if (obs_min[1][0] < DEFFENCE)
-    {
+	pid_x.stop = true;
 	pid_y.stop = false;
-	local_goal.position.y = local_goal_y - 0.07;
+	local_goal.position.y = local_goal_y - 0.1;
     }
     else
+    {
+	pid_x.stop = false;
 	pid_y.stop = false;
-    
+    }
     
     if (obs_min[1][1] < 0.45)  //left-back
     {
@@ -339,18 +341,17 @@ geometry_msgs::Pose RoboNav::adjustlocalgoal()
 	pid_y.stop = false;
     }
     
-    if (obs_min[2][0] < 0.35) //back
-    {
-	pid_x.stop = true;
-    }
-    else if (obs_min[2][0] < DEFFENCE)
+    if (obs_min[2][0] < DEFFENCE)  //back
     {
 	pid_x.stop = false;
+	pid_y.stop = true;
 	local_goal.position.x = local_goal_x + 0.1;
     }
     else
+    {
 	pid_x.stop = false;
-    
+	pid_y.stop = false;
+    }
     
     if (obs_min[2][1] < 0.45) //back-right
     {
@@ -372,17 +373,17 @@ geometry_msgs::Pose RoboNav::adjustlocalgoal()
 	pid_y.stop = false;
     }
     
-    if (obs_min[3][0] < 0.30) //right
+    if (obs_min[3][0] < DEFFENCE)
     {
-	pid_y.stop = true;
-    }
-    else if (obs_min[3][0] < DEFFENCE)
-    {
+	pid_x.stop = true;
 	pid_y.stop = false;
-	local_goal.position.y = local_goal_y + 0.07;
+	local_goal.position.y = local_goal_y + 0.1;
     }
     else
+    {
+	pid_x.stop = false;
 	pid_y.stop = false;
+    }
     
     if (obs_min[3][1] < 0.45)  //right-front
     {
