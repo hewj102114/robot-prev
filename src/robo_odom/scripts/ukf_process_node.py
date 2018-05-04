@@ -43,6 +43,7 @@ import rospy
 import roslib
 import pickle
 import math
+import time
 from numpy.random import randn
 import numpy as np
 from tf.transformations import quaternion_from_euler, euler_from_quaternion
@@ -66,6 +67,8 @@ vel_wheel_x = vel_wheel_y = 0
 pos_fuse_x = vel_wheel_x = pos_fuse_y = vel_wheel_y = 0
 ukf_result = []
 qn_ukf = [0, 0, 0, 0]
+wheel_last_time = 0
+acc_imu_x = acc_imu_y = 0
 
 # S（i+1） = S（i） + V*dt + 0.5*a*dt*dt
 
@@ -74,22 +77,22 @@ def f_cv(x, dt):
     """ state transition function for a
     constant velocity aircraft"""
 
-    # F = np.array([[1, dt, 0.5*dt*dt, 0,  0,          0],
-    #               [0,  1, dt,        0,  0,          0],
-    #               [0,  0, 1,         0,  0,          0],
-    #               [0,  0, 0,         1, dt,  0.5*dt*dt],
-    #               [0,  0, 0,         0,  1,         dt],
-    #               [0,  0, 0,         0,  0,          1]], dtype=float)
+    F = np.array([[1, dt, 0.5*dt*dt, 0,  0,          0],
+                  [0,  1, dt,        0,  0,          0],
+                  [0,  0, 1,         0,  0,          0],
+                  [0,  0, 0,         1, dt,  0.5*dt*dt],
+                  [0,  0, 0,         0,  1,         dt],
+                  [0,  0, 0,         0,  0,          1]], dtype=float)
 
-    F = np.array([[1, dt, 0,  0],
-                  [0,  1, 0,  0],
-                  [0,  0, 1, dt],
-                  [0,  0, 0,  1]], dtype=float)
+    # F = np.array([[1, dt, 0,  0],
+    #               [0,  1, 0,  0],
+    #               [0,  0, 1, dt],
+    #               [0,  0, 0,  1]], dtype=float)
     return np.dot(F, x)
 
 
 def h_cv(x):
-    return np.array([x[0], x[1], x[2], x[3]])
+    return np.array([x[0], x[1], x[2], x[3], x[4], x[5]])
 
 # 信号源
 # p_std_x，p_std_y：融合位置信息
@@ -108,18 +111,18 @@ def UKFinit():
     a_std_y = rospy.get_param('~a_std_y', 0.2)
     dt = rospy.get_param('~dt', 0.125)  # 80HZ
 
-    sigmas = MerweScaledSigmaPoints(4, alpha=.1, beta=2., kappa=-1.0)
-    ukf = UKF(dim_x=4, dim_z=4, fx=f_cv, hx=h_cv, dt=dt, points=sigmas)
-    ukf.x = np.array([0., 0., 0., 0.])
-    ukf.R = np.diag([p_std_x, v_std_x, p_std_y, v_std_y])
-    ukf.Q[0:2, 0:2] = Q_discrete_white_noise(2, dt=dt, var=0.2)
-    ukf.Q[2:4, 2:4] = Q_discrete_white_noise(2, dt=dt, var=0.2)
-    ukf.P = np.diag([8, 1.2, 5, 1.2])
+    sigmas = MerweScaledSigmaPoints(6, alpha=.1, beta=2., kappa=-1.0)
+    ukf = UKF(dim_x=6, dim_z=6, fx=f_cv, hx=h_cv, dt=dt, points=sigmas)
+    ukf.x = np.array([0., 0., 0., 0., 0., 0.,])
+    ukf.R = np.diag([p_std_x, v_std_x, a_std_x, p_std_y, v_std_y, a_std_y])
+    ukf.Q[0:3, 0:3] = Q_discrete_white_noise(3, dt=dt, var=0.2)
+    ukf.Q[3:6, 3:6] = Q_discrete_white_noise(3, dt=dt, var=0.2)
+    ukf.P = np.diag([8, 1.2, 0.5, 5, 1.2,0.5])
 
 
 def callback_imu(imu):
     global imu_last_time, imu_init, acc_imu_x, acc_imu_y, vel_wheel_x, vel_wheel_y, qn_ukf, ukf_yaw, pos_fuse_x, vel_wheel_x, pos_fuse_y, vel_wheel_y
-    global ukf_result, ukf, pos_uwb_x, pos_uwb_y, uwb_seq, last_uwb_seq, uwb_time, incremental_pos_x, incremental_pos_y
+    global ukf_result, ukf, pos_uwb_x, pos_uwb_y, uwb_seq, last_uwb_seq, uwb_time, incremental_pos_x, incremental_pos_y,pos_wheel_x, pos_wheel_y
     if imu_init == True:
         print "ukf process Init Finished!"
         imu_last_time = imu.header.stamp.secs + imu.header.stamp.nsecs * 10**-9
@@ -128,6 +131,8 @@ def callback_imu(imu):
         incremental_pos_x = 0
         incremental_pos_y = 0
         imu_init = False
+        pos_wheel_x = 0
+        pos_wheel_y = 0
     else:
         imu_time = imu.header.stamp.secs + imu.header.stamp.nsecs * 10**-9
 
@@ -157,6 +162,9 @@ def callback_imu(imu):
                 vel_wheel_y * dt + 0.5 * acc_imu_y * dt * dt
             pos_fuse_y = pos_uwb_y + incremental_pos_y
 
+
+
+
         # print 'uwb',pos_uwb_x, pos_uwb_y, 'wheel',vel_wheel_x, vel_wheel_y, 'imu', acc_imu_x, acc_imu_y, 'yaw',ukf_yaw
         # if acc_imu_x > 1 or acc_imu_y > 1:
         #    print 'imu', acc_imu_x, acc_imu_y
@@ -172,6 +180,8 @@ def callback_uwb(uwb):
 
     pos_uwb_x = uwb.pose.pose.position.x
     pos_uwb_y = uwb.pose.pose.position.y
+    
+
 
 # def callback_vel(vel):
 #    global ukf_vel_x, ukf_vel_y
@@ -188,7 +198,7 @@ def callback_yaw(yaw):
 
 
 def callback_wheel(wheel):
-    global vel_wheel_x, vel_wheel_y, ukf_yaw
+    global vel_wheel_x, vel_wheel_y, ukf_yaw, wheel_last_time, pos_wheel_x,pos_wheel_y
 
     vel_wheel_x_ori = wheel.vector.x
     vel_wheel_y_ori = wheel.vector.y
@@ -204,6 +214,16 @@ def callback_wheel(wheel):
     # print 'after',vel_wheel_x,  vel_wheel_y ,'yaw',ukf_yaw
 
 
+
+    # dt = time.time() - wheel_last_time
+
+    # pos_wheel_x = pos_wheel_x + vel_wheel_x * dt
+    # pos_wheel_y = pos_wheel_y + vel_wheel_y * dt
+
+    # wheel_last_time = time.time()
+    # print 'wheel_x',pos_wheel_x,'wheel_y',pos_wheel_y
+
+
 rospy.init_node('ukf_process_node')
 UKFinit()
 subimu = rospy.Subscriber('map/imu/data', Imu, callback_imu)
@@ -217,19 +237,20 @@ pub_ukf_pos = rospy.Publisher('ukf/pos', Odometry, queue_size=1)
 
 rate = rospy.Rate(80)  # 80hz
 while not rospy.is_shutdown():
-    global pos_fuse_x, vel_wheel_x, pos_fuse_y, vel_wheel_y
+    global pos_fuse_x, vel_wheel_x, pos_fuse_y, vel_wheel_y, acc_imu_x, acc_imu_y
 
-    ukf_input = [pos_fuse_x, vel_wheel_x, pos_fuse_y, vel_wheel_y]
+    ukf_input = [pos_fuse_x, vel_wheel_x, acc_imu_x, pos_fuse_y, vel_wheel_y,acc_imu_y]
     ukf.predict()
     ukf.update(ukf_input)
     ukf_out_pos_x = ukf.x[0]
     ukf_vel_x = ukf.x[1]
-    ukf_out_pos_y = ukf.x[2]
-    ukf_vel_y = ukf.x[3]
+    ukf_out_pos_y = ukf.x[3]
+    ukf_vel_y = ukf.x[4]
     # print ukf.x
     print 'UWB x:', pos_uwb_x, 'UWB y:', pos_uwb_y
     print 'FUSE x', pos_fuse_x, 'FUSE y', pos_fuse_y
     print 'KALMAN x', ukf_out_pos_x, 'KALMAN y', ukf_out_pos_y
+    print 'KV x', ukf_vel_x, 'KV y', ukf_vel_y
 
     ukf_pos = Odometry()
     ukf_pos.header.frame_id = "odom"
