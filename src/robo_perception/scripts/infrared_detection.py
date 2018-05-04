@@ -42,8 +42,9 @@ count = 0
 frame_rate_idx = 0
 frame_rate = 0.0
 flag = True
-qn_ukf = [0, 0, 0, 0]
-team_x = team_y = 0
+qn_odom = [0, 0, 0, 0]
+team_x = team_y = team_relative_x = team_relative_y = 0
+odom_pos_x = odom_pos_y = 0
 
 video = cv2.VideoWriter('/home/ubuntu/robot/src/robo_perception/scripts/visual/demo.avi',
                         cv2.VideoWriter_fourcc(*"MJPG"),
@@ -312,30 +313,49 @@ def TsDet_callback(infrared_image, pointcloud):
             # pub_dr.publish(Im_to_ros)
 
 
-def callback_ukf(ukf):
-    global qn_ukf, ukf_pos_x, ukf_pos_y
+def callback_odom(odom):
+    global qn_odom, odom_pos_x, odom_pos_y
     # only yaw are available
-    ukf_pos_x = ukf.pose.pose.position.x
-    ukf_pos_y = ukf.pose.pose.position.y
-    qn_ukf = [ukf.pose.pose.orientation.x, ukf.pose.pose.orientation.y, ukf.pose.pose.orientation.z,
-              ukf.pose.pose.orientation.w]
-    # (ukf_roll,ukf_pitch,ukf_yaw) = euler_from_quaternion(qn_ukf)
+    odom_pos_x = odom.pose.pose.position.x
+    odom_pos_y = odom.pose.pose.position.y
+    qn_odom = [odom.pose.pose.orientation.x, odom.pose.pose.orientation.y, odom.pose.pose.orientation.z,
+              odom.pose.pose.orientation.w]
+    # (odom_roll,odom_pitch,odom_yaw) = euler_from_quaternion(qn_odom)
 
 def callback_team(team):
-    global team_x, team_y
+    global team_x, team_y, team_relative_x, team_relative_y
     team_x = team.pose.pose.position.x
     team_y = team.pose.pose.position.y
+    try:
+        realsense_trans = tfBuffer.lookup_transform('odom', 'realsense_camera', rospy.Time(0))
+    except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+        print('ENEMY OBJ TRANS FAIL! set enemy number 0')
+    team_relative_x = team_x - realsense_trans.transform.translation.x
+    team_relative_y = team_y - realsense_trans.transform.translation.y
+    
+    if team_relative_x > 0:
+        team_relative_x = team_relative_x - 0.2
+    elif team_relative_x < 0:
+        team_relative_x = team_relative_x + 0.2
+    if team_relative_y > 0:
+        team_relative_y = team_relative_y - 0.2
+    elif team_relative_y < 0:
+        team_relative_y = team_relative_y + 0.2
+
+    teamtheta = np.arctan2(team_relative_y, team_relative_x)
+    teamdistance = np.sqrt(team_relative_x**2 + team_relative_y**2)
+
+    print ('relx',team_relative_x,'rely', team_relative_y)
+    print ('team_x',team_x,'team_y', team_y)
+
 
 rospy.init_node('rgb_detection')
 DetectInit()
 rgb_sub = message_filters.Subscriber('camera/infra1/image_rect_raw', Image)
-# rgb_sub = message_filters.Subscriber('camera/infra1/image_rect_raw', Image)
-subukf = rospy.Subscriber('ukf/pos', Odometry, callback_ukf)
-subteam = rospy.Subscriber('/ukf/pos', Odometry, callback_team)
+subodom = rospy.Subscriber('odom', Odometry, callback_odom)
+subteam = rospy.Subscriber('team/pos', Odometry, callback_team)
 pc_sub = message_filters.Subscriber('camera/points', PointCloud2)
-# depth_sub = message_filters.Subscriber('camera/depth/image_rect_raw', Image)
 pub = rospy.Publisher('infrared_detection/enemy_position', ObjectList, queue_size=1)
-# pub_dr = rospy.Publisher('rgb_detection/detection_result', Image, queue_size=1)
 
 # TODO 在后面的试验中调调整slop
 TsDet = message_filters.ApproximateTimeSynchronizer(

@@ -317,23 +317,23 @@ def callback_target(target):
     ENABLE_PREDICT = target.pose.pose.position.z
 
 rospy.init_node('ukf_predict_node')
-UKFRsInit(0.02,np.array([0., 0., 0., 0.]))
-UKFPnpInit(0.02,np.array([0., 0., 0., 0.]))
+UKFRsInit(0.033,np.array([0., 0., 0., 0.]))
+UKFPnpInit(0.033,np.array([0., 0., 0., 0.]))
 TFinit()
 subenemy = rospy.Subscriber('infrared_detection/enemy_position', ObjectList, callback_enemy)
 subpnp = rospy.Subscriber('base/armor_pose', PoseStamped, callback_pnp)
-subukf = rospy.Subscriber('ukf/pos', Odometry, callback_ukf)
+subukf = rospy.Subscriber('odom', Odometry, callback_ukf)
 subtarget = rospy.Subscriber('enemy/target', Odometry, callback_target)
 
 pub_ukf_vel = rospy.Publisher('ukf/enemy', Odometry, queue_size=1)
 
-rate = rospy.Rate(50) # 10hz
+rate = rospy.Rate(30) # 30hz
 while not rospy.is_shutdown():
     global BULLET_SPEED, pnp_pos_x, pnp_vel_x, pnp_pos_y, pnp_vel_y, pnp_vel_x, pnp_vel_y, pnp_pos_x, pnp_pos_y, gimbal_roll, gambal_pitch, gimbal_yaw, ukf_vel_x, ukf_vel_y
 
     #rs有数据就用rs的进行更新，第一次直接初始化，第二次再更新   
     if RS_DATA_AVAILABLE and RS_PREDICT_INIT:
-        UKFRsInit(0.02, np.array([rs_pos_x, rs_vel_x, rs_pos_y, rs_vel_y]))
+        UKFRsInit(0.033, np.array([rs_pos_x, rs_vel_x, rs_pos_y, rs_vel_y]))
         ukf_rs_pos_x = ukf_rs.x[0]
         ukf_rs_pos_y = ukf_rs.x[2]
         ukf_rs_vel_x = ukf_rs.x[1]
@@ -350,7 +350,7 @@ while not rospy.is_shutdown():
 
     #rs有数据就用rs的进行更新，rs没数据就看pnp有没有数据，第一次直接初始化，第二次再更新
     if RS_DATA_AVAILABLE == False and PNP_PREDICT_INIT and PNP_DATA_AVAILABLE:
-        UKFPnpInit(0.02, np.array([pnp_pos_x, pnp_vel_x, pnp_pos_y, pnp_vel_y]))
+        UKFPnpInit(0.033, np.array([pnp_pos_x, pnp_vel_x, pnp_pos_y, pnp_vel_y]))
         ukf_pnp_pos_x = ukf_pnp.x[0]
         ukf_pnp_pos_y = ukf_pnp.x[2]
         ukf_pnp_vel_x = ukf_pnp.x[1]

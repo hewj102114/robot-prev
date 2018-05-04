@@ -158,7 +158,9 @@ def callback_imu(imu):
         ukf.predict()
         ukf.update(ukf_input)
         ukf_out_pos_x = ukf.x[0]
+        ukf_vel_x = ukf.x[1]
         ukf_out_pos_y = ukf.x[3]
+        ukf_vel_y = ukf.x[4]
         #print ukf.x
         print 'UWB x:',pos_uwb_x,'UWB y:',pos_uwb_y
         print 'FUSE x',pos_fuse_x,'FUSE y',pos_fuse_y
