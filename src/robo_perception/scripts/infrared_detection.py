@@ -51,6 +51,10 @@ video = cv2.VideoWriter('/home/ubuntu/robot/src/robo_perception/scripts/visual/d
                         20,
                         (848, 480))
 
+def TFinit():
+    global tfBuffer
+    tfBuffer = tf2_ros.Buffer()
+    listener = tf2_ros.TransformListener(tfBuffer)
 
 def DetectInit():
     global sess, model, mc
@@ -88,7 +92,7 @@ def DetectInit():
 def TsDet_callback(infrared_image, pointcloud):
     print("====================================new image======================================")
     print("===================================================================================")
-    global count, sess, model, mc, video, frame_rate_list, frame_rate_idx, frame_rate
+    global count, sess, model, mc, video, frame_rate_list, frame_rate_idx, frame_rate, align_image
     print('I here rgb and pointcloud !', count)
     count = count + 1
 
@@ -148,6 +152,8 @@ def TsDet_callback(infrared_image, pointcloud):
 
     # 0 -> red, 1 -> wheel, 2 -> blue
     # 检测到车并且检测到轮子, 进入此 if, 目的是为了减少误检率
+    aligned_robo_bbox = []
+    robo_bbox = []
     if len(final_boxes) > 0 and np.any(final_class == 0) and np.any(final_class == 1):
         #judge detect how much robots
         robot_final_idx = np.array(np.where(final_class != 1))
@@ -155,6 +161,13 @@ def TsDet_callback(infrared_image, pointcloud):
             robo_idx = robot_final_idx[0, _]
             robo_bbox = final_boxes[robo_idx, :]
             cx, cy, w, h = robo_bbox[0], robo_bbox[1], robo_bbox[2], robo_bbox[3]   # 获取车bbox的坐标, 宽度和高度
+            const = 620.0
+            aligned_w = w * (848.0 / const)
+            aligned_h = h * (848.0 / const)
+            aligned_cx = (cx - 424) * (848.0 / const) + 424.0 + 15.0
+            alinged_cy = (cy - 240) * (848.0 / const) + 240.0
+            aligned_robo_bbox = [aligned_cx, alinged_cy, aligned_w, aligned_h]
+
 
             # 用于提取点云的范围大小
             pointcloud_w = 5
@@ -299,7 +312,18 @@ def TsDet_callback(infrared_image, pointcloud):
             im = im.astype('uint8')
             cv2.imwrite(out_file_name, im)
 
+        print(aligned_robo_bbox, robo_bbox)
         if mc.SHOW:
+            # cx, cy, w, h
+            if len(aligned_robo_bbox) != 0:
+                x_min = aligned_robo_bbox[0] - aligned_robo_bbox[2]/2
+                x_max = aligned_robo_bbox[0] + aligned_robo_bbox[2]/2
+                y_min = aligned_robo_bbox[1] - aligned_robo_bbox[3]/2
+                y_max = aligned_robo_bbox[1] + aligned_robo_bbox[3]/2
+                cv2.rectangle(align_image, (int(x_min), int(y_min)), (int(x_max), int(y_max)), (255,0,0), 2)
+            # cv2.rectangle(im, (int(x_min), int(y_min)), (int(x_max), int(y_max)), (255,0,0), 2)
+            cv2.imshow('rgb', align_image)
+            im = im.astype('uint8')
             cv2.imshow('demo', im)
             cv2.waitKey(3)
 
@@ -313,47 +337,61 @@ def TsDet_callback(infrared_image, pointcloud):
             # pub_dr.publish(Im_to_ros)
 
 
-def callback_odom(odom):
-    global qn_odom, odom_pos_x, odom_pos_y
-    # only yaw are available
-    odom_pos_x = odom.pose.pose.position.x
-    odom_pos_y = odom.pose.pose.position.y
-    qn_odom = [odom.pose.pose.orientation.x, odom.pose.pose.orientation.y, odom.pose.pose.orientation.z,
-              odom.pose.pose.orientation.w]
-    # (odom_roll,odom_pitch,odom_yaw) = euler_from_quaternion(qn_odom)
+# def callback_odom(odom):
+#     global qn_odom, odom_pos_x, odom_pos_y
+#     # only yaw are available
+#     odom_pos_x = odom.pose.pose.position.x
+#     odom_pos_y = odom.pose.pose.position.y
+#     qn_odom = [odom.pose.pose.orientation.x, odom.pose.pose.orientation.y, odom.pose.pose.orientation.z,
+#               odom.pose.pose.orientation.w]
+#     # (odom_roll,odom_pitch,odom_yaw) = euler_from_quaternion(qn_odom)
 
-def callback_team(team):
-    global team_x, team_y, team_relative_x, team_relative_y
-    team_x = team.pose.pose.position.x
-    team_y = team.pose.pose.position.y
-    try:
-        realsense_trans = tfBuffer.lookup_transform('odom', 'realsense_camera', rospy.Time(0))
-    except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
-        print('ENEMY OBJ TRANS FAIL! set enemy number 0')
-    team_relative_x = team_x - realsense_trans.transform.translation.x
-    team_relative_y = team_y - realsense_trans.transform.translation.y
+# def callback_team(team):
+#     global team_x, team_y, team_relative_x, team_relative_y, tfBuffer, odom_pos_x, odom_pos_y
+#     team_x = team.pose.pose.position.x
+#     team_y = team.pose.pose.position.y
+#     try:
+#         realsense_trans = tfBuffer.lookup_transform('odom', 'realsense_camera', rospy.Time(0))
+#     except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+#         print('ENEMY OBJ TRANS FAIL! set enemy number 0')
+#     team_relative_x = team_x - realsense_trans.transform.translation.x
+#     team_relative_y = team_y - realsense_trans.transform.translation.y
     
-    if team_relative_x > 0:
-        team_relative_x = team_relative_x - 0.2
-    elif team_relative_x < 0:
-        team_relative_x = team_relative_x + 0.2
-    if team_relative_y > 0:
-        team_relative_y = team_relative_y - 0.2
-    elif team_relative_y < 0:
-        team_relative_y = team_relative_y + 0.2
+#     print ('orirelx',team_relative_x,'orirely', team_relative_y)
+#     if team_relative_x > 0:
+#         team_relative_x = team_relative_x - 0.2
+#     elif team_relative_x < 0:
+#         team_relative_x = team_relative_x + 0.2
+#     if team_relative_y > 0:
+#         team_relative_y = team_relative_y - 0.2
+#     elif team_relative_y < 0:
+#         team_relative_y = team_relative_y + 0.2
 
-    teamtheta = np.arctan2(team_relative_y, team_relative_x)
-    teamdistance = np.sqrt(team_relative_x**2 + team_relative_y**2)
+#     teamtheta = np.arctan2(team_relative_y, team_relative_x)
+#     teamdistance = np.sqrt(team_relative_x**2 + team_relative_y**2)
 
-    print ('relx',team_relative_x,'rely', team_relative_y)
-    print ('team_x',team_x,'team_y', team_y)
+#     print ('odom_pos_x',odom_pos_x,'odom_pos_y', odom_pos_y)
+#     print ('realsense_x',realsense_trans.transform.translation.x,'realsense_y', realsense_trans.transform.translation.y)
+#     print ('relx',team_relative_x,'rely', team_relative_y)
+#     print ('team_x',team_x,'team_y', team_y)
 
+def callback_rgb(rgb):
+    global align_image
+    bridge = CvBridge()
+    try:
+        align_image = bridge.imgmsg_to_cv2(rgb, desired_encoding="8UC3")
+
+    except CvBridgeError as error:
+        print(error)
 
 rospy.init_node('rgb_detection')
+TFinit()
 DetectInit()
 rgb_sub = message_filters.Subscriber('camera/infra1/image_rect_raw', Image)
-subodom = rospy.Subscriber('odom', Odometry, callback_odom)
-subteam = rospy.Subscriber('team/pos', Odometry, callback_team)
+#subodom = rospy.Subscriber('odom', Odometry, callback_odom)
+#subteam = rospy.Subscriber('team/pos', Odometry, callback_team)
+subrgb = rospy.Subscriber('/camera/color/image_raw', Image, callback_rgb)
+
 pc_sub = message_filters.Subscriber('camera/points', PointCloud2)
 pub = rospy.Publisher('infrared_detection/enemy_position', ObjectList, queue_size=1)
 
