@@ -276,7 +276,7 @@ def TsDet_callback(infrared_image, pointcloud):
                 enemy.team.data = str_enemy_self + str(red_idx)
                 red_idx = red_idx + 1
             else:
-                str_enemy_self = 'blue'
+                str_enemy_self = 'red'
                 t.child_frame_id = str_enemy_self + str(blue_idx)
                 enemy.team.data = str_enemy_self + str(blue_idx)
                 blue_idx = blue_idx + 1

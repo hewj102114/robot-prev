@@ -33,7 +33,5 @@ int main(int argc, char **argv) {
         img_msg.image = img;
         img_msg.encoding = sensor_msgs::image_encodings::BGR8;
         pub_image.publish(img_msg.toImageMsg());
-         cv::imshow("i", img);
-         cv::waitKey(1);
     }
 }

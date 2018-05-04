@@ -293,19 +293,19 @@ void ArmorDetector::findTargetInContours(const vector<RotatedRect> & contours_re
 	    
 	    if (abs(delta_angle)>_para.max_light_delta_angle){
 		cout<<"angle  "<<delta_angle<<endl;
-		break;
+		continue;
 	    }
 	    if (abs(delta_height) > min(contours_rect[i].size.height,contours_rect[j].size.height)){
 		cout<<"delta_height:"<<delta_height<<"  i:"<<contours_rect[i].size.height<<"  j:"<<contours_rect[j].size.height<<endl;
-		break;
+		continue;
 	    }
 	    if (abs(delta_width)>_para.max_light_delta_w || abs(delta_width)<_para.min_light_delta_w){
 		cout<<"delta_width  "<<delta_width<<endl;
-		break;
+		continue;
 	    }
 	    if (abs(delta_center)>min(contours_rect[i].size.height,contours_rect[j].size.height)){
 		cout<<"delta_center  "<<delta_center<<endl;
-		break;
+		continue;
 	    }
 	    
 	    if (delta_width<0)

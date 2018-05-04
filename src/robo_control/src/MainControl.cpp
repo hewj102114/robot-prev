@@ -103,6 +103,7 @@ int main(int argc, char **argv)
 	ros::Rate loop_rate(150);
 	while (ros::ok())
 	{
+		work_state = 3;
 		// 读取 MCU 数据
 		robo_ctl.readMCUData();
 		switch (work_state)
