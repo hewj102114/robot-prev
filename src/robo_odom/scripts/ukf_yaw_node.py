@@ -187,7 +187,7 @@ def callback_uwb(uwb):
 
     if UWB_INIT == True:
         if imu_yaw != 0:
-            print 'tik tiok'
+            print 'tik tok'
             imu_yaw_list.append(imu_yaw)
             uwb_yaw_list.append(uwb_yaw)
             if UWB_INIT_COUNTER == 50:
