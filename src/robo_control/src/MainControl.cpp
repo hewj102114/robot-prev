@@ -250,6 +250,13 @@ int main(int argc, char **argv)
 			ROS_INFO("Stage 3: Close to enemy, stacking enemy!!!!!!");
     		robo_ctl.enemy_odom_pose.orientation.w = 1;
 			robo_ctl.sendEnemyTarget(robo_ctl.enemy_odom_pose);
+
+			float enemy_self_angle = robo_ctl.calculator_enemy_angle(robo_ctl.enemy_odom_pose.position.x, 
+																	robo_ctl.enemy_odom_pose.position.y, 
+																	robo_ctl.robo_ukf_pose.position.x, 
+																	robo_ctl.robo_ukf_pose.position.y);
+			ROS_INFO("enemy_self_angle: %f", enemy_self_angle);
+
 			robo_ctl.sendMCUMsg(1, 1, 0, 0, 0, 0, 0, 0);
 			robo_ctl.sendMCUMsg(1, 
 								2, 

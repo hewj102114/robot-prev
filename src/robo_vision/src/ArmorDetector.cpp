@@ -186,7 +186,7 @@ void ArmorDetector::findContourInEnemyColor(vector<RotatedRect> &contours_rect){
 	
 	//color
 	if (1.0*sum_color/it->size()/5 < _para.color_threshold){
-	    cout<<"color  "<<sum_color<<"    "<<it->size()<<"     "<<1.0*sum_color/it->size()/5<<endl;
+	    //cout<<"color  "<<sum_color<<"    "<<it->size()<<"     "<<1.0*sum_color/it->size()/5<<endl;
 	    ++it;
 	    continue;
 	}
@@ -292,19 +292,19 @@ void ArmorDetector::findTargetInContours(const vector<RotatedRect> & contours_re
 	    double delta_center=contours_rect[i].center.y-contours_rect[j].center.y;
 	    
 	    if (abs(delta_angle)>_para.max_light_delta_angle){
-		cout<<"angle  "<<delta_angle<<endl;
+		//cout<<"angle  "<<delta_angle<<endl;
 		continue;
 	    }
 	    if (abs(delta_height) > min(contours_rect[i].size.height,contours_rect[j].size.height)){
-		cout<<"delta_height:"<<delta_height<<"  i:"<<contours_rect[i].size.height<<"  j:"<<contours_rect[j].size.height<<endl;
+		//cout<<"delta_height:"<<delta_height<<"  i:"<<contours_rect[i].size.height<<"  j:"<<contours_rect[j].size.height<<endl;
 		continue;
 	    }
 	    if (abs(delta_width)>_para.max_light_delta_w || abs(delta_width)<_para.min_light_delta_w){
-		cout<<"delta_width  "<<delta_width<<endl;
+		//cout<<"delta_width  "<<delta_width<<endl;
 		continue;
 	    }
 	    if (abs(delta_center)>min(contours_rect[i].size.height,contours_rect[j].size.height)){
-		cout<<"delta_center  "<<delta_center<<endl;
+		//cout<<"delta_center  "<<delta_center<<endl;
 		continue;
 	    }
 	    
@@ -369,7 +369,7 @@ void ArmorDetector::chooseTarget(vector<RotatedRect> & left_rects,vector<Rotated
 	RotatedRect rect=boundingRRect(left_rects[i],right_rects[i]);
 	
 	double wh_ratio=rect.size.width/rect.size.height;
-    cout<<"WWWWWWWWWWWW  :  "<<wh_ratio<<endl;
+   // cout<<"WWWWWWWWWWWW  :  "<<wh_ratio<<endl;
 	if (wh_ratio>3||wh_ratio<1)
 	    continue;
 	
@@ -377,9 +377,9 @@ void ArmorDetector::chooseTarget(vector<RotatedRect> & left_rects,vector<Rotated
 	if(_is_lost == false && size_last.width > _para.min_light_delta_w){
 	    double percent = 0.50 * size_last.width;
 	    if (abs(rect.size.width - size_last.width) > percent){
-		#ifdef COUT_LOG
-		cout << "refused 0 : size_last.width: " << size_last.width << "\tcur width: "  << rect.size.width << endl;
-		#endif
+		//#ifdef COUT_LOG
+		//cout << "refused 0 : size_last.width: " << size_last.width << "\tcur width: "  << rect.size.width << endl;
+		//#endif
 		continue;
 	    }
 	}
@@ -417,12 +417,12 @@ void ArmorDetector::chooseTarget(vector<RotatedRect> & left_rects,vector<Rotated
     for (int i = 0; i < 4; i++){
 	line(img_show, vertices[i], vertices[(i + 1) % 4], CV_RGB(255, 255, 0), 1);
     }
-    imshow("pair2",img_show);
+    //imshow("pair2",img_show);
     #endif
     
 }
 
-
+ 
 struct ArmorTarget ArmorDetector::getTargetAera(const cv::Mat & src){
     setImage(src);
     ArmorTarget armor_target;

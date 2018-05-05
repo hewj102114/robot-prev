@@ -326,3 +326,11 @@ void RoboControl::sendEnemyTarget(const geometry_msgs::Pose &msg)
     enemy_odom_target_msg.pose.pose.orientation = msg.orientation;
     pub_enemy_target.publish(enemy_odom_target_msg);
 }
+
+float RoboControl::calculator_enemy_angle(double enemy_x, double enemy_y, double self_x, double self_y)
+{
+    float dx = enemy_x - self_x;
+    float dy = enemy_y - self_y;
+    float angle = atan2(dy, dx);
+    return angle;
+}

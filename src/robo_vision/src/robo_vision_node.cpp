@@ -107,6 +107,8 @@ image_transport::ImageTransport it(nh);
     ros::Rate rate(100);
     ROS_INFO("Image Consumer Start!");
 
+    //armor_detector_flag
+    int armor_detector_flag = 0;
     while (ros::ok()) {
         ROS_INFO("loop");
         if (img_recv.empty()) 
@@ -144,10 +146,12 @@ image_transport::ImageTransport it(nh);
             if(abs(angle_x) < 10 && abs(angle_y) < 10)
             {
                msg_armor_info.mode = 3;
+               armor_detector_flag = 3;
             }
             else
             {
                msg_armor_info.mode = 2;
+	       armor_detector_flag = 2;
             }
             msg_armor_info.pose_image.x = armor_target.center.x;
             msg_armor_info.pose_image.y = armor_target.center.y;
@@ -181,6 +185,8 @@ image_transport::ImageTransport it(nh);
 
             pre_angle_x = angle_x;
             pre_angle_y = angle_y;
+            
+            cout << "armor_detector_flag = " << armor_detector_flag << endl;
             ROS_INFO("FIND ENERMY ARMOR");
         } 
         else
@@ -198,22 +204,23 @@ image_transport::ImageTransport it(nh);
             armor_pose_msg.pose.orientation.w = 1;
             pub_armor_pose.publish(armor_pose_msg);
 
-            // // miss <5 use history data
-            // if (miss_detection_cnt < 5)
-            // {
-            //     msg_armor_info.mode = miss_detection_cnt;
-            //     msg_armor_info.angle.x =
-            //         (pre_angle_x + offset_anlge_x) * 100;  // yaw
-            //     msg_armor_info.angle.y = (pre_angle_y + offset_anlge_y) * 100;
-            // } 
-            // else 
-            // {
-            //     msg_armor_info.mode = 0;
-            // }
+             // miss <5 use history data
+            if (miss_detection_cnt < 5)
+            {
+                msg_armor_info.mode    = miss_detection_cnt;
+                msg_armor_info.angle.x = (pre_angle_x + offset_anlge_x) * 100;  // yaw
+                msg_armor_info.angle.y = (pre_angle_y + offset_anlge_y) * 100;
+            } 
+            else 
+            {
+                msg_armor_info.mode = 0;
+            }
 
             msg_armor_info.mode = 1;
+	    armor_detector_flag = 1;
             pub_armor_info.publish(msg_armor_info);
 
+            cout << "armor_detector_flag = " << armor_detector_flag << endl;
             ++miss_detection_cnt;
         }
 

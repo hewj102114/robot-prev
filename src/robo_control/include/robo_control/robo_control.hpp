@@ -114,6 +114,7 @@ class RoboControl
     void read_xml_file();
     int find_enemy_self_closest_point(double enemy_x, double enemy_y, double self_x, double self_y);
     void sendEnemyTarget(const geometry_msgs::Pose &msg);
+    float calculator_enemy_angle(double enemy_x, double enemy_y, double self_x, double self_y);
     ros::NodeHandle *pnh;
 
     ros::Publisher pub_game_info;
