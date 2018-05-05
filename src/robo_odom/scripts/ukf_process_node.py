@@ -165,7 +165,7 @@ def callback_imu(imu):
 
 
 
-        # print 'uwb',pos_uwb_x, pos_uwb_y, 'wheel',vel_wheel_x, vel_wheel_y, 'imu', acc_imu_x, acc_imu_y, 'yaw',ukf_yaw
+        
         # if acc_imu_x > 1 or acc_imu_y > 1:
         #    print 'imu', acc_imu_x, acc_imu_y
         imu_last_time = imu_time
@@ -237,7 +237,7 @@ pub_ukf_pos = rospy.Publisher('ukf/pos', Odometry, queue_size=1)
 
 rate = rospy.Rate(80)  # 80hz
 while not rospy.is_shutdown():
-    global pos_fuse_x, vel_wheel_x, pos_fuse_y, vel_wheel_y, acc_imu_x, acc_imu_y
+    global pos_fuse_x, vel_wheel_x, pos_fuse_y, vel_wheel_y, acc_imu_x, acc_imu_y,ukf_yaw
 
     ukf_input = [pos_fuse_x, vel_wheel_x, acc_imu_x, pos_fuse_y, vel_wheel_y,acc_imu_y]
     ukf.predict()
@@ -251,6 +251,7 @@ while not rospy.is_shutdown():
     print 'FUSE x', pos_fuse_x, 'FUSE y', pos_fuse_y
     print 'KALMAN x', ukf_out_pos_x, 'KALMAN y', ukf_out_pos_y
     print 'KV x', ukf_vel_x, 'KV y', ukf_vel_y
+    print 'yaw',ukf_yaw
 
     ukf_pos = Odometry()
     ukf_pos.header.frame_id = "odom"

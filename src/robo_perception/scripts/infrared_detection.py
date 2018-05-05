@@ -367,34 +367,7 @@ def TsDet_callback(infrared_image, pointcloud):
 #               odom.pose.pose.orientation.w]
 #     # (odom_roll,odom_pitch,odom_yaw) = euler_from_quaternion(qn_odom)
 
-# def callback_team(team):
-#     global team_x, team_y, team_relative_x, team_relative_y, tfBuffer, odom_pos_x, odom_pos_y
-#     team_x = team.pose.pose.position.x
-#     team_y = team.pose.pose.position.y
-#     try:
-#         realsense_trans = tfBuffer.lookup_transform('odom', 'realsense_camera', rospy.Time(0))
-#     except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
-#         print('ENEMY OBJ TRANS FAIL! set enemy number 0')
-#     team_relative_x = team_x - realsense_trans.transform.translation.x
-#     team_relative_y = team_y - realsense_trans.transform.translation.y
-    
-#     print ('orirelx',team_relative_x,'orirely', team_relative_y)
-#     if team_relative_x > 0:
-#         team_relative_x = team_relative_x - 0.2
-#     elif team_relative_x < 0:
-#         team_relative_x = team_relative_x + 0.2
-#     if team_relative_y > 0:
-#         team_relative_y = team_relative_y - 0.2
-#     elif team_relative_y < 0:
-#         team_relative_y = team_relative_y + 0.2
 
-#     teamtheta = np.arctan2(team_relative_y, team_relative_x)
-#     teamdistance = np.sqrt(team_relative_x**2 + team_relative_y**2)
-
-#     print ('odom_pos_x',odom_pos_x,'odom_pos_y', odom_pos_y)
-#     print ('realsense_x',realsense_trans.transform.translation.x,'realsense_y', realsense_trans.transform.translation.y)
-#     print ('relx',team_relative_x,'rely', team_relative_y)
-#     print ('team_x',team_x,'team_y', team_y)
 
 def callback_rgb(rgb):
     global align_image
@@ -410,7 +383,6 @@ TFinit()
 DetectInit()
 rgb_sub = message_filters.Subscriber('camera/infra1/image_rect_raw', Image)
 #subodom = rospy.Subscriber('odom', Odometry, callback_odom)
-#subteam = rospy.Subscriber('team/pos', Odometry, callback_team)
 subrgb = rospy.Subscriber('/camera/color/image_raw', Image, callback_rgb)
 
 pc_sub = message_filters.Subscriber('camera/points', PointCloud2)

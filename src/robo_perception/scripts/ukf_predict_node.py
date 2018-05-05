@@ -69,18 +69,24 @@ RS_DATA_AVAILABLE = False
 RS_PREDICT_INIT = True
 PNP_PREDICT_INIT = True
 UNABLE_PREDICT = 0
+TEMPERAL_LOST = 0
 
 BULLET_SPEED = 17
 PNP_CLOSE_THRESH = 0.1 #判断pnp是否瞄准到了正确目标
 RS_CLOSE_THRESH = 0.05 #判断rs是否瞄准到了正确目标
+LOST_TRESH = 10
 
 ukf_result = []
 robo_vel_x = robo_vel_y = 0
 pnp_vel_x = pnp_vel_y = pnp_pos_x = pnp_pos_y = last_pnp_pos_x = last_pnp_pos_y = 0
 odom_yaw = odom_pos_x = odom_pos_y = odom_vel_x = odom_vel_y = 0
-rs_pos_x = rs_pos_Y = rs_vel_x = rs_vel_y = last_pnp_pos_x = last_pnp_pos_y = 0
+rs_pos_x = rs_pos_y = rs_vel_x = rs_vel_y = last_rs_pos_x = last_rs_pos_y = 0
 gimbal_roll = gambal_pitch = gimbal_yaw = 0
-aimtheta = aimdistance = 0
+aimtheta = aimdistance = predict_angle = 0
+ukf_out_pos_x = ukf_out_pos_y = ukf_out_vel_x = ukf_out_vel_y = 0
+pnp_lost_counter = rs_lost_counter = 0
+rs_lost_time = []
+pnp_lost_time = []
 
 # S（i+1） = S（i） + V*dt
 def f_cv(x, dt):
@@ -100,8 +106,8 @@ def h_cv(x):
 def UKFRsInit(in_dt, init_x):
     global ukf_rs
 
-    p_std_x, p_std_y = 0.03, 0.03
-    v_std_x, v_std_y = 0.03, 0.03
+    p_std_x, p_std_y = 0.01, 0.01
+    v_std_x, v_std_y = 0.01, 0.01
     dt = in_dt #50HZ
 
 
@@ -111,7 +117,7 @@ def UKFRsInit(in_dt, init_x):
     ukf_rs.R = np.diag([p_std_x, v_std_x, p_std_y, v_std_y]) 
     ukf_rs.Q[0:2, 0:2] = Q_discrete_white_noise(2, dt=dt, var=0.2)
     ukf_rs.Q[2:4, 2:4] = Q_discrete_white_noise(2, dt=dt, var=0.2)
-    ukf_rs.P = np.diag([8, 2.0 ,5, 2.0])
+    ukf_rs.P = np.diag([8, 1.0 ,5, 1.0])
 
 def UKFPnpInit(in_dt, init_x):
     global ukf_pnp
@@ -127,12 +133,12 @@ def UKFPnpInit(in_dt, init_x):
     ukf_pnp.R = np.diag([p_std_x, v_std_x, p_std_y, v_std_y]) 
     ukf_pnp.Q[0:2, 0:2] = Q_discrete_white_noise(2, dt=dt, var=0.2)
     ukf_pnp.Q[2:4, 2:4] = Q_discrete_white_noise(2, dt=dt, var=0.2)
-    ukf_pnp.P = np.diag([8, 2.0 ,5, 2.0])
+    ukf_pnp.P = np.diag([8, 1.0 ,5, 1.0])
 
 
 def callback_enemy(enemy):
     global enemy_num, team_num, tfBuffer, enemy_object_trans, team_object_trans, aim_target_x, aim_target_y, rs_last_time, rs_lost_time, rs_lost_counter
-    global pnp_vel_x, pnp_vel_y, pnp_pos_x, pnp_pos_y, last_pnp_pos_x, last_pnp_pos_y
+    global rs_pos_x, rs_pos_y, rs_vel_x, rs_vel_y, last_rs_pos_x, last_rs_pos_y, odom_yaw, odom_pos_x, odom_pos_y
     global ENABLE_PREDICT, RS_DATA_AVAILABLE, RS_LAST_AVAILABLE, RS_INIT
     if RS_INIT == True:
         print "realsense callback init Finished!"
@@ -141,9 +147,9 @@ def callback_enemy(enemy):
         team_object_trans = []
         enemy_object_trans = []
         rs_lost_time = []
-        RS_INIT = False
         rs_lost_counter = 0
-
+        RS_INIT = False
+    
     elif ENABLE_PREDICT:
         team_object_trans = []
         enemy_object_trans = []
@@ -153,42 +159,46 @@ def callback_enemy(enemy):
         rs_time = enemy.header.stamp.secs + enemy.header.stamp.nsecs * 10**-9
         dt = rs_time - rs_last_time
 
+        if enemy.num == 0:
+            print 'NOTHING'
         for i in range(int(enemy.num)):
             object_name =  enemy.object[i].team.data
+            #decoding the enemy position
             if object_name == 'red0' or object_name == 'red1':
                 enemy_num = enemy_num + 1
-                try:
-                    enemy_object_trans.append(tfBuffer.lookup_transform('odom', object_name, rospy.Time(0)))
-                except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
-                    print('ENEMY OBJ TRANS FAIL! set enemy number 0')
-                    enemy_num = 0
-                #print enemy_object_trans
+                rs_x = enemy.object[i].pose.position.x
+                rs_y = enemy.object[i].pose.position.y
+                #theta in rs axis
+                theta = np.arctan2(rs_y,rs_x)
+                #global = cos(theta+yaw) * target_distance + rs_relative_distance_to_base_link + base_link_global_axis
+                #0.22 means rs_relative_distance_to_base_link = 22CM
+                rs_global_x = np.cos(theta + odom_yaw)*np.sqrt(rs_x**2 +rs_y**2) + 0.22*np.cos(odom_yaw) + odom_pos_x
+                rs_global_y = np.sin(theta + odom_yaw)*np.sqrt(rs_x**2 +rs_y**2) + 0.22*np.sin(odom_yaw) + odom_pos_y                
+
+                enemy_object_trans.append([rs_global_x,rs_global_y])
+
             elif object_name == 'blue0':
                 team_num = team_num + 1
-                try:
-                    team_object_trans.append(tfBuffer.lookup_transform('odom', object_name, rospy.Time(0)))
-                except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
-                    print('TEAM OBJ TRANS FAIL! set team number 0')
-                    team_num = 0
-
+                #DO NOTHING
+                
         #object judgement
         if enemy_num == 1:
-            enemy_0_x = enemy_object_trans[0].transform.translation.x
-            enemy_0_y = enemy_object_trans[0].transform.translation.y
+            enemy_0_x = enemy_object_trans[0][0]
+            enemy_0_y = enemy_object_trans[0][1]
             enemy_1_x = 99
             enemy_1_y = 99
         elif enemy_num == 2:
-            enemy_0_x = enemy_object_trans[0].transform.translation.x
-            enemy_0_y = enemy_object_trans[0].transform.translation.y
-            enemy_1_x = enemy_object_trans[1].transform.translation.x
-            enemy_1_y = enemy_object_trans[1].transform.translation.y
+            enemy_0_x = enemy_object_trans[0][0]
+            enemy_0_y = enemy_object_trans[0][1]
+            enemy_1_x = enemy_object_trans[1][0]
+            enemy_1_y = enemy_object_trans[1][1]
         else:
             enemy_0_x = 0
             enemy_0_y = 0
             enemy_1_x = 0
             enemy_1_y = 0
-            
-        if np.sqrt((aim_target_x - enemy_0_x) ** 2 + (aim_target_y - enemy_0_y) ** 2) < 0.02:
+
+        if np.sqrt((aim_target_x - enemy_0_x) ** 2 + (aim_target_y - enemy_0_y) ** 2) < 99:
             rs_pos_x = enemy_0_x
             rs_pos_y = enemy_0_y
             FIND_RS = True
@@ -202,10 +212,6 @@ def callback_enemy(enemy):
             RS_LAST_AVAILABLE = False
 
             
-        # rs position not change
-        if  last_rs_pos_x - rs_pos_x == 0:
-            RS_LAST_AVAILABLE = False
-        
         if FIND_RS == True:
             #print 'USE RS PREDICTING'
             rs_lost_time = []
@@ -215,10 +221,12 @@ def callback_enemy(enemy):
                 rs_vel_x = (rs_pos_x - last_rs_pos_x) / dt
                 rs_vel_y = (rs_pos_y - last_rs_pos_y) / dt
                 RS_DATA_AVAILABLE = True
+
             
             RS_LAST_AVAILABLE = True
             last_rs_pos_x = rs_pos_x
             last_rs_pos_y = rs_pos_y
+
 
         else:
             #print 'NO Available update in realsense ', 'lost_counter:', rs_lost_counter
@@ -226,7 +234,6 @@ def callback_enemy(enemy):
             rs_lost_time.append(dt)
             RS_LAST_AVAILABLE = False
             RS_DATA_AVAILABLE = False
-
 
         rs_last_time = rs_time
 
@@ -326,8 +333,8 @@ def callback_target(target):
     ENABLE_PREDICT = target.pose.pose.orientation.w
 
 rospy.init_node('ukf_predict_node')
-UKFRsInit(0.033,np.array([0., 0., 0., 0.]))
-UKFPnpInit(0.033,np.array([0., 0., 0., 0.]))
+UKFRsInit(0.025,np.array([0., 0., 0., 0.]))
+UKFPnpInit(0.025,np.array([0., 0., 0., 0.]))
 TFinit()
 subenemy = rospy.Subscriber('infrared_detection/enemy_position', ObjectList, callback_enemy)
 subpnp = rospy.Subscriber('base/armor_pose', PoseStamped, callback_pnp)
@@ -336,14 +343,15 @@ subtarget = rospy.Subscriber('enemy/target', Odometry, callback_target)
 
 pub_ukf_vel = rospy.Publisher('ukf/enemy', Odometry, queue_size=1)
 
-rate = rospy.Rate(30) # 30hz
+rate = rospy.Rate(40) # 30hz
 while not rospy.is_shutdown():
-    global BULLET_SPEED, pnp_pos_x, pnp_vel_x, pnp_pos_y, pnp_vel_y, pnp_vel_x, pnp_vel_y, pnp_pos_x, pnp_pos_y, gimbal_roll, gambal_pitch, gimbal_yaw, odom_vel_x, odom_vel_y
-    global UNABLE_PREDICT, aimtheta, aimdistance
-
+    global BULLET_SPEED, pnp_pos_x, pnp_pos_y, pnp_vel_y, pnp_vel_x, gimbal_roll, gambal_pitch, gimbal_yaw, odom_vel_x, odom_vel_y
+    global UNABLE_PREDICT, aimtheta, aimdistance, predict_angle, ukf_out_pos_x, ukf_out_pos_y, ukf_out_vel_x, ukf_out_vel_y
+    global rs_pos_x, rs_pos_y, rs_vel_x, rs_vel_y, last_pnp_pos_x, last_pnp_pos_y, rs_lost_counter, pnp_lost_counter
+    global LOST_TRESH, TEMPERAL_LOST
     #rs有数据就用rs的进行更新，第一次直接初始化，第二次再更新   
     if RS_DATA_AVAILABLE and RS_PREDICT_INIT:
-        UKFRsInit(0.033, np.array([rs_pos_x, rs_vel_x, rs_pos_y, rs_vel_y]))
+        UKFRsInit(0.025, np.array([rs_pos_x, rs_vel_x, rs_pos_y, rs_vel_y]))
         ukf_rs_pos_x = ukf_rs.x[0]
         ukf_rs_pos_y = ukf_rs.x[2]
         ukf_rs_vel_x = ukf_rs.x[1]
@@ -360,7 +368,7 @@ while not rospy.is_shutdown():
 
     #rs有数据就用rs的进行更新，rs没数据就看pnp有没有数据，第一次直接初始化，第二次再更新
     if RS_DATA_AVAILABLE == False and PNP_PREDICT_INIT and PNP_DATA_AVAILABLE:
-        UKFPnpInit(0.033, np.array([pnp_pos_x, pnp_vel_x, pnp_pos_y, pnp_vel_y]))
+        UKFPnpInit(0.025, np.array([pnp_pos_x, pnp_vel_x, pnp_pos_y, pnp_vel_y]))
         ukf_pnp_pos_x = ukf_pnp.x[0]
         ukf_pnp_pos_y = ukf_pnp.x[2]
         ukf_pnp_vel_x = ukf_pnp.x[1]
@@ -385,20 +393,24 @@ while not rospy.is_shutdown():
         ukf_out_pos_y = ukf_rs_pos_y 
         ukf_out_vel_x = ukf_rs_vel_x 
         ukf_out_vel_y = ukf_rs_vel_y
-        UNABLE_PREDICT = 0 
-    elif: PNP_DATA_AVAILABLE:
+        UNABLE_PREDICT = 0
+        TEMPERAL_LOST = 0
+        #print 'predict!'
+    elif PNP_DATA_AVAILABLE:
         ukf_out_pos_x = ukf_pnp_pos_x 
         ukf_out_pos_y = ukf_pnp_pos_y 
         ukf_out_vel_x = ukf_pnp_vel_x 
         ukf_out_vel_y = ukf_pnp_vel_y
         UNABLE_PREDICT = 0
+        TEMPERAL_LOST = 0
     else:
-        print 'unable to predict!' 
-        UNABLE_PREDICT = 1
+        print 'temperal unable to predict!','pnp_lost_counter',pnp_lost_counter,'rs_lost_counter',rs_lost_counter 
+        TEMPERAL_LOST = 1
 
-    #print 'PNP','X',ukf_input[0],'Y',ukf_input[2]
-    print 'PNP','VX',ukf_input[1],'VY',ukf_input[3]
-    print 'KALMAN', 'VX',ukf_rs.x[1],'VY', ukf_rs.x[3]
+    if pnp_lost_counter > LOST_TRESH and rs_lost_counter > LOST_TRESH:
+        UNABLE_PREDICT = 0
+        print 'UNABLE TO PREDICT!!!!!!!!!!!!'
+
 
 
     try:
@@ -407,6 +419,11 @@ while not rospy.is_shutdown():
         (gimbal_roll,gambal_pitch,gimbal_yaw) = euler_from_quaternion(qn_gimbal)
     except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
         print('GIMBAL TRANS FAIL!')
+
+    print 'gimbal_yaw', gimbal_yaw
+    print 'RS','X',rs_pos_x,'Y',rs_pos_y, 'VX',rs_vel_x,'VY',rs_vel_y
+    print 'PNP','X',pnp_pos_x,'Y',pnp_pos_y, 'VX',pnp_vel_x,'VY',pnp_vel_x
+    print 'KALMAN', 'X',ukf_out_pos_x,'Y',ukf_out_vel_y, 'VX',ukf_out_vel_x,'VY',ukf_out_vel_y
 
     #   #
     #           #
@@ -423,6 +440,7 @@ while not rospy.is_shutdown():
         #计算相对速度
         relative_speed_x = ukf_out_vel_x - odom_vel_x
         relative_speed_y = ukf_out_vel_y - odom_vel_y
+        print 'relative_speed_x',relative_speed_x,'relative_speed_y',relative_speed_y
         #计算水平于枪口方向的速度            
         V_verticle = relative_speed_x * np.cos(gimbal_yaw) + relative_speed_y * np.sin(gimbal_yaw)
         #print V_verticle, odom_yaw
@@ -442,6 +460,7 @@ while not rospy.is_shutdown():
     predict_pos.twist.twist.linear.x = ukf_out_vel_x
     predict_pos.twist.twist.linear.y = ukf_out_vel_y
 
+    predict_pos.twist.twist.linear.z = TEMPERAL_LOST
     predict_pos.pose.pose.orientation.y = UNABLE_PREDICT    
     predict_pos.pose.pose.orientation.y = aimtheta
     predict_pos.pose.pose.orientation.z = aimdistance
