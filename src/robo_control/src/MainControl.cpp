@@ -251,6 +251,14 @@ int main(int argc, char **argv)
     		robo_ctl.enemy_odom_pose.orientation.w = 1;
 			robo_ctl.sendEnemyTarget(robo_ctl.enemy_odom_pose);
 			robo_ctl.sendMCUMsg(1, 1, 0, 0, 0, 0, 0, 0);
+			robo_ctl.sendMCUMsg(1, 
+								2, 
+								robo_ctl.cmd_vel_msg.v_x, 
+								robo_ctl.cmd_vel_msg.v_y, 
+								robo_ctl.cmd_vel_msg.v_yaw, 
+								robo_ctl.armor_info_msg.yaw, 
+								robo_ctl.armor_info_msg.pitch, 
+								robo_ctl.armor_info_msg.global_z * 100);
 			break;
 		}
 
@@ -297,16 +305,33 @@ int main(int argc, char **argv)
 					if (robo_ctl.armor_info_msg.global_z > 0.5)
 					{
 						ROS_INFO("MODE :  Find Enemy Far  %f  %f  %f",
-								 robo_ctl.cmd_vel_msg.v_x, robo_ctl.cmd_vel_msg.v_y, robo_ctl.cmd_vel_msg.v_yaw);
-						robo_ctl.sendMCUMsg(
-							1, 2, robo_ctl.cmd_vel_msg.v_x, robo_ctl.cmd_vel_msg.v_y, robo_ctl.cmd_vel_msg.v_yaw, robo_ctl.armor_info_msg.yaw, robo_ctl.armor_info_msg.pitch, robo_ctl.armor_info_msg.global_z * 100);
+								 robo_ctl.cmd_vel_msg.v_x,
+								 robo_ctl.cmd_vel_msg.v_y,
+								 robo_ctl.cmd_vel_msg.v_yaw);
+						robo_ctl.sendMCUMsg(1, 
+											2, 
+											robo_ctl.cmd_vel_msg.v_x, 
+											robo_ctl.cmd_vel_msg.v_y, 
+											robo_ctl.cmd_vel_msg.v_yaw, 
+											robo_ctl.armor_info_msg.yaw, 
+											robo_ctl.armor_info_msg.pitch, 
+											robo_ctl.armor_info_msg.global_z * 100);
 					}
 					else
 					{
 						ROS_INFO("MODE :  Find Enemy Close  %f  %f  %f   %f",
-								 robo_ctl.cmd_vel_msg.v_x, robo_ctl.cmd_vel_msg.v_y,
-								 robo_ctl.cmd_vel_msg.v_yaw, robo_ctl.armor_info_msg.global_z);
-						robo_ctl.sendMCUMsg(1, 2, 0, 0, 0, robo_ctl.armor_info_msg.yaw, robo_ctl.armor_info_msg.pitch, robo_ctl.armor_info_msg.global_z * 100);
+								 robo_ctl.cmd_vel_msg.v_x, 
+								 robo_ctl.cmd_vel_msg.v_y,
+								 robo_ctl.cmd_vel_msg.v_yaw, 
+								 robo_ctl.armor_info_msg.global_z);
+						robo_ctl.sendMCUMsg(1, 
+											2, 
+											0, 
+											0, 
+											0, 
+											robo_ctl.armor_info_msg.yaw, 
+											robo_ctl.armor_info_msg.pitch, 
+											robo_ctl.armor_info_msg.global_z * 100);
 					}
 					armor_lost_count = 0;
 				}
