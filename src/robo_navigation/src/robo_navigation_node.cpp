@@ -99,7 +99,7 @@ void RoboNav::cb_tar_pose(const geometry_msgs::PoseConstPtr &msg)
 	state.data = true;
     else
 	state.data = false;
-    ROS_INFO("dis: %f", dis);
+    //ROS_INFO("dis: %f", dis);
     if ((abs(pre_goal.position.x - msg->position.x) > 0.1) || (abs(pre_goal.position.y - msg->position.y) > 0.1))
     {
 	int start_pt = findClosestPt(cur_pose.position.y, cur_pose.position.x);
@@ -261,8 +261,8 @@ void RoboNav::cb_scan(const sensor_msgs::LaserScan::ConstPtr &scan)
 	obs_min[i][0] = Filter_ScanData(index, scan);
 	obs_min[i][1]=Filter_ScanData(indexC,scan);
     }
-    //ROS_INFO("min Front: %f, Left: %f  Behind: %f, Right: %f ", obs_min[0][0],obs_min[1][0],obs_min[2][0],obs_min[3][0]);
-    //ROS_INFO("min corner Front: %f, Left: %f  Behind: %f, Right: %f ", obs_min[0][1],obs_min[1][1],obs_min[2][1],obs_min[3][1]);
+    ROS_INFO("min Front: %f, Left: %f  Behind: %f, Right: %f ", obs_min[0][0],obs_min[1][0],obs_min[2][0],obs_min[3][0]);
+    ROS_INFO("min corner Front: %f, Left: %f  Behind: %f, Right: %f ", obs_min[0][1],obs_min[1][1],obs_min[2][1],obs_min[3][1]);
 }
 
 geometry_msgs::Pose RoboNav::adjustlocalgoal()
@@ -430,8 +430,8 @@ int main(int argc, char **argv)
 	{
 	    geometry_msgs::Twist msg_vel;
 	    robo_nav.get_vel(msg_vel);
-	    ROS_INFO("vel x: %f y:%f", msg_vel.linear.x, msg_vel.linear.y);
-	    ROS_INFO("NUM: %d, SIZE: %ld", robo_nav.path[0], robo_nav.path.size());
+	    //ROS_INFO("vel x: %f y:%f", msg_vel.linear.x, msg_vel.linear.y);
+	    //ROS_INFO("NUM: %d, SIZE: %ld", robo_nav.path[0], robo_nav.path.size());
 	    pub_vel.publish(msg_vel);
 	}
 	pub_state.publish(robo_nav.state);

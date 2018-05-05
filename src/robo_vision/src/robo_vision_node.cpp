@@ -56,7 +56,7 @@ image_transport::ImageTransport it(nh);
     string intrinsic_file_480;
     if (robot_num == 0 || robot_num > 2) {
         ROS_ERROR("cannot get robot num!");
-intrinsic_file_480 = string("/home/ubuntu/robot/src/robo_vision/param/camera-02-640.xml");
+    intrinsic_file_480 = string("/home/ubuntu/robot/src/robo_vision/param/camera-02-640.xml");
     } else if (robot_num == 1) {
         intrinsic_file_480 = string("/home/ubuntu/robot/src/robo_vision/param/camera-01-640.xml");
     } else if (robot_num == 2) {
@@ -108,19 +108,21 @@ intrinsic_file_480 = string("/home/ubuntu/robot/src/robo_vision/param/camera-02-
     ROS_INFO("Image Consumer Start!");
 
     while (ros::ok()) {
-ROS_INFO("loop");
-        if (img_recv.empty()) {
+        ROS_INFO("loop");
+        if (img_recv.empty()) 
+        {
             ros::spinOnce();
             rate.sleep();
             continue;
         }
         
         img_recv.copyTo(src);
-        if (setting.show_image) {
+        if (setting.show_image) 
+        {
             src.copyTo(src_csm);
         }
 
-        // msg init
+        //msg init
         robo_vision::ArmorInfo msg_armor_info;
         msg_armor_info.header.stamp = ros::Time::now();
         msg_armor_info.header.frame_id = "base_link";
@@ -130,7 +132,8 @@ ROS_INFO("loop");
 
         armor_target = armor_detector.getTargetAera(src);
 
-        if (angle_solver.getAngle(armor_target, angle_x, angle_y) == true) {
+        if (angle_solver.getAngle(armor_target, angle_x, angle_y) == true) 
+        {
             miss_detection_cnt = 0;
 
             double z = angle_solver.position_in_camera.at<double>(2, 0);
@@ -138,7 +141,14 @@ ROS_INFO("loop");
             double x = angle_solver.position_in_camera.at<double>(0, 0);
 
             // publish armor info data
-            msg_armor_info.mode = 1;
+            if(abs(angle_x) < 10 && abs(angle_y) < 10)
+            {
+               msg_armor_info.mode = 3;
+            }
+            else
+            {
+               msg_armor_info.mode = 2;
+            }
             msg_armor_info.pose_image.x = armor_target.center.x;
             msg_armor_info.pose_image.y = armor_target.center.y;
             msg_armor_info.pose_global.position.x = x * 1.0 / 100;
@@ -166,13 +176,15 @@ ROS_INFO("loop");
             enemy_trans.transform.translation.y = y * 1.0 / 100;
             enemy_trans.transform.translation.z = z * 1.0 / 100;
             enemy_trans.transform.rotation =
-                tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
+            tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
             enemy_pnp_tf.sendTransform(enemy_trans);
 
             pre_angle_x = angle_x;
             pre_angle_y = angle_y;
             ROS_INFO("FIND ENERMY ARMOR");
-        } else {
+        } 
+        else
+        {
             // publish zero global pose data
             geometry_msgs::PoseStamped armor_pose_msg;
             armor_pose_msg.header.stamp = ros::Time::now();
@@ -186,15 +198,20 @@ ROS_INFO("loop");
             armor_pose_msg.pose.orientation.w = 1;
             pub_armor_pose.publish(armor_pose_msg);
 
-            // miss <5 use history data
-            if (miss_detection_cnt < 5) {
-                msg_armor_info.mode = miss_detection_cnt;
-                msg_armor_info.angle.x =
-                    (pre_angle_x + offset_anlge_x) * 100;  // yaw
-                msg_armor_info.angle.y = (pre_angle_y + offset_anlge_y) * 100;
-            } else {
-                msg_armor_info.mode = 0;
-            }
+            // // miss <5 use history data
+            // if (miss_detection_cnt < 5)
+            // {
+            //     msg_armor_info.mode = miss_detection_cnt;
+            //     msg_armor_info.angle.x =
+            //         (pre_angle_x + offset_anlge_x) * 100;  // yaw
+            //     msg_armor_info.angle.y = (pre_angle_y + offset_anlge_y) * 100;
+            // } 
+            // else 
+            // {
+            //     msg_armor_info.mode = 0;
+            // }
+
+            msg_armor_info.mode = 1;
             pub_armor_info.publish(msg_armor_info);
 
             ++miss_detection_cnt;

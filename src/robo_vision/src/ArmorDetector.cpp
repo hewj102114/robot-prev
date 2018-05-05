@@ -434,7 +434,7 @@ struct ArmorTarget ArmorDetector::getTargetAera(const cv::Mat & src){
     //cout<<"Size "<<contours_rect.size()<<"   "<<left_rects.size()<<"   "<<right_rects.size()<<endl;
     
     
-    chooseTarget(left_rects,right_rects,armor_target);
+    chooseTarget(left_rects,right_rects,armor_target);//hhhhhhh
     
     if(armor_target.center.x!= 0){
 	armor_target.center = armor_target.center+Point2f(_dect_rect.x,_dect_rect.y);
