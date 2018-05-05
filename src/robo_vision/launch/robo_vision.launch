@@ -1,7 +1,15 @@
 <launch>
 <arg name="robot_num"  default="2"/>
-<node pkg="robo_vision" type="read_camera" name="read_camera" output="screen"/>
-<node pkg="robo_vision" type="armor_detect" name="armor_detect" output="screen">
-<param name="robot_num" value="(arg robot_num)"/>
+<node pkg="robo_vision" type="read_camera" name="read_usbcamera" output="screen">
+<param name="image_topic" value="/usbcamera/image"/>
+<param name="dev_name" value="/dev/ttyVideo0"/>
+<param name="image_width" value="640"/>
+<param name="image_height" value="480"/>
+<param name="exposure_time" value="64"/>
+
+
 </node>
+<!-- <node pkg="robo_vision" type="armor_detect" name="armor_detect" output="screen">
+<param name="robot_num" value="(arg robot_num)"/>
+</node> -->
 </launch>

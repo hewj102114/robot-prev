@@ -12,15 +12,27 @@ using namespace std;
 int main(int argc, char **argv) {
     ros::init(argc, argv, "robo_vision_readcam");
     ros::NodeHandle nh;
+    ros::NodeHandle private_nh("~");
 
+    string image_topic="image";
+    string dev_name="/dev/video0";
+    int image_width=640,image_height=480,exposure_time=64;
+
+    private_nh.getParam("image_topic",image_topic);
+    private_nh.getParam("dev_name",dev_name);
+
+    private_nh.getParam("image_width",image_width);
+    private_nh.getParam("image_height",image_height);
+    private_nh.getParam("exposure_time",exposure_time);
+    cout<<image_topic<<endl;
     image_transport::ImageTransport it(nh);
-    image_transport::Publisher pub_image = it.advertise("usbcamera/image", 1);
+    image_transport::Publisher pub_image = it.advertise(image_topic, 1);
 
-    RMVideoCapture cap("/dev/ttyVideo0", 1);
+    RMVideoCapture cap(dev_name.c_str(), 1);
     cap.info();
-    cap.setVideoFormat(640, 480, 1);
+    cap.setVideoFormat(image_width, image_height, 1);
     cap.getCurrentSetting();
-    cap.setExposureTime(0, 64);  // settings->exposure_time);
+    cap.setExposureTime(0, exposure_time);  // settings->exposure_time);
     cap.startStream();
     ROS_INFO("Image Producer Start!");
 
