@@ -36,7 +36,7 @@ int main(int argc, char* argv[]) {
     // ros init
     ros::init(argc, argv, "robo_vision");
     ros::NodeHandle nh;
-
+    ros::NodeHandle private_nh;
     // ros publisher
     ros::Publisher pub_armor_info =
         nh.advertise<robo_vision::ArmorInfo>("base/armor_info", 1);
@@ -52,7 +52,7 @@ image_transport::ImageTransport it(nh);
 
     // get robot id & choose the calibration file
     int robot_num = 0;
-    nh.getParam("robot_num", robot_num);
+    private_nh.getParam("robot_num", robot_num);
     string intrinsic_file_480;
     if (robot_num == 0 || robot_num > 2) {
         ROS_ERROR("cannot get robot num!");
