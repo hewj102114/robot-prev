@@ -147,7 +147,7 @@ class RoboControl
     geometry_msgs::Pose enemy_odom_pnp_pose;
     geometry_msgs::Pose another_robo_pose;
     geometry_msgs::Pose robo_ukf_enemy_information;
-
+    robo_control::GameInfo game_msg;
     /* uint8 PENDING=0
      *  uint8 ACTIVE=1
      *  uint8 PREEMPTED=2

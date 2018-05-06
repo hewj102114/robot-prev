@@ -145,8 +145,8 @@ int main(int argc, char **argv)
 
         robo_vision::FishCamInfo fishcam_msg;
         geometry_msgs::Vector3 vec3_msg;
-        fishcam_msg.header.stamp=ros::time::now();
-        fishcam_msg.header.frame_is="base_link";
+        fishcam_msg.header.stamp=ros::Time::now();
+        fishcam_msg.header.frame_id="base_link";
 
         imshow("ff", src_left);
         waitKey(1);

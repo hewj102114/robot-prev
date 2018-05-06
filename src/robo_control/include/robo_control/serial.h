@@ -49,7 +49,7 @@ struct RobotMsgFromMCU {
   short int wheel_odom_y = 0;
   char uwb_ready_flag = 0;
   char init_flag=0;
-  short int bulllet_speed=0;
+  short int bullet_speed=0;
 };
 
 class Serial {

@@ -19,7 +19,6 @@ int main(int argc, char **argv)
 	ros::Subscriber sub_finish_navigation = nh.subscribe("nav_state", 1, &RoboControl::cb_finish_navigation, &robo_ctl);
 	ros::Subscriber sub_enemy_information = nh.subscribe("infrared_detection/enemy_position", 1, &RoboControl::cb_enemy_information, &robo_ctl);
 	ros::Subscriber sub_ukf_enemy_information = nh.subscribe("ukf/enemy", 1, &RoboControl::cb_ukf_enemy_information, &robo_ctl);
-	ros::Subscriber sub_game_info = nh.subscribe("base/game_info", 1, &RoboControl::cb_game_info, &robo_ctl);	
 
 
 	int init_flag = 1;
@@ -107,7 +106,8 @@ int main(int argc, char **argv)
 	bool first_in = true;
 	long long int count = 0;
 	float first_in_gimbal_angle = 0;
-	float current_gimbal_angle = 0
+	float current_gimbal_angle = 0;
+	float target_gimbal_angle = 0;
 	while (ros::ok())
 	{
 		// 读取 MCU 数据
@@ -267,7 +267,8 @@ int main(int argc, char **argv)
 			if (robo_ctl.enemy_information.num > 0 && first_in == true && count % 1 == 0)
 			{
 				first_in == false;
-				first_in_gimbal_angle = ;
+				first_in_gimbal_angle = robo_ctl.game_msg.gimbalAngleYaw;
+				target_gimbal_angle = enemy_self_angle;
 				// ROS_INFO("=============================================================\n========================================================================\n====================================================================\n=======================================================================\n==========================================================================\n");
 				robo_ctl.sendMCUMsg(1, 
 									3, 
@@ -279,9 +280,10 @@ int main(int argc, char **argv)
 									0);
 			}
 			// 云台转动完成, 跳转到装甲板识别
-			if ()
+			current_gimbal_angle = robo_ctl.game_msg.gimbalAngleYaw;
+			if (abs(abs(current_gimbal_angle) - abs(target_gimbal_angle)) < 10)
 			{
-
+				work_state = 4;
 			}
 			break;
 		}

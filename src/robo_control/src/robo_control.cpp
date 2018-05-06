@@ -77,7 +77,7 @@ void RoboControl::readMCUData()
         return;
 
     init_flag = msg_frommcu.init_flag;
-    robo_control::GameInfo game_msg;
+    
     game_msg.header.stamp = time;
     game_msg.header.frame_id = "base_link";
     game_msg.remainingHP = msg_frommcu.remaining_HP;
@@ -86,6 +86,7 @@ void RoboControl::readMCUData()
     game_msg.bulletCount = msg_frommcu.uwb_yaw;
     game_msg.gimbalAngleYaw = msg_frommcu.gimbal_chassis_angle * 1.0 / 100;
     game_msg.gimbalAnglePitch = -msg_frommcu.gimbal_pitch_angle * 1.0 / 100;
+    game_msg.bulletSpeed = msg_frommcu.bullet_speed*1.0/1000;
     pub_game_info.publish(game_msg);
 
     nav_msgs::Odometry uwb_odom_msg;
@@ -342,5 +343,3 @@ void RoboControl::cb_ukf_enemy_information(const nav_msgs::Odometry &msg)
 {
     robo_ukf_enemy_information = msg.pose.pose;
 }
-
-void RoboControl::cb_game_info(const GameInfo)
