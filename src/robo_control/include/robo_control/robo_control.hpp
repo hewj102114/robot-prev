@@ -115,6 +115,7 @@ class RoboControl
     int find_enemy_self_closest_point(double enemy_x, double enemy_y, double self_x, double self_y);
     void sendEnemyTarget(const geometry_msgs::Pose &msg);
     float calculator_enemy_angle(double enemy_x, double enemy_y, double self_x, double self_y);
+    void cb_ukf_enemy_information(const nav_msgs::Odometry &msg);
     ros::NodeHandle *pnh;
 
     ros::Publisher pub_game_info;
@@ -145,6 +146,7 @@ class RoboControl
     geometry_msgs::Pose enemy_odom_pose;
     geometry_msgs::Pose enemy_odom_pnp_pose;
     geometry_msgs::Pose another_robo_pose;
+    geometry_msgs::Pose robo_ukf_enemy_information;
 
     /* uint8 PENDING=0
      *  uint8 ACTIVE=1

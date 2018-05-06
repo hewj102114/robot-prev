@@ -66,6 +66,9 @@ void RoboControl::cb_cur_goal(const geometry_msgs::PoseStamped &msg)
     nav_current_goal.position.y += 1;
 }
 
+
+
+
 void RoboControl::readMCUData()
 {
     ros::Time time = ros::Time::now();
@@ -332,5 +335,12 @@ float RoboControl::calculator_enemy_angle(double enemy_x, double enemy_y, double
     float dx = enemy_x - self_x;
     float dy = enemy_y - self_y;
     float angle = atan2(dy, dx);
-    return angle;
+    return angle * 180.0 / PI + 90.0;
 }
+
+void RoboControl::cb_ukf_enemy_information(const nav_msgs::Odometry &msg)
+{
+    robo_ukf_enemy_information = msg.pose.pose;
+}
+
+void RoboControl::cb_game_info(const GameInfo)

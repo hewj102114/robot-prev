@@ -18,6 +18,9 @@ int main(int argc, char **argv)
 	ros::Subscriber sub_another_robo_pose = nh.subscribe("/DeepWhuRobot1/odom", 1, &RoboControl::cb_another_robo_odom, &robo_ctl);
 	ros::Subscriber sub_finish_navigation = nh.subscribe("nav_state", 1, &RoboControl::cb_finish_navigation, &robo_ctl);
 	ros::Subscriber sub_enemy_information = nh.subscribe("infrared_detection/enemy_position", 1, &RoboControl::cb_enemy_information, &robo_ctl);
+	ros::Subscriber sub_ukf_enemy_information = nh.subscribe("ukf/enemy", 1, &RoboControl::cb_ukf_enemy_information, &robo_ctl);
+	ros::Subscriber sub_game_info = nh.subscribe("base/game_info", 1, &RoboControl::cb_game_info, &robo_ctl);	
+
 
 	int init_flag = 1;
 	geometry_msgs::Pose nav_goal; // goal of navigation
@@ -99,11 +102,14 @@ int main(int argc, char **argv)
 	chassis 1:velcity 2:angle pose 3:init
 	*/
 	geometry_msgs::Pose target_pose;
-	int work_state = 0;
+	int work_state = 3;
 	ros::Rate loop_rate(150);
+	bool first_in = true;
+	long long int count = 0;
+	float first_in_gimbal_angle = 0;
+	float current_gimbal_angle = 0
 	while (ros::ok())
 	{
-		//work_state = 3;
 		// 读取 MCU 数据
 		robo_ctl.readMCUData();
 		switch (work_state)
@@ -244,29 +250,49 @@ int main(int argc, char **argv)
 			}
 			break;
 		}
-
+		/*************************************************************************
+		*
+		*  3. Realsense 预瞄准
+		*
+		*************************************************************************/
 		case 3:
 		{
 			ROS_INFO("Stage 3: Close to enemy, stacking enemy!!!!!!");
     		robo_ctl.enemy_odom_pose.orientation.w = 1;
 			robo_ctl.sendEnemyTarget(robo_ctl.enemy_odom_pose);
+			
+			float enemy_self_angle = robo_ctl.robo_ukf_enemy_information.orientation.z * 180.0 / PI;
+			ROS_INFO("angle: %f", enemy_self_angle);
+			count ++;
+			if (robo_ctl.enemy_information.num > 0 && first_in == true && count % 1 == 0)
+			{
+				first_in == false;
+				first_in_gimbal_angle = ;
+				// ROS_INFO("=============================================================\n========================================================================\n====================================================================\n=======================================================================\n==========================================================================\n");
+				robo_ctl.sendMCUMsg(1, 
+									3, 
+									0, 
+									0, 
+									0, 
+									-enemy_self_angle, 
+									0, 
+									0);
+			}
+			// 云台转动完成, 跳转到装甲板识别
+			if ()
+			{
 
-			float enemy_self_angle = robo_ctl.calculator_enemy_angle(robo_ctl.enemy_odom_pose.position.x, 
-																	robo_ctl.enemy_odom_pose.position.y, 
-																	robo_ctl.robo_ukf_pose.position.x, 
-																	robo_ctl.robo_ukf_pose.position.y);
-			ROS_INFO("enemy_self_angle: %f", enemy_self_angle);
-
-			robo_ctl.sendMCUMsg(1, 1, 0, 0, 0, 0, 0, 0);
-			robo_ctl.sendMCUMsg(1, 
-								2, 
-								robo_ctl.cmd_vel_msg.v_x, 
-								robo_ctl.cmd_vel_msg.v_y, 
-								robo_ctl.cmd_vel_msg.v_yaw, 
-								robo_ctl.armor_info_msg.yaw, 
-								robo_ctl.armor_info_msg.pitch, 
-								robo_ctl.armor_info_msg.global_z * 100);
+			}
 			break;
+		}
+		/*************************************************************************
+		*
+		*  4. 装甲板识别
+		*
+		*************************************************************************/
+		case 4:
+		{
+
 		}
 
 		default:

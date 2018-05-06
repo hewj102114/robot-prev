@@ -432,7 +432,7 @@ int main(int argc, char **argv)
 	    geometry_msgs::Twist msg_vel;
 	    robo_nav.get_vel(msg_vel);
 	    //ROS_INFO("vel x: %f y:%f", msg_vel.linear.x, msg_vel.linear.y);
-	    //ROS_INFO("NUM: %d, SIZE: %ld", robo_nav.path[0], robo_nav.path.size());
+	    ROS_INFO("NUM: %d, SIZE: %ld", robo_nav.path[0], robo_nav.path.size());
 	    pub_vel.publish(msg_vel);
 	}
 	pub_state.publish(robo_nav.state);

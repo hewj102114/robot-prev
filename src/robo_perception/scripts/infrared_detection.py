@@ -181,6 +181,8 @@ def TsDet_callback(infrared_image, pointcloud):
         print("bboxes: %s, probs: %s, class: %s" %
               (final_class, final_probs, final_class))
 
+    # TODO: 距离太远的时候, 检测不到轮子，只能检测到车身
+    # TODO: 使用颜色特征决定计算点云距离的位置
     # 0 -> red, 1 -> wheel, 2 -> blue
     # 检测到车并且检测到轮子, 进入此 if, 目的是为了减少误检率
     robo_bboxes = []
@@ -204,8 +206,8 @@ def TsDet_callback(infrared_image, pointcloud):
                 pointcloud_h = robo_bbox[3]
 
             # 使用中心位置的 pointcloud_w*pointcloud_h 的点云计算距离
-            #x_ = np.arange(int(cx - pointcloud_w/2), int(cx + pointcloud_w/2), 1)
-            #y_ = np.arange(int(cy - pointcloud_h/2), int(cy + pointcloud_h/2), 1)
+            # x_ = np.arange(int(cx - pointcloud_w/2), int(cx + pointcloud_w/2), 1)
+            # y_ = np.arange(int(cy - pointcloud_h/2), int(cy + pointcloud_h/2), 1)
 
             # 使用bbox下方的点云计算距离, 大概是装甲板的位置
             x_ = np.arange(int(cx - pointcloud_w / 2),
@@ -221,9 +223,9 @@ def TsDet_callback(infrared_image, pointcloud):
 
             # 对提取到的点云进行 reshape
             # TODO: 应该不需要这一步
-            positionX = robo_pointcloud[:, 0].reshape(-1, pointcloud_w*pointcloud_h).squeeze()
-            positionY = robo_pointcloud[:, 1].reshape(-1, pointcloud_w*pointcloud_h).squeeze()
-            positionZ = robo_pointcloud[:, 2].reshape(-1, pointcloud_w*pointcloud_h).squeeze()
+            positionX = robo_pointcloud[:, 0].reshape(-1, pointcloud_w * pointcloud_h).squeeze()
+            positionY = robo_pointcloud[:, 1].reshape(-1, pointcloud_w * pointcloud_h).squeeze()
+            positionZ = robo_pointcloud[:, 2].reshape(-1, pointcloud_w * pointcloud_h).squeeze()
 
             # 剔除距离为 nan 的点
             positionX = positionX[np.logical_not(np.isnan(positionX))]
@@ -389,8 +391,7 @@ pc_sub = message_filters.Subscriber('camera/points', PointCloud2)
 pub = rospy.Publisher('infrared_detection/enemy_position', ObjectList, queue_size=1)
 
 # TODO 在后面的试验中调调整slop
-TsDet = message_filters.ApproximateTimeSynchronizer(
-    [rgb_sub, pc_sub], queue_size=5, slop=0.1, allow_headerless=False)
+TsDet = message_filters.ApproximateTimeSynchronizer([rgb_sub, pc_sub], queue_size=5, slop=0.1, allow_headerless=False)
 TsDet.registerCallback(TsDet_callback)
 
 

@@ -27,7 +27,7 @@ ROS_INFO("recv");
     if (img_temp.empty()) {
         ROS_ERROR("Could't not get image");
     } else {
-        cv::imshow("view", img_temp);
+        //cv::imshow("view", img_temp);
         img_recv = img_temp.clone();
     }
 }
@@ -51,21 +51,12 @@ image_transport::ImageTransport it(nh);
     Settings setting(config_file_name);
 
     // get robot id & choose the calibration file
-    int robot_num = 0;
-    private_nh.getParam("robot_num", robot_num);
-    string intrinsic_file_480;
-    if (robot_num == 0 || robot_num > 2) {
-        ROS_ERROR("cannot get robot num!");
-    intrinsic_file_480 = string("/home/ubuntu/robot/src/robo_vision/param/camera-02-640.xml");
-    } else if (robot_num == 1) {
-        intrinsic_file_480 = string("/home/ubuntu/robot/src/robo_vision/param/camera-01-640.xml");
-    } else if (robot_num == 2) {
-        intrinsic_file_480 = string("/home/ubuntu/robot/src/robo_vision/param/camera-02-640.xml");
-    }
-    FileStorage fs(intrinsic_file_480, FileStorage::READ);
+    string intrinsic_file;
+    private_nh.getParam("intrinsic_file",intrinsic_file);
+    FileStorage fs(intrinsic_file, FileStorage::READ);
     if (!fs.isOpened()) {
         ROS_ERROR("Could not open the configuration file: %s",
-                  intrinsic_file_480);
+                  intrinsic_file);
         return 0;
     }
     Mat cam_matrix_480, distortion_coeff_480;
