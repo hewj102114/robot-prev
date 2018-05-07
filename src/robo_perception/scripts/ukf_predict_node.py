@@ -164,6 +164,7 @@ def callback_enemy(enemy):
         enemy_object_trans = []
         enemy_num = 0
         team_num = 0
+        enemy_0_x = enemy_0_y = enemy_1_x = enemy_1_y = 999
         FIND_RS = False
         rs_time = enemy.header.stamp.secs + enemy.header.stamp.nsecs * 10**-9
         dt = rs_time - rs_last_time
@@ -196,20 +197,20 @@ def callback_enemy(enemy):
         if enemy_num == 1:
             enemy_0_x = enemy_object_trans[0][0]
             enemy_0_y = enemy_object_trans[0][1]
-            enemy_1_x = 99
-            enemy_1_y = 99
+            enemy_1_x = 999
+            enemy_1_y = 999
         elif enemy_num == 2:
             enemy_0_x = enemy_object_trans[0][0]
             enemy_0_y = enemy_object_trans[0][1]
             enemy_1_x = enemy_object_trans[1][0]
             enemy_1_y = enemy_object_trans[1][1]
         else:
-            enemy_0_x = 0
-            enemy_0_y = 0
-            enemy_1_x = 0
-            enemy_1_y = 0
+            enemy_0_x = 999
+            enemy_0_y = 999
+            enemy_1_x = 999
+            enemy_1_y = 999
 
-        if np.sqrt((aim_target_x - enemy_0_x) ** 2 + (aim_target_y - enemy_0_y) ** 2) < 99:
+        if np.sqrt((aim_target_x - enemy_0_x) ** 2 + (aim_target_y - enemy_0_y) ** 2) < 10:
             rs_pos_x = enemy_0_x
             rs_pos_y = enemy_0_y
             FIND_RS = True
@@ -232,6 +233,9 @@ def callback_enemy(enemy):
                 rs_vel_x = (rs_pos_x - last_rs_pos_x) / dt
                 rs_vel_y = (rs_pos_y - last_rs_pos_y) / dt
                 RS_DATA_AVAILABLE = True
+            else:
+                RS_DATA_AVAILABLE = False
+                rs_lost_counter = rs_lost_counter + 1
 
             
             RS_LAST_AVAILABLE = True
@@ -247,7 +251,8 @@ def callback_enemy(enemy):
             RS_DATA_AVAILABLE = False
 
         rs_last_time = rs_time
-
+        
+        #print 'RS_LAST_AVAILABLE',RS_LAST_AVAILABLE,'RS_DATA_AVAILABLE',RS_DATA_AVAILABLE,rs_lost_counter
 
         
 
@@ -295,8 +300,10 @@ def callback_pnp(pnp):
                 #last data available, use to update the speed
                 pnp_vel_x = (pnp_pos_x - last_pnp_pos_x) / dt
                 pnp_vel_y = (pnp_pos_y - last_pnp_pos_y) / dt
-                PNP_DATA_AVAILABLE = True
-            
+                RS_DATA_AVAILABLE = True
+            else:
+                PNP_DATA_AVAILABLE = False
+                pnp_lost_counter = pnp_lost_counter + 1
             PNP_LAST_AVAILABLE = True
             last_pnp_pos_x = pnp_pos_x
             last_pnp_pos_y = pnp_pos_y
@@ -350,8 +357,10 @@ def callback_target(target):
     ENABLE_PREDICT = target.pose.pose.orientation.w
 
 def callback_gimbal(gimbal):
-    global gimbal_yaw
+    global gimbal_yaw, BULLET_SPEED
     gimbal_yaw = gimbal.gimbalAngleYaw*(np.pi/180)
+    if gimbal.bulletSpeed > 0:
+        BULLET_SPEED = gimbal.bulletSpeed
 
 rospy.init_node('ukf_predict_node')
 UKFRsInit(0.025,np.array([0., 0., 0., 0.]))
@@ -378,7 +387,7 @@ while not rospy.is_shutdown():
         ukf_rs_vel_x = ukf_rs.x[1]
         ukf_rs_pos_y = ukf_rs.x[2]
         ukf_rs_vel_y = ukf_rs.x[3]
-          
+        print 'KALMAN INIT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
         RS_PREDICT_INIT = False
     elif RS_DATA_AVAILABLE:
         rs_ukf_input = [rs_pos_x, rs_vel_x, rs_pos_y, rs_vel_y]
@@ -417,7 +426,7 @@ while not rospy.is_shutdown():
         ukf_out_vel_y = ukf_rs_vel_y
         UNABLE_PREDICT = 0
         TEMPERAL_LOST = 0
-        #print 'predict!'
+        print 'predict!'
     elif PNP_DATA_AVAILABLE:  
         ukf_out_pos_x = ukf_pnp_pos_x  
         ukf_out_vel_x = ukf_pnp_vel_x
@@ -425,8 +434,6 @@ while not rospy.is_shutdown():
         ukf_out_vel_y = ukf_pnp_vel_y
         UNABLE_PREDICT = 0
         TEMPERAL_LOST = 0
-
-
     else:
         print 'temperal unable to predict!','pnp_lost_counter',pnp_lost_counter,'rs_lost_counter',rs_lost_counter 
         TEMPERAL_LOST = 1
@@ -449,9 +456,9 @@ while not rospy.is_shutdown():
 
     
     # print 'gimbal_dtheta',gimbal_dtheta,'aimtheta', aimtheta, 'global_gimbal_yaw',global_gimbal_yaw
-    print 'RS','X',rs_pos_x,'Y',rs_pos_y, 'VX',rs_vel_x,'VY',rs_vel_y
+    print 'RS','X',rs_pos_x,'Y',rs_pos_y, 'VX',rs_vel_x,'VY',rs_vel_y,'RSA',RS_DATA_AVAILABLE
     # print 'PNP','X',pnp_pos_x,'Y',pnp_pos_y, 'VX',pnp_vel_x,'VY',pnp_vel_x
-    print 'KALMAN', 'X',ukf_out_pos_x,'Y',ukf_out_pos_y, 'VX',ukf_out_vel_x,'VY',ukf_out_vel_y
+    print 'KALMAN', 'X',ukf_out_pos_x,'Y',ukf_out_pos_y, 'VX',ukf_out_vel_x,'VY',ukf_out_vel_y,
 
     #   #
     #           #
@@ -476,7 +483,7 @@ while not rospy.is_shutdown():
         #V_verticle = relative_speed_x * np.sin(global_gimbal_yaw) + relative_speed_y * np.cos(global_gimbal_yaw)
         #print V_verticle, odom_yaw
         #计算检测到的目标和我自身的距离
-        distance_to_enemy = np.sqrt((ukf_out_pos_x - odom_pos_x)**2 +(ukf_out_pos_y - odom_pos_y)**2)
+        distance_to_enemy = np.sqrt((ukf_out_pos_x - (odom_pos_x + 0.22*np.cos(odom_yaw)))**2 +(ukf_out_pos_y - (odom_pos_y+ 0.22*np.cos(odom_yaw)))**2)
         #计算子弹飞行时间
         T_FLY = distance_to_enemy / BULLET_SPEED
         #反解算出需要的预瞄角度
@@ -487,10 +494,12 @@ while not rospy.is_shutdown():
     predict_pos.header.stamp = rospy.Time.now()
     predict_pos.pose.pose.position.x = ukf_out_pos_x
     predict_pos.pose.pose.position.y = ukf_out_pos_y
+
     predict_pos.twist.twist.linear.x = ukf_out_vel_x
     predict_pos.twist.twist.linear.y = ukf_out_vel_y
 
     predict_pos.twist.twist.linear.z = TEMPERAL_LOST
+    
     predict_pos.pose.pose.orientation.x = UNABLE_PREDICT    
     predict_pos.pose.pose.orientation.y = aimtheta
     predict_pos.pose.pose.orientation.z = gimbal_dtheta

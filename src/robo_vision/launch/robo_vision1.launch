@@ -1,5 +1,5 @@
 <launch>
-<!-- <node pkg="robo_vision" type="read_camera" name="read_usbcamera" output="screen">
+<node pkg="robo_vision" type="read_camera" name="read_usbcamera" output="screen">
     <param name="image_topic" value="/usbcamera/image"/>
     <param name="dev_name" value="/dev/ttyVideo0"/>
     <param name="image_width" value="640"/>
@@ -7,9 +7,9 @@
     <param name="exposure_time" value="64"/>
 </node>
 <node pkg="robo_vision" type="armor_detect" name="armor_detect" output="screen">
-    <param name="intrinsic_file" value="/home/ubuntu/robot/src/robo_vision/param/camera-02-640.xml"/>
-</node> -->
-<node pkg="robo_vision" type="read_camera" name="read_fisheye_left" output="screen">
+    <param name="intrinsic_file" value="/home/ubuntu/robot/src/robo_vision/param/camera-01-640.xml"/>
+</node>
+<!-- <node pkg="robo_vision" type="read_camera" name="read_fisheye_left" output="screen">
     <param name="image_topic" value="/fishcamera/left/image"/>
     <param name="dev_name" value="/dev/ttyVideoL"/>
     <param name="image_width" value="1280"/>
@@ -25,5 +25,5 @@
 <param name="cam_right_radius" value="486"/>
 <param name="cam_right_up" value="0"/>
 <param name="cam_right_down" value="720"/>
-</node>
+</node> -->
 </launch>

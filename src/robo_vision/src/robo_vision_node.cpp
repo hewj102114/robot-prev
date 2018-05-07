@@ -36,7 +36,7 @@ int main(int argc, char* argv[]) {
     // ros init
     ros::init(argc, argv, "robo_vision");
     ros::NodeHandle nh;
-    ros::NodeHandle private_nh;
+    ros::NodeHandle private_nh("~");
     // ros publisher
     ros::Publisher pub_armor_info =
         nh.advertise<robo_vision::ArmorInfo>("base/armor_info", 1);
@@ -53,6 +53,7 @@ image_transport::ImageTransport it(nh);
     // get robot id & choose the calibration file
     string intrinsic_file;
     private_nh.getParam("intrinsic_file",intrinsic_file);
+    cout<<intrinsic_file<<endl;
     FileStorage fs(intrinsic_file, FileStorage::READ);
     if (!fs.isOpened()) {
         ROS_ERROR("Could not open the configuration file: %s",
@@ -65,7 +66,7 @@ image_transport::ImageTransport it(nh);
 
     // camera and gimbal transform
     const double ptz_camera_y = 5;
-    const double ptz_camera_z = -1;
+    const double ptz_camera_z = -15;
     double r_data[] = {1, 0, 0, 0, 1, 0, 0, 0, 1};
     double t_data[] = {
         0, ptz_camera_y,
@@ -100,7 +101,8 @@ image_transport::ImageTransport it(nh);
 
     //armor_detector_flag
     int armor_detector_flag = 0;
-    while (ros::ok()) {
+    while (ros::ok()) 
+    {
         ROS_INFO("loop");
         if (img_recv.empty()) 
         {
@@ -125,6 +127,7 @@ image_transport::ImageTransport it(nh);
 
         armor_target = armor_detector.getTargetAera(src);
 
+  
         if (angle_solver.getAngle(armor_target, angle_x, angle_y) == true) 
         {
             miss_detection_cnt = 0;
@@ -208,12 +211,18 @@ image_transport::ImageTransport it(nh);
             }
 
             msg_armor_info.mode = 1;
-	    armor_detector_flag = 1;
+	        armor_detector_flag = 1;
             pub_armor_info.publish(msg_armor_info);
 
             cout << "armor_detector_flag = " << armor_detector_flag << endl;
+            ROS_INFO(" Miss the detctor ");
             ++miss_detection_cnt;
         }
+
+        ROS_INFO("angle_x = %f , angle_y = %f" , angle_x , angle_y);
+
+
+
 
         // draw result
         if (setting.show_image > 0) {

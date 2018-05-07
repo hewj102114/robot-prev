@@ -107,7 +107,7 @@ int main(int argc, char **argv)
 	long long int count = 0;
 	float first_in_gimbal_angle = 0;
 	float current_gimbal_angle = 0;
-	float target_gimbal_angle = 0;
+	float target_gimbal_angle = 1000;
 	while (ros::ok())
 	{
 		// 读取 MCU 数据
@@ -262,11 +262,12 @@ int main(int argc, char **argv)
 			robo_ctl.sendEnemyTarget(robo_ctl.enemy_odom_pose);
 			
 			float enemy_self_angle = robo_ctl.robo_ukf_enemy_information.orientation.z * 180.0 / PI;
-			ROS_INFO("angle: %f", enemy_self_angle);
+			ROS_INFO("predicted angle: %f", enemy_self_angle);
 			count ++;
 			if (robo_ctl.enemy_information.num > 0 && first_in == true && count % 1 == 0)
 			{
-				first_in == false;
+				ROS_INFO("sent angle information!!!!!!!!!!");
+				first_in = false;
 				first_in_gimbal_angle = robo_ctl.game_msg.gimbalAngleYaw;
 				target_gimbal_angle = enemy_self_angle;
 				// ROS_INFO("=============================================================\n========================================================================\n====================================================================\n=======================================================================\n==========================================================================\n");
@@ -275,13 +276,14 @@ int main(int argc, char **argv)
 									0, 
 									0, 
 									0, 
-									-enemy_self_angle, 
+									enemy_self_angle * 100, 
 									0, 
 									0);
 			}
 			// 云台转动完成, 跳转到装甲板识别
 			current_gimbal_angle = robo_ctl.game_msg.gimbalAngleYaw;
-			if (abs(abs(current_gimbal_angle) - abs(target_gimbal_angle)) < 10)
+			ROS_INFO("first_in_gimbal_angle: %f, target_gimbal_angle: %f, current_gimbal_angle: %f", first_in_gimbal_angle, target_gimbal_angle, current_gimbal_angle);
+			if (abs(abs(current_gimbal_angle) - abs(target_gimbal_angle)) < 5)
 			{
 				work_state = 4;
 			}
@@ -294,7 +296,21 @@ int main(int argc, char **argv)
 		*************************************************************************/
 		case 4:
 		{
-
+			ROS_INFO("Stage 4: Detect armor, stacking enemy!!!!!!");
+			robo_ctl.sendMCUMsg(1,
+								2,
+								0,
+								0,
+								0,
+								robo_ctl.armor_info_msg.yaw,
+								robo_ctl.armor_info_msg.pitch,
+								robo_ctl.armor_info_msg.global_z * 100);
+			if (robo_ctl.enemy_information.num == 0 && robo_ctl.armor_info_msg.mode == 1)
+			{
+				work_state = 3;
+				target_gimbal_angle = 1000;
+			}
+			break;
 		}
 
 		default:
