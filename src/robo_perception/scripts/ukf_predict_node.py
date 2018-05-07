@@ -58,7 +58,7 @@ from geometry_msgs.msg import TransformStamped
 from geometry_msgs.msg import PoseStamped
 from robo_control.msg import GameInfo
 
-T_DELAY = 0.01 #系统延时系数，单位秒
+T_DELAY = 0.04 #系统延时系数，单位秒
 RS_INIT = True
 PNP_INIT = True
 
@@ -113,7 +113,7 @@ def UKFRsInit(in_dt, init_x):
     global ukf_rs
 
     p_std_x, p_std_y = 0.02, 0.02
-    v_std_x, v_std_y = 0.04, 0.04
+    v_std_x, v_std_y = 0.05, 0.05
     dt = in_dt 
 
 
@@ -462,9 +462,9 @@ while not rospy.is_shutdown():
 
     
 
-    # print 'RS','X',rs_pos_x,'Y',rs_pos_y, 'VX',rs_vel_x,'VY',rs_vel_y,'RSA',RS_DATA_AVAILABLE
+    print 'RS','X',rs_pos_x,'Y',rs_pos_y, 'VX',rs_vel_x,'VY',rs_vel_y,'RSA',RS_DATA_AVAILABLE
     # print 'PNP','X',pnp_pos_x,'Y',pnp_pos_y, 'VX',pnp_vel_x,'VY',pnp_vel_x
-    # print 'KALMAN', 'X',ukf_out_pos_x,'Y',ukf_out_pos_y, 'VX',ukf_out_vel_x,'VY',ukf_out_vel_y,
+    print 'KALMAN', 'X',ukf_out_pos_x,'Y',ukf_out_pos_y, 'VX',ukf_out_vel_x,'VY',ukf_out_vel_y,
 
     #   #
     #           #
@@ -488,7 +488,7 @@ while not rospy.is_shutdown():
         # V_verticle = target_speed * np.sin(2 * np.pi - (global_gimbal_yaw + target_theta + 90))
         # print 'target_speed',target_speed, 'target_theta',target_theta,'V_verticle',V_verticle
         V_verticle = relative_speed_x * np.sin(global_gimbal_yaw) + relative_speed_y * np.cos(global_gimbal_yaw)
-        print 'V_verticle',V_verticle,'global_gimbal_yaw',global_gimbal_yaw,'relative_speed_x',relative_speed_x,'relative_speed_y',relative_speed_y
+        #print 'V_verticle',V_verticle,'global_gimbal_yaw',global_gimbal_yaw,'relative_speed_x',relative_speed_x,'relative_speed_y',relative_speed_y
         #print V_verticle, odom_yaw
         #计算检测到的目标和我自身的距离
         distance_to_enemy = np.sqrt((ukf_out_pos_x - (odom_pos_x + 0.22*np.cos(odom_yaw)))**2 +(ukf_out_pos_y - (odom_pos_y+ 0.22*np.cos(odom_yaw)))**2)
@@ -514,11 +514,12 @@ while not rospy.is_shutdown():
         
         #dyaw between target and gimbal
         gimbal_dtheta = aimtheta - global_gimbal_yaw 
-        print 'gimbal_dtheta',gimbal_dtheta/np.pi*180,'aimtheta', aimtheta, 'global_gimbal_yaw',global_gimbal_yaw/np.pi*180
+        # print 'gimbal_dtheta',gimbal_dtheta/np.pi*180,'aimtheta', aimtheta, 'global_gimbal_yaw',global_gimbal_yaw/np.pi*180
         predict_pos.pose.pose.orientation.z = gimbal_dtheta
     else:
         predict_pos.pose.pose.orientation.z = 999 
-    predict_pos.pose.pose.orientation.w = predict_angle
+    predict_pos.pose.pose.orientation.w = - predict_angle/np.pi*180
+    predict_pos.pose.pose.orientation.w = 0
 
     pub_ukf_vel.publish(predict_pos) 
 

@@ -340,6 +340,7 @@ int main(int argc, char **argv)
 			// }
 			if(robo_ctl.armor_info_msg.mode == 2 || robo_ctl.armor_info_msg.mode == 3)
 			{
+				float ukf_predicted_yaw = robo_ctl.robo_ukf_enemy_information.orientation.w;
 				ROS_INFO("Detected armor!!!!!");
 				lose_gimbal_count = 0;
 				detected_armor_flag = true;
@@ -350,7 +351,7 @@ int main(int argc, char **argv)
 									0,
 									0,
 									0,
-									robo_ctl.armor_info_msg.yaw,
+									robo_ctl.armor_info_msg.yaw + ukf_predicted_yaw * 100,
 									robo_ctl.armor_info_msg.pitch,
 									robo_ctl.armor_info_msg.global_z * 100);
 			}
