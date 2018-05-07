@@ -145,7 +145,7 @@ image_transport::ImageTransport it(nh);
             else
             {
                msg_armor_info.mode = 2;
-	       armor_detector_flag = 2;
+	           armor_detector_flag = 2;
             }
             msg_armor_info.pose_image.x = armor_target.center.x;
             msg_armor_info.pose_image.y = armor_target.center.y;

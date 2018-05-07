@@ -108,6 +108,9 @@ int main(int argc, char **argv)
 	float first_in_gimbal_angle = 0;
 	float current_gimbal_angle = 0;
 	float target_gimbal_angle = 1000;
+    int   last_armor_info_msg_mode = 0;
+	ros::Time first_in_armor_timer = ros::Time::now();
+	bool first_in_armor_flag = false;
 	while (ros::ok())
 	{
 		// 读取 MCU 数据
@@ -286,6 +289,8 @@ int main(int argc, char **argv)
 			if (abs(abs(current_gimbal_angle) - abs(target_gimbal_angle)) < 5)
 			{
 				work_state = 4;
+				first_in_armor_flag = true;
+				first_in_armor_timer = ros::Time::now();
 			}
 			break;
 		}
@@ -297,21 +302,69 @@ int main(int argc, char **argv)
 		case 4:
 		{
 			ROS_INFO("Stage 4: Detect armor, stacking enemy!!!!!!");
-			robo_ctl.sendMCUMsg(1,
-								2,
-								0,
-								0,
-								0,
-								robo_ctl.armor_info_msg.yaw,
-								robo_ctl.armor_info_msg.pitch,
-								robo_ctl.armor_info_msg.global_z * 100);
-			if (robo_ctl.enemy_information.num == 0 && robo_ctl.armor_info_msg.mode == 1)
+			while(first_in_armor_flag && robo_ctl.armor_info_msg.mode == 1)
 			{
-				work_state = 3;
+				ROS_INFO("Stage 4: searching");
+				robo_ctl.readMCUData();
+				robo_ctl.sendMCUMsg(1,
+									1,
+									0,
+									0,
+									0,
+									robo_ctl.armor_info_msg.yaw,
+									robo_ctl.armor_info_msg.pitch,
+									robo_ctl.armor_info_msg.global_z * 100);
+				ros::Duration timeout(20);
+				ros::Time current_armor_timer = ros::Time::now();
+				if (current_armor_timer - first_in_armor_timer > timeout)
+				{
+					first_in_armor_flag = false;
+					break;
+				}
+				if (robo_ctl.armor_info_msg.mode == 2 || robo_ctl.armor_info_msg.mode == 3)
+				{
+					first_in_armor_flag = false;
+					break;
+				}
+				ros::spinOnce();
+			}
+			if(robo_ctl.armor_info_msg.mode == 2 || robo_ctl.armor_info_msg.mode == 3)
+			{
+				first_in_armor_flag = false;
+				robo_ctl.sendMCUMsg(1,
+									2,
+									0,
+									0,
+									0,
+									robo_ctl.armor_info_msg.yaw,
+									robo_ctl.armor_info_msg.pitch,
+									robo_ctl.armor_info_msg.global_z * 100);
+			}
+			if(robo_ctl.armor_info_msg.mode == 1 && (last_armor_info_msg_mode == 2 || last_armor_info_msg_mode == 3))
+			{
+				first_in_armor_flag = false;
+				work_state = 4;
 				target_gimbal_angle = 1000;
 			}
+			last_armor_info_msg_mode = robo_ctl.armor_info_msg.mode;
+
+
+			// robo_ctl.sendMCUMsg(1,
+			// 					2,
+			// 					0,
+			// 					0,
+			// 					0,
+			// 					robo_ctl.armor_info_msg.yaw,
+			// 					robo_ctl.armor_info_msg.pitch,
+			// 					robo_ctl.armor_info_msg.global_z * 100);
+			// if (robo_ctl.enemy_information.num == 0 && robo_ctl.armor_info_msg.mode == 1)
+			// {
+			// 	work_state = 3;
+			// 	target_gimbal_angle = 1000;
+			// }
 			break;
 		}
+
 
 		default:
 			break;

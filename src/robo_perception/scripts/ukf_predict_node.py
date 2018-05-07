@@ -479,7 +479,7 @@ while not rospy.is_shutdown():
         #计算水平于枪口方向的速度,trans to ploe axis then calculate verticle speed
         target_speed = np.sqrt(relative_speed_x**2 + relative_speed_y**2)
         target_theta = np.arctan2(relative_speed_y , relative_speed_x)
-        V_verticle = target_speed * np.sin(2 * np.pi - (global_gimbal_yaw + target_theta + 90))      
+        V_verticle = target_speed * np.cos(2 * np.pi - (global_gimbal_yaw + target_theta + 90))      
         #V_verticle = relative_speed_x * np.sin(global_gimbal_yaw) + relative_speed_y * np.cos(global_gimbal_yaw)
         #print V_verticle, odom_yaw
         #计算检测到的目标和我自身的距离
