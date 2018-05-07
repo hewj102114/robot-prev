@@ -122,10 +122,10 @@ def enemy_self_identify(rgb_image, robo_bboxes, show_image=False):
     return enemy
 
 def TsDet_callback(infrared_image, pointcloud):
-    print("====================================new image======================================")
-    print("===================================================================================")
+    #print("====================================new image======================================")
+    #print("===================================================================================")
     global count, sess, model, mc, video, frame_rate_list, frame_rate_idx, frame_rate, align_image
-    print('I here rgb and pointcloud !', count)
+    #print('I here rgb and pointcloud !', count)
     count = count + 1
 
     bridge = CvBridge()

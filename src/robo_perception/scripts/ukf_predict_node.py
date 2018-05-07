@@ -73,8 +73,9 @@ UNABLE_PREDICT = 0
 TEMPERAL_LOST = 0
 RS_PREDICT_INIT = True
 PNP_PREDICT_INIT = True
+TARGET_RECETIVED = False
 
-BULLET_SPEED = 17
+BULLET_SPEED = 16.1
 PNP_CLOSE_THRESH = 0.1 #判断pnp是否瞄准到了正确目标
 RS_CLOSE_THRESH = 0.05 #判断rs是否瞄准到了正确目标
 LOST_TRESH = 10
@@ -84,7 +85,7 @@ robo_vel_x = robo_vel_y = 0
 pnp_vel_x = pnp_vel_y = pnp_pos_x = pnp_pos_y = last_pnp_pos_x = last_pnp_pos_y = 0
 odom_yaw = odom_pos_x = odom_pos_y = odom_vel_x = odom_vel_y = 0
 rs_pos_x = rs_pos_y = rs_vel_x = rs_vel_y = last_rs_pos_x = last_rs_pos_y = 0
-gimbal_yaw = 0
+gimbal_yaw = gimbal_dtheta = 0
 aimtheta  = predict_angle = 0
 ukf_out_pos_x = ukf_out_pos_y = ukf_out_vel_x = ukf_out_vel_y = 0
 pnp_lost_counter = rs_lost_counter = 0
@@ -111,8 +112,8 @@ def h_cv(x):
 def UKFRsInit(in_dt, init_x):
     global ukf_rs
 
-    p_std_x, p_std_y = 0.01, 0.01
-    v_std_x, v_std_y = 0.01, 0.01
+    p_std_x, p_std_y = 0.02, 0.02
+    v_std_x, v_std_y = 0.04, 0.04
     dt = in_dt 
 
 
@@ -260,6 +261,7 @@ def callback_pnp(pnp):
     global pnp_pos_x, pnp_pos_y, aim_target_x, aim_target_y, pnp_lost_counter, last_pnp_pos_x, last_pnp_pos_y, pnp_vel_x, pnp_vel_y
     global pnp_last_time, pnp_lost_time, tfBuffer, pnp_trans
     global PNP_DATA_AVAILABLE, PNP_LAST_AVAILABLE, PNP_INIT, ENABLE_PREDICT
+
     if PNP_INIT == True:
         print "pnp callback init Finished!"
         pnp_lost_counter = 0
@@ -271,6 +273,8 @@ def callback_pnp(pnp):
         FIND_PNP = False
         pnp_time = pnp.header.stamp.secs + pnp.header.stamp.nsecs * 10**-9
         dt = pnp_time - pnp_last_time
+        if 1/dt<30:
+            print 'WARNING!!!,detection frequency to low! Graph card may need COOLING operation!'
       
         if pnp.pose.position.x != 0 and pnp.pose.position.y != 0:
             FIND_PNP = True
@@ -334,27 +338,32 @@ def callback_odom(odom):
 
 
 def callback_target(target):
-    global aim_target_x, aim_target_y, ENABLE_PREDICT, aimtheta,tfBuffer
+    global aim_target_x, aim_target_y, ENABLE_PREDICT, aimtheta,tfBuffer,gimbal_yaw,odom_yaw,gimbal_dtheta,TARGET_RECETIVED
     aim_target_x = target.pose.pose.position.x
     aim_target_y = target.pose.pose.position.y
-    rs_trans = TransformStamped()
-    try:
-        rs_trans = tfBuffer.lookup_transform('odom', 'realsense_camera', rospy.Time(0))
-    except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
-        print('realsense TF TRANS TRANS FAIL! check your code')
-    
-    #use sele as orign of axis
-    relative_x = aim_target_x - rs_trans.transform.translation.x
-    relative_y = aim_target_y - rs_trans.transform.translation.y
-    
-    # print rs_trans.transform.translation.x,rs_trans.transform.translation.y
-    # print 'aim_target_x',aim_target_x,'aim_target_y',aim_target_y
-    # print 'relative',relative_x,relative_y
-    #target 
-    aimtheta = np.arctan2(relative_y, relative_x)
+    TARGET_RECETIVED = False
+    if aim_target_x and aim_target_y != 0:
+        TARGET_RECETIVED = True
+        rs_trans = TransformStamped()
+        try:
+            rs_trans = tfBuffer.lookup_transform('odom', 'realsense_camera', rospy.Time(0))
+        except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+            print('realsense TF TRANS TRANS FAIL! check your code')
+        
+        #use sele as orign of axis
+        relative_x = aim_target_x - rs_trans.transform.translation.x
+        relative_y = aim_target_y - rs_trans.transform.translation.y
+        
+        # print rs_trans.transform.translation.x,rs_trans.transform.translation.y
+        # print 'aim_target_x',aim_target_x,'aim_target_y',aim_target_y
+        # print 'relative',relative_x,relative_y
+        #target 
+        aimtheta = np.arctan2(relative_y, relative_x)
 
 
-    ENABLE_PREDICT = target.pose.pose.orientation.w
+
+
+        ENABLE_PREDICT = target.pose.pose.orientation.w
 
 def callback_gimbal(gimbal):
     global gimbal_yaw, BULLET_SPEED
@@ -379,7 +388,8 @@ while not rospy.is_shutdown():
     global BULLET_SPEED, pnp_pos_x, pnp_pos_y, pnp_vel_y, pnp_vel_x, gimbal_yaw, odom_vel_x, odom_vel_y,odom_yaw
     global UNABLE_PREDICT, aimtheta, predict_angle, ukf_out_pos_x, ukf_out_pos_y, ukf_out_vel_x, ukf_out_vel_y
     global rs_pos_x, rs_pos_y, rs_vel_x, rs_vel_y, last_pnp_pos_x, last_pnp_pos_y, rs_lost_counter, pnp_lost_counter
-    global LOST_TRESH, TEMPERAL_LOST, RS_PREDICT_INIT, PNP_PREDICT_INIT,RS_DATA_AVAILABLE, PNP_DATA_AVAILABLE
+    global LOST_TRESH, TEMPERAL_LOST, RS_PREDICT_INIT, PNP_PREDICT_INIT,RS_DATA_AVAILABLE, PNP_DATA_AVAILABLE,gimbal_dtheta
+    global TARGET_RECETIVED
     #rs有数据就用rs的进行更新，第一次直接初始化，第二次再更新   
     if RS_DATA_AVAILABLE and RS_PREDICT_INIT:
         UKFRsInit(0.025, np.array([rs_pos_x, rs_vel_x, rs_pos_y, rs_vel_y]))
@@ -426,7 +436,7 @@ while not rospy.is_shutdown():
         ukf_out_vel_y = ukf_rs_vel_y
         UNABLE_PREDICT = 0
         TEMPERAL_LOST = 0
-        print 'predict!'
+        #print 'predict!'
     elif PNP_DATA_AVAILABLE:  
         ukf_out_pos_x = ukf_pnp_pos_x  
         ukf_out_vel_x = ukf_pnp_vel_x
@@ -450,15 +460,11 @@ while not rospy.is_shutdown():
     if global_gimbal_yaw > np.pi:
         global_gimbal_yaw = global_gimbal_yaw - 2 * np.pi
 
-    #dyaw between target and gimbal
-
-    gimbal_dtheta = aimtheta - global_gimbal_yaw  
-
     
-    # print 'gimbal_dtheta',gimbal_dtheta,'aimtheta', aimtheta, 'global_gimbal_yaw',global_gimbal_yaw
-    print 'RS','X',rs_pos_x,'Y',rs_pos_y, 'VX',rs_vel_x,'VY',rs_vel_y,'RSA',RS_DATA_AVAILABLE
+
+    # print 'RS','X',rs_pos_x,'Y',rs_pos_y, 'VX',rs_vel_x,'VY',rs_vel_y,'RSA',RS_DATA_AVAILABLE
     # print 'PNP','X',pnp_pos_x,'Y',pnp_pos_y, 'VX',pnp_vel_x,'VY',pnp_vel_x
-    print 'KALMAN', 'X',ukf_out_pos_x,'Y',ukf_out_pos_y, 'VX',ukf_out_vel_x,'VY',ukf_out_vel_y,
+    # print 'KALMAN', 'X',ukf_out_pos_x,'Y',ukf_out_pos_y, 'VX',ukf_out_vel_x,'VY',ukf_out_vel_y,
 
     #   #
     #           #
@@ -477,10 +483,12 @@ while not rospy.is_shutdown():
         relative_speed_y = ukf_out_vel_y - odom_vel_y
         #print 'relative_speed_x',relative_speed_x,'relative_speed_y',relative_speed_y
         #计算水平于枪口方向的速度,trans to ploe axis then calculate verticle speed
-        target_speed = np.sqrt(relative_speed_x**2 + relative_speed_y**2)
-        target_theta = np.arctan2(relative_speed_y , relative_speed_x)
-        V_verticle = target_speed * np.cos(2 * np.pi - (global_gimbal_yaw + target_theta + 90))      
-        #V_verticle = relative_speed_x * np.sin(global_gimbal_yaw) + relative_speed_y * np.cos(global_gimbal_yaw)
+        # target_speed = np.sqrt(relative_speed_x**2 + relative_speed_y**2)
+        # target_theta = np.arctan2(relative_speed_y , relative_speed_x)
+        # V_verticle = target_speed * np.sin(2 * np.pi - (global_gimbal_yaw + target_theta + 90))
+        # print 'target_speed',target_speed, 'target_theta',target_theta,'V_verticle',V_verticle
+        V_verticle = relative_speed_x * np.sin(global_gimbal_yaw) + relative_speed_y * np.cos(global_gimbal_yaw)
+        print 'V_verticle',V_verticle,'global_gimbal_yaw',global_gimbal_yaw,'relative_speed_x',relative_speed_x,'relative_speed_y',relative_speed_y
         #print V_verticle, odom_yaw
         #计算检测到的目标和我自身的距离
         distance_to_enemy = np.sqrt((ukf_out_pos_x - (odom_pos_x + 0.22*np.cos(odom_yaw)))**2 +(ukf_out_pos_y - (odom_pos_y+ 0.22*np.cos(odom_yaw)))**2)
@@ -502,7 +510,14 @@ while not rospy.is_shutdown():
     
     predict_pos.pose.pose.orientation.x = UNABLE_PREDICT    
     predict_pos.pose.pose.orientation.y = aimtheta
-    predict_pos.pose.pose.orientation.z = gimbal_dtheta
+    if TARGET_RECETIVED == True:
+        
+        #dyaw between target and gimbal
+        gimbal_dtheta = aimtheta - global_gimbal_yaw 
+        print 'gimbal_dtheta',gimbal_dtheta/np.pi*180,'aimtheta', aimtheta, 'global_gimbal_yaw',global_gimbal_yaw/np.pi*180
+        predict_pos.pose.pose.orientation.z = gimbal_dtheta
+    else:
+        predict_pos.pose.pose.orientation.z = 999 
     predict_pos.pose.pose.orientation.w = predict_angle
 
     pub_ukf_vel.publish(predict_pos) 

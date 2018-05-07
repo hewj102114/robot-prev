@@ -111,6 +111,10 @@ int main(int argc, char **argv)
     int   last_armor_info_msg_mode = 0;
 	ros::Time first_in_armor_timer = ros::Time::now();
 	bool first_in_armor_flag = false;
+	bool timeout_searching_flag = false;
+	int lose_gimbal_count = 0;
+	int lose_frame_count = 0;
+	bool detected_armor_flag = false;
 	while (ros::ok())
 	{
 		// 读取 MCU 数据
@@ -263,11 +267,15 @@ int main(int argc, char **argv)
 			ROS_INFO("Stage 3: Close to enemy, stacking enemy!!!!!!");
     		robo_ctl.enemy_odom_pose.orientation.w = 1;
 			robo_ctl.sendEnemyTarget(robo_ctl.enemy_odom_pose);
+			float enemy_self_angle = 0;
+			if (robo_ctl.robo_ukf_enemy_information.orientation.z != 999)
+			{
+				enemy_self_angle = -robo_ctl.robo_ukf_enemy_information.orientation.z * 180.0 / PI;
+			}
 			
-			float enemy_self_angle = robo_ctl.robo_ukf_enemy_information.orientation.z * 180.0 / PI;
 			ROS_INFO("predicted angle: %f", enemy_self_angle);
 			count ++;
-			if (robo_ctl.enemy_information.num > 0 && first_in == true && count % 1 == 0)
+			if (robo_ctl.enemy_information.num > 0 && first_in == true && count % 1 == 0 && robo_ctl.robo_ukf_enemy_information.orientation.z != 999)
 			{
 				ROS_INFO("sent angle information!!!!!!!!!!");
 				first_in = false;
@@ -286,10 +294,11 @@ int main(int argc, char **argv)
 			// 云台转动完成, 跳转到装甲板识别
 			current_gimbal_angle = robo_ctl.game_msg.gimbalAngleYaw;
 			ROS_INFO("first_in_gimbal_angle: %f, target_gimbal_angle: %f, current_gimbal_angle: %f", first_in_gimbal_angle, target_gimbal_angle, current_gimbal_angle);
-			if (abs(abs(current_gimbal_angle) - abs(target_gimbal_angle)) < 5)
+			if (abs(abs(current_gimbal_angle - first_in_gimbal_angle) - abs(target_gimbal_angle)) < 5)
 			{
 				work_state = 4;
 				first_in_armor_flag = true;
+				detected_armor_flag = false;
 				first_in_armor_timer = ros::Time::now();
 			}
 			break;
@@ -302,35 +311,40 @@ int main(int argc, char **argv)
 		case 4:
 		{
 			ROS_INFO("Stage 4: Detect armor, stacking enemy!!!!!!");
-			while(first_in_armor_flag && robo_ctl.armor_info_msg.mode == 1)
-			{
-				ROS_INFO("Stage 4: searching");
-				robo_ctl.readMCUData();
-				robo_ctl.sendMCUMsg(1,
-									1,
-									0,
-									0,
-									0,
-									robo_ctl.armor_info_msg.yaw,
-									robo_ctl.armor_info_msg.pitch,
-									robo_ctl.armor_info_msg.global_z * 100);
-				ros::Duration timeout(20);
-				ros::Time current_armor_timer = ros::Time::now();
-				if (current_armor_timer - first_in_armor_timer > timeout)
-				{
-					first_in_armor_flag = false;
-					break;
-				}
-				if (robo_ctl.armor_info_msg.mode == 2 || robo_ctl.armor_info_msg.mode == 3)
-				{
-					first_in_armor_flag = false;
-					break;
-				}
-				ros::spinOnce();
-			}
+			// while(first_in_armor_flag && robo_ctl.armor_info_msg.mode == 1)
+			// {
+			// 	ROS_INFO("Stage 4: searching");
+			// 	robo_ctl.readMCUData();
+			// 	robo_ctl.sendMCUMsg(1,
+			// 						1,
+			// 						0,
+			// 						0,
+			// 						0,
+			// 						robo_ctl.armor_info_msg.yaw,
+			// 						robo_ctl.armor_info_msg.pitch,
+			// 						robo_ctl.armor_info_msg.global_z * 100);
+			// 	ros::Duration timeout(10);
+			// 	ros::Time current_armor_timer = ros::Time::now();
+			// 	if (current_armor_timer - first_in_armor_timer > timeout)
+			// 	{
+			// 		first_in_armor_flag = false;
+			// 		timeout_searching_flag = true;
+			// 		break;
+			// 	}
+			// 	if (robo_ctl.armor_info_msg.mode == 2 || robo_ctl.armor_info_msg.mode == 3)
+			// 	{
+			// 		first_in_armor_flag = false;
+			// 		break;
+			// 	}
+			// 	ros::spinOnce();
+			// }
 			if(robo_ctl.armor_info_msg.mode == 2 || robo_ctl.armor_info_msg.mode == 3)
 			{
+				ROS_INFO("Detected armor!!!!!");
+				lose_gimbal_count = 0;
+				detected_armor_flag = true;
 				first_in_armor_flag = false;
+				// first_in_armor_flag = false;
 				robo_ctl.sendMCUMsg(1,
 									2,
 									0,
@@ -340,11 +354,48 @@ int main(int argc, char **argv)
 									robo_ctl.armor_info_msg.pitch,
 									robo_ctl.armor_info_msg.global_z * 100);
 			}
-			if(robo_ctl.armor_info_msg.mode == 1 && (last_armor_info_msg_mode == 2 || last_armor_info_msg_mode == 3))
+			// if (robo_ctl.armor_info_msg.mode == 1 || timeout_searching_flag)
+			if (robo_ctl.armor_info_msg.mode == 1)			
 			{
-				first_in_armor_flag = false;
-				work_state = 4;
+				ROS_INFO("No detected armor!!!!!");
+				lose_frame_count++;
+				lose_gimbal_count++;
+				// realsense 切换过来
+				if (first_in_armor_flag == true)
+				{
+					robo_ctl.sendMCUMsg(1,
+										2,
+										0,
+										0,
+										0,
+										0,
+										32760,
+										0);
+				}
+				// 装甲板检测丢帧
+				if (detected_armor_flag == true)
+				{
+					robo_ctl.sendMCUMsg(1,
+										2,
+										0,
+										0,
+										0,
+										0,
+										5,
+										0);
+				}
+				// first_in_armor_flag = false;
+
+			}
+			// if(timeout_searching_flag == true || (robo_ctl.armor_info_msg.mode == 1 && (last_armor_info_msg_mode == 2 || last_armor_info_msg_mode == 3)))
+			// if((robo_ctl.armor_info_msg.mode == 1 && (last_armor_info_msg_mode == 2 || last_armor_info_msg_mode == 3)))
+			if (lose_gimbal_count > 400)
+			{
+				lose_gimbal_count = 0;
+				// first_in_armor_flag = false;
+				work_state = 3;
 				target_gimbal_angle = 1000;
+				first_in = true;
 			}
 			last_armor_info_msg_mode = robo_ctl.armor_info_msg.mode;
 
@@ -364,7 +415,13 @@ int main(int argc, char **argv)
 			// }
 			break;
 		}
-
+		case 5:
+			robo_ctl.readMCUData();
+			ROS_INFO("Stage 5: Testing!!!!!!");
+    		robo_ctl.enemy_odom_pose.orientation.w = 1;
+			robo_ctl.sendEnemyTarget(robo_ctl.enemy_odom_pose);
+			robo_ctl.sendMCUMsg(1, 2, 0, 0, 0, 0, 0, 0);
+			break;
 
 		default:
 			break;

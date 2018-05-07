@@ -152,10 +152,21 @@ image_transport::ImageTransport it(nh);
             msg_armor_info.pose_global.position.x = x * 1.0 / 100;
             msg_armor_info.pose_global.position.y = y * 1.0 / 100;
             msg_armor_info.pose_global.position.z = z * 1.0 / 100;
+            
+            int const_max = 2000;
+            
             msg_armor_info.angle.x = (angle_x + offset_anlge_x) * 100;
             ;  // yaw
             msg_armor_info.angle.y = (angle_y + offset_anlge_y) * 100;
             ;  // pitch
+            if (msg_armor_info.angle.x > const_max)
+            {
+                msg_armor_info.angle.x = const_max;
+            }
+            if (msg_armor_info.angle.x < -const_max)
+            {
+                msg_armor_info.angle.x = -const_max;
+            }
             pub_armor_info.publish(msg_armor_info);
 
             // publish global pose data
@@ -176,6 +187,8 @@ image_transport::ImageTransport it(nh);
             enemy_trans.transform.rotation =
             tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
             enemy_pnp_tf.sendTransform(enemy_trans);
+
+            
 
             pre_angle_x = angle_x;
             pre_angle_y = angle_y;
@@ -204,6 +217,7 @@ image_transport::ImageTransport it(nh);
                 msg_armor_info.mode    = miss_detection_cnt;
                 msg_armor_info.angle.x = (pre_angle_x + offset_anlge_x) * 100;  // yaw
                 msg_armor_info.angle.y = (pre_angle_y + offset_anlge_y) * 100;
+                
             } 
             else 
             {
@@ -219,7 +233,7 @@ image_transport::ImageTransport it(nh);
             ++miss_detection_cnt;
         }
 
-        ROS_INFO("angle_x = %f , angle_y = %f" , angle_x , angle_y);
+        ROS_INFO("angle_x = %f , angle_y = %f" , msg_armor_info.angle.x, msg_armor_info.angle.y);
 
 
 
@@ -265,8 +279,8 @@ image_transport::ImageTransport it(nh);
             }
 
             writer << src_csm;
-            imshow("result", src_csm);
-            waitKey(1);
+            //imshow("result", src_csm);
+            //waitKey(1);
         }
         ros::spinOnce();
         rate.sleep();
