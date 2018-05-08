@@ -22,7 +22,7 @@ void image_left_callback(const sensor_msgs::ImageConstPtr &msg)
     }
     else
     {
-        cv::imshow("view_left", img_temp);
+        //cv::imshow("view_left", img_temp);
         waitKey(1);
         img_recv_left = img_temp.clone();
     }
@@ -38,7 +38,7 @@ void image_right_callback(const sensor_msgs::ImageConstPtr &msg)
     }
     else
     {
-        cv::imshow("view_right", img_temp);
+        //cv::imshow("view_right", img_temp);
         img_recv_right = img_temp.clone();
     }
 }
@@ -87,7 +87,7 @@ void prosess(Mat &img, vector<Vec3f> &pt_center)
 
     vector<vector<Point2i>> contours_br;
     vector<Vec4i> hierarchy;
-    findContours(img_rb, contours_br, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
+    findContours(img_gray, contours_br, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
     Mat img_contour(img.rows, img.cols, CV_8UC1);
     img_contour.setTo(Scalar(0));
     vector<vector<Point2i>>::const_iterator it = contours_br.begin();
