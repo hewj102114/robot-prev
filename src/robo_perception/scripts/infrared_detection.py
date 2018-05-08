@@ -205,8 +205,8 @@ def TsDet_callback(infrared_image, pointcloud):
             robo_bboxes.append(robo_bbox)
             print("area: ", w*h)
             # 用于提取点云的范围大小
-            pointcloud_w = 25
-            pointcloud_h = 25
+            pointcloud_w = 5
+            pointcloud_h = 5
 
             # 对点云进行约束
             if pointcloud_w > robo_bbox[2]:
@@ -223,8 +223,8 @@ def TsDet_callback(infrared_image, pointcloud):
                         int(cx + pointcloud_w / 2), 1)
             y_ = np.arange(int(cy + h / 2 - h / 6 - pointcloud_h),
                         int(cy + h / 2 - h / 6), 1)
-            y_ = np.arange(int(cy - pointcloud_h / 2),
-                        int(cy + pointcloud_h / 2), 1)
+            # y_ = np.arange(int(cy - pointcloud_h / 2),
+            #             int(cy + pointcloud_h / 2), 1)
             roi = [[x, y] for x in x_ for y in y_]
             rois.append(roi)
             # 提取特定位置的点云
