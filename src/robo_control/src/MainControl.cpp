@@ -101,7 +101,7 @@ int main(int argc, char **argv)
 	chassis 1:velcity 2:angle pose 3:init
 	*/
 	geometry_msgs::Pose target_pose;
-	int work_state = 3;
+	int work_state = 0;
 	ros::Rate loop_rate(150);
 	bool first_in = true;
 	long long int count = 0;
@@ -133,7 +133,7 @@ int main(int argc, char **argv)
 
 			target_pose.position.x = 4.0;
 			target_pose.position.y = 2.5;
-			target_pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
+			target_pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, 3.14);
 
 			robo_ctl.sendNavGoal(target_pose);
 
