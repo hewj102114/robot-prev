@@ -285,8 +285,8 @@ image_transport::ImageTransport it(nh);
             }
 
             writer << src_csm;
-            //imshow("result", src_csm);
-            //waitKey(1);
+            imshow("result", src_csm);
+            waitKey(1);
         }
         ros::spinOnce();
         rate.sleep();

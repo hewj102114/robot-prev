@@ -37,6 +37,8 @@ from nets import *
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 
+
+
 frame_rate_list = np.zeros(10)
 count = 0
 frame_rate_idx = 0
