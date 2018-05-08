@@ -58,7 +58,7 @@ from geometry_msgs.msg import TransformStamped
 from geometry_msgs.msg import PoseStamped
 from robo_control.msg import GameInfo
 
-T_DELAY = 0.03 #系统延时系数，单位秒
+T_DELAY = 0.32 #系统延时系数，单位秒
 RS_INIT = True
 PNP_INIT = True
 
@@ -131,8 +131,8 @@ def UKFRsInit(in_dt, init_x):
 def UKFPnpInit(in_dt, init_x):
     global ukf_pnp
 
-    p_std_x, p_std_y = 0.01, 0.01
-    v_std_x, v_std_y = 0.02, 0.02
+    p_std_x, p_std_y = 0.02, 0.02
+    v_std_x, v_std_y = 0.2, 0.2
     dt = in_dt 
 
 
@@ -446,7 +446,7 @@ while not rospy.is_shutdown():
 
 
     # 选择传感器预测优先级
-    if RS_UKF_AVAILABLE:
+    if RS_UKF_AVAILABLE and 0:
         ukf_out_pos_x = ukf_rs_pos_x  
         ukf_out_vel_x = ukf_rs_vel_x
         ukf_out_pos_y = ukf_rs_pos_y 
@@ -478,7 +478,7 @@ while not rospy.is_shutdown():
         global_gimbal_yaw = global_gimbal_yaw - 2 * np.pi
 
     
-    if PNP_UKF_AVAILABLE or RS_UKF_AVAILABLE:
+    if PNP_UKF_AVAILABLE or RS_UKF_AVAILABLE and 0:
         print 'RS','X',rs_pos_x,'Y',rs_pos_y, 'VX',rs_vel_x,'VY',rs_vel_y,'RDA',RS_DATA_AVAILABLE
         print 'PNP','X',pnp_pos_x,'Y',pnp_pos_y, 'VX',pnp_vel_x,'VY',pnp_vel_x,'PDA',PNP_DATA_AVAILABLE
         print 'KALMAN', 'X',ukf_out_pos_x,'Y',ukf_out_pos_y, 'VX',ukf_out_vel_x,'VY',ukf_out_vel_y
@@ -537,9 +537,10 @@ while not rospy.is_shutdown():
         predict_pos.pose.pose.orientation.z = 999 
     #send predict when ukf avaliable
     if PNP_UKF_AVAILABLE or RS_UKF_AVAILABLE:
-        predict_pos.pose.pose.orientation.w = - predict_angle/np.pi*180
-    else:
+        predict_pos.pose.pose.orientation.w = -predict_angle/np.pi*180
+    elif pnp_lost_counter > LOST_TRESH and rs_lost_counter > LOST_TRESH:
         predict_pos.pose.pose.orientation.w = 0
+        
     #MAX PREDICT ANGLE
     if predict_pos.pose.pose.orientation.w >= MAX_PREDICT_ANGLE:
         predict_pos.pose.pose.orientation.w = MAX_PREDICT_ANGLE
