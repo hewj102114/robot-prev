@@ -256,7 +256,7 @@ def TsDet_callback(infrared_image, pointcloud):
             # print("filter_avgZ, avgZ", filter_avgZ, avgZ)
             
             if np.isnan(avgX) or np.isnan(avgY) or np.isnan(avgZ):
-                print("continue")                                
+                print("continue")
                 continue
             else:
                 robo_position.append([avgX, avgY, avgZ])

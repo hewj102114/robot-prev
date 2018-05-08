@@ -30,7 +30,7 @@ ROS_INFO("recv");
     } else {
         //cv::imshow("view", img_temp);
         img_recv = img_temp.clone();
-        cur_seq=msg.header.seq;
+        cur_seq=msg->header.seq;
     }
 }
 
@@ -221,7 +221,7 @@ image_transport::ImageTransport it(nh);
             if (miss_detection_cnt < 5)
             {
                 msg_armor_info.mode    = miss_detection_cnt;
-                msg_armor_info.angle.x = (pre_angle_x + offset_anlge_x) * 100;  // yaw
+                // msg_armor_info.angle.x = (pre_angle_x + offset_anlge_x) * 100;  // yaw
                 msg_armor_info.angle.y = (pre_angle_y + offset_anlge_y) * 100;
                 
             } 

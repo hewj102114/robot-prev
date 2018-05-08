@@ -1,3 +1,3 @@
 Header header
-std_msg/Int16 size
+std_msgs/Int16 size
 geometry_msgs/Vector3[] target

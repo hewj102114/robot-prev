@@ -74,6 +74,9 @@ TEMPERAL_LOST = 0
 RS_PREDICT_INIT = True
 PNP_PREDICT_INIT = True
 TARGET_RECETIVED = False
+PNP_UKF_AVAILABLE = False
+RS_UKF_AVAILABLE = False
+MAX_PREDICT_ANGLE = 6 
 
 BULLET_SPEED = 16.1
 PNP_CLOSE_THRESH = 10 #判断pnp是否瞄准到了正确目标
@@ -128,8 +131,8 @@ def UKFRsInit(in_dt, init_x):
 def UKFPnpInit(in_dt, init_x):
     global ukf_pnp
 
-    p_std_x, p_std_y = 0.02, 0.02
-    v_std_x, v_std_y = 0.04, 0.04
+    p_std_x, p_std_y = 0.01, 0.01
+    v_std_x, v_std_y = 0.02, 0.02
     dt = in_dt 
 
 
@@ -149,7 +152,7 @@ def TFinit():
 def callback_enemy(enemy):
     global enemy_num, team_num, tfBuffer, enemy_object_trans, team_object_trans, aim_target_x, aim_target_y, rs_last_time, rs_lost_time, rs_lost_counter
     global rs_pos_x, rs_pos_y, rs_vel_x, rs_vel_y, last_rs_pos_x, last_rs_pos_y, odom_yaw, odom_pos_x, odom_pos_y
-    global ENABLE_PREDICT, RS_DATA_AVAILABLE, RS_LAST_AVAILABLE, RS_INIT,RS_PREDICT_INIT, ukf_rs
+    global ENABLE_PREDICT, RS_DATA_AVAILABLE, RS_LAST_AVAILABLE, RS_INIT,RS_PREDICT_INIT, ukf_rs,RS_UKF_AVAILABLE
     global ukf_rs_pos_x,ukf_rs_pos_y, ukf_rs_vel_x,ukf_rs_vel_y
     if RS_INIT == True:
         print "realsense callback init Finished!"
@@ -170,7 +173,7 @@ def callback_enemy(enemy):
         FIND_RS = False
         rs_time = enemy.header.stamp.secs + enemy.header.stamp.nsecs * 10**-9
         dt = rs_time - rs_last_time
-        if 1/dt<35:
+        if 1/dt<30:
             print 'WARNING!!!,detection frequency to low! Graph card may need COOLING operation!'
         if enemy.num == 0:
             print 'NOTHING'
@@ -254,7 +257,7 @@ def callback_enemy(enemy):
             RS_DATA_AVAILABLE = False
 
         rs_last_time = rs_time
-
+        RS_UKF_AVAILABLE = False
         #rs有数据就用rs的进行更新，第一次直接初始化，第二次再更新   
         if RS_DATA_AVAILABLE and RS_PREDICT_INIT:
             UKFRsInit(0.033, np.array([rs_pos_x, rs_vel_x, rs_pos_y, rs_vel_y]))
@@ -271,7 +274,7 @@ def callback_enemy(enemy):
             ukf_rs_vel_x = ukf_rs.x[1]
             ukf_rs_pos_y = ukf_rs.x[2]
             ukf_rs_vel_y = ukf_rs.x[3]
-
+            RS_UKF_AVAILABLE = True
         #第一次直接初始化，第二次再更新
         if RS_DATA_AVAILABLE == False:
             RS_PREDICT_INIT = True 
@@ -284,7 +287,7 @@ def callback_enemy(enemy):
 def callback_pnp(pnp):
     global pnp_pos_x, pnp_pos_y, aim_target_x, aim_target_y, pnp_lost_counter, last_pnp_pos_x, last_pnp_pos_y, pnp_vel_x, pnp_vel_y
     global pnp_last_time, pnp_lost_time, tfBuffer, pnp_trans, ukf_pnp
-    global PNP_DATA_AVAILABLE, PNP_LAST_AVAILABLE, PNP_INIT, ENABLE_PREDICT, PNP_PREDICT_INIT
+    global PNP_DATA_AVAILABLE, PNP_LAST_AVAILABLE, PNP_INIT, ENABLE_PREDICT, PNP_PREDICT_INIT,PNP_UKF_AVAILABLE
     global ukf_pnp_pos_x,ukf_pnp_pos_y, ukf_pnp_vel_x,ukf_pnp_vel_y
 
     if PNP_INIT == True:
@@ -298,9 +301,10 @@ def callback_pnp(pnp):
         FIND_PNP = False
         pnp_time = pnp.header.stamp.secs + pnp.header.stamp.nsecs * 10**-9
         dt = pnp_time - pnp_last_time
+        #print 'dt',dt
 
 
-        
+        #print pnp.pose.position.x,pnp.pose.position.y,pnp.pose.position.z
         if pnp.pose.position.x != 0 and pnp.pose.position.y != 0:
             FIND_PNP = True
 
@@ -318,9 +322,7 @@ def callback_pnp(pnp):
         if np.sqrt((aim_target_x - pnp_pos_x) ** 2 + (aim_target_y - pnp_pos_y) ** 2) > PNP_CLOSE_THRESH:
             FIND_PNP = False
             PNP_LAST_AVAILABLE = False
-        # pnp position not change
-        if  last_pnp_pos_x - pnp_pos_x == 0:
-            PNP_LAST_AVAILABLE = False
+
 
         if FIND_PNP == True:
             #print 'USE PNP PREDICTING'
@@ -330,7 +332,8 @@ def callback_pnp(pnp):
                 #last data available, use to update the speed
                 pnp_vel_x = (pnp_pos_x - last_pnp_pos_x) / dt
                 pnp_vel_y = (pnp_pos_y - last_pnp_pos_y) / dt
-                RS_DATA_AVAILABLE = True
+                PNP_DATA_AVAILABLE = True
+                #print 'x',pnp_pos_x,last_pnp_pos_x,pnp_vel_x,'y',pnp_pos_y,last_pnp_pos_y,pnp_vel_y
             else:
                 PNP_DATA_AVAILABLE = False
                 pnp_lost_counter = pnp_lost_counter + 1
@@ -344,9 +347,10 @@ def callback_pnp(pnp):
             pnp_lost_time.append(dt)
             PNP_LAST_AVAILABLE = False
             PNP_DATA_AVAILABLE = False
-        print 'PNP_DATA_AVAILABLE',PNP_DATA_AVAILABLE,'PNP_LAST_AVAILABLE',PNP_LAST_AVAILABLE
+        #print 'PNP_DATA_AVAILABLE',PNP_DATA_AVAILABLE,'PNP_LAST_AVAILABLE',PNP_LAST_AVAILABLE
         pnp_last_time = pnp_time
 
+        PNP_UKF_AVAILABLE = False
         if PNP_PREDICT_INIT and PNP_DATA_AVAILABLE:
             UKFPnpInit(0.02, np.array([pnp_pos_x, pnp_vel_x, pnp_pos_y, pnp_vel_y]))
             ukf_pnp_pos_x = ukf_pnp.x[0]
@@ -362,9 +366,12 @@ def callback_pnp(pnp):
             ukf_pnp_vel_x = ukf_pnp.x[1]
             ukf_pnp_pos_y = ukf_pnp.x[2]
             ukf_pnp_vel_y = ukf_pnp.x[3] 
+            #print 'PNP','X',pnp_pos_x,'Y',pnp_pos_y, 'VX',pnp_vel_x,'VY',pnp_vel_x,'PDA',PNP_DATA_AVAILABLE
+            PNP_UKF_AVAILABLE = True
 
         if PNP_DATA_AVAILABLE == False:
             PNP_PREDICT_INIT = True 
+        
          
         
                 
@@ -435,33 +442,32 @@ while not rospy.is_shutdown():
     global rs_pos_x, rs_pos_y, rs_vel_x, rs_vel_y, last_pnp_pos_x, last_pnp_pos_y, rs_lost_counter, pnp_lost_counter
     global LOST_TRESH, TEMPERAL_LOST,RS_DATA_AVAILABLE, PNP_DATA_AVAILABLE,gimbal_dtheta
     global TARGET_RECETIVED, ukf_rs_pos_x,ukf_rs_pos_y, ukf_rs_vel_x,ukf_rs_vel_y,ukf_pnp_pos_x,ukf_pnp_pos_y, ukf_pnp_vel_x,ukf_pnp_vel_y
-
+    global PNP_UKF_AVAILABLE,RS_UKF_AVAILABLE
 
 
     # 选择传感器预测优先级
-
-    if PNP_DATA_AVAILABLE:  
-        ukf_out_pos_x = ukf_pnp_pos_x  
-        ukf_out_vel_x = ukf_pnp_vel_x
-        ukf_out_pos_y = ukf_pnp_pos_y 
-        ukf_out_vel_y = ukf_pnp_vel_y
-        UNABLE_PREDICT = 0
-        TEMPERAL_LOST = 0
-    elif RS_DATA_AVAILABLE:
+    if RS_UKF_AVAILABLE:
         ukf_out_pos_x = ukf_rs_pos_x  
         ukf_out_vel_x = ukf_rs_vel_x
         ukf_out_pos_y = ukf_rs_pos_y 
         ukf_out_vel_y = ukf_rs_vel_y
         UNABLE_PREDICT = 0
         TEMPERAL_LOST = 0
-        #print 'predict!'
+    elif PNP_UKF_AVAILABLE:  
+        ukf_out_pos_x = ukf_pnp_pos_x  
+        ukf_out_vel_x = ukf_pnp_vel_x
+        ukf_out_pos_y = ukf_pnp_pos_y 
+        ukf_out_vel_y = ukf_pnp_vel_y
+        UNABLE_PREDICT = 0
+        TEMPERAL_LOST = 0
+        print 'predict!'
     else:
-        #print 'temperal unable to predict!','pnp_lost_counter',pnp_lost_counter,'rs_lost_counter',rs_lost_counter 
+        print 'temperal unable to predict!','pnp_lost_counter',pnp_lost_counter,'rs_lost_counter',rs_lost_counter 
         TEMPERAL_LOST = 1
 
     if pnp_lost_counter > LOST_TRESH and rs_lost_counter > LOST_TRESH:
         UNABLE_PREDICT = 1
-        #print 'UNABLE TO PREDICT!!!!!!!!!!!!'
+        print 'UNABLE TO PREDICT!!!!!!!!!!!!'
 
     #from gimbal yaw to global gimbal_yaw
     global_gimbal_yaw = odom_yaw + gimbal_yaw
@@ -472,10 +478,10 @@ while not rospy.is_shutdown():
         global_gimbal_yaw = global_gimbal_yaw - 2 * np.pi
 
     
-
-    #print 'RS','X',rs_pos_x,'Y',rs_pos_y, 'VX',rs_vel_x,'VY',rs_vel_y,'RSA',RS_DATA_AVAILABLE
-    #print 'PNP','X',pnp_pos_x,'Y',pnp_pos_y, 'VX',pnp_vel_x,'VY',pnp_vel_x,'PSA',PNP_DATA_AVAILABLE
-    #print 'KALMAN', 'X',ukf_out_pos_x,'Y',ukf_out_pos_y, 'VX',ukf_out_vel_x,'VY',ukf_out_vel_y,
+    if PNP_UKF_AVAILABLE or RS_UKF_AVAILABLE:
+        print 'RS','X',rs_pos_x,'Y',rs_pos_y, 'VX',rs_vel_x,'VY',rs_vel_y,'RDA',RS_DATA_AVAILABLE
+        print 'PNP','X',pnp_pos_x,'Y',pnp_pos_y, 'VX',pnp_vel_x,'VY',pnp_vel_x,'PDA',PNP_DATA_AVAILABLE
+        print 'KALMAN', 'X',ukf_out_pos_x,'Y',ukf_out_pos_y, 'VX',ukf_out_vel_x,'VY',ukf_out_vel_y
 
     #   #
     #           #
@@ -488,7 +494,7 @@ while not rospy.is_shutdown():
     # distance_to_enemy
     # Bullet flying time = 17m/s
 
-    if PNP_DATA_AVAILABLE or RS_DATA_AVAILABLE:
+    if PNP_UKF_AVAILABLE or RS_UKF_AVAILABLE:
         #计算相对速度
         relative_speed_x = ukf_out_vel_x - odom_vel_x
         relative_speed_y = ukf_out_vel_y - odom_vel_y
@@ -529,7 +535,17 @@ while not rospy.is_shutdown():
         predict_pos.pose.pose.orientation.z = gimbal_dtheta
     else:
         predict_pos.pose.pose.orientation.z = 999 
-    predict_pos.pose.pose.orientation.w = - predict_angle/np.pi*180
+    #send predict when ukf avaliable
+    if PNP_UKF_AVAILABLE or RS_UKF_AVAILABLE:
+        predict_pos.pose.pose.orientation.w = - predict_angle/np.pi*180
+    else:
+        predict_pos.pose.pose.orientation.w = 0
+    #MAX PREDICT ANGLE
+    if predict_pos.pose.pose.orientation.w >= MAX_PREDICT_ANGLE:
+        predict_pos.pose.pose.orientation.w = MAX_PREDICT_ANGLE
+    elif predict_pos.pose.pose.orientation.w <=  - MAX_PREDICT_ANGLE:
+        predict_pos.pose.pose.orientation.w = -MAX_PREDICT_ANGLE
+
     #predict_pos.pose.pose.orientation.w = 0
 
     pub_ukf_vel.publish(predict_pos) 
