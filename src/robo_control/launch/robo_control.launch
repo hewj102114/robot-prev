@@ -1,5 +1,6 @@
 <launch>
 <node pkg="robo_control" type="control_node" name="control_node" output="screen"/>
+<node pkg="robo_control" type="enemy_listen" name="enemy_listen" output="screen"/>
 <node pkg="robo_control" type="odom_broadcaster" name="odom_broadcaster"/>
 
 </launch>

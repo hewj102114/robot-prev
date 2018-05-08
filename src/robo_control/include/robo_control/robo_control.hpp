@@ -2,6 +2,8 @@
 #include <string>
 #include <cmath>
 #include <time.h>
+#include <iostream>
+#include <vector>
 
 #include <ros/ros.h>
 #include <geometry_msgs/Quaternion.h>
@@ -22,6 +24,8 @@
 #include <move_base_msgs/MoveBaseActionFeedback.h>
 
 #include <actionlib_msgs/GoalStatusArray.h>
+
+#include <opencv2/opencv.hpp>
 
 #include "robo_control/serial.h"
 #include "robo_vision/ArmorInfo.h"
@@ -68,10 +72,10 @@ class RoboControl
 
         pub_game_info = pnh->advertise<robo_control::GameInfo>("base/game_info", 1);
         pub_uwb_odom = pnh->advertise<nav_msgs::Odometry>("map/uwb/data", 1);
-        pub_wheel_vel =
-            pnh->advertise<geometry_msgs::Vector3Stamped>("robo/wheel/data", 1);
+        pub_wheel_vel = pnh->advertise<geometry_msgs::Vector3Stamped>("robo/wheel/data", 1);
         pub_imu_data = pnh->advertise<sensor_msgs::Imu>("gimbal/imu/data_raw", 1);
         pub_nav_goal = pnh->advertise<geometry_msgs::Pose>("base/goal", 1);
+        pub_enemy_target = pnh->advertise<nav_msgs::Odometry>("enemy/target", 1);
 
         serial = new Serial("/dev/ttyUSBA1");
         serial->configurePort();
@@ -107,6 +111,11 @@ class RoboControl
     void cb_finish_navigation(const std_msgs::Bool &msg);
     void go_on_patrol(int flag, int key_point_count, float current_position, float enemy_position);
     void cb_enemy_information(const robo_perception::ObjectList &msg);
+    void read_xml_file();
+    int find_enemy_self_closest_point(double enemy_x, double enemy_y, double self_x, double self_y);
+    void sendEnemyTarget(const geometry_msgs::Pose &msg);
+    float calculator_enemy_angle(double enemy_x, double enemy_y, double self_x, double self_y);
+    void cb_ukf_enemy_information(const nav_msgs::Odometry &msg);
     ros::NodeHandle *pnh;
 
     ros::Publisher pub_game_info;
@@ -114,6 +123,7 @@ class RoboControl
     ros::Publisher pub_wheel_vel;
     ros::Publisher pub_imu_data;
     ros::Publisher pub_nav_goal;
+    ros::Publisher pub_enemy_target;
 
     tf2_ros::TransformBroadcaster gimbal_tf;
     tf2_ros::TransformBroadcaster camera_tf;
@@ -136,7 +146,8 @@ class RoboControl
     geometry_msgs::Pose enemy_odom_pose;
     geometry_msgs::Pose enemy_odom_pnp_pose;
     geometry_msgs::Pose another_robo_pose;
-
+    geometry_msgs::Pose robo_ukf_enemy_information;
+    robo_control::GameInfo game_msg;
     /* uint8 PENDING=0
      *  uint8 ACTIVE=1
      *  uint8 PREEMPTED=2
@@ -162,6 +173,8 @@ class RoboControl
     bool finish_goto_center = false;
 
     int key_point_count = 1;
+
+    cv::Mat point_list;
 
     // yaw: 1 -> 2
     KeyPoint KEY_POINT[30] = {

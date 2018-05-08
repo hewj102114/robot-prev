@@ -66,6 +66,9 @@ void RoboControl::cb_cur_goal(const geometry_msgs::PoseStamped &msg)
     nav_current_goal.position.y += 1;
 }
 
+
+
+
 void RoboControl::readMCUData()
 {
     ros::Time time = ros::Time::now();
@@ -74,7 +77,7 @@ void RoboControl::readMCUData()
         return;
 
     init_flag = msg_frommcu.init_flag;
-    robo_control::GameInfo game_msg;
+    
     game_msg.header.stamp = time;
     game_msg.header.frame_id = "base_link";
     game_msg.remainingHP = msg_frommcu.remaining_HP;
@@ -83,6 +86,7 @@ void RoboControl::readMCUData()
     game_msg.bulletCount = msg_frommcu.uwb_yaw;
     game_msg.gimbalAngleYaw = msg_frommcu.gimbal_chassis_angle * 1.0 / 100;
     game_msg.gimbalAnglePitch = -msg_frommcu.gimbal_pitch_angle * 1.0 / 100;
+    game_msg.bulletSpeed = msg_frommcu.bullet_speed*1.0/1000;
     pub_game_info.publish(game_msg);
 
     nav_msgs::Odometry uwb_odom_msg;
@@ -267,17 +271,75 @@ void RoboControl::go_on_patrol(int flag, int key_point_count, float current_posi
    if(flag == 1)
    {
        // 从中点开始的巡图
-       float x_go_on_patrol[4] = {0.80, 7.20, 7.20, 0.80};
+       float x_go_on_patrol[4] = {1.30, 6.70, 6.70, 1.30};
        float y_go_on_patrol[4] = {0.80, 0.80, 4.20, 4.20};
        
        target_pose.position.x = x_go_on_patrol[key_point_count];
        target_pose.position.y = y_go_on_patrol[key_point_count];
-       target_pose.orientation= tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
-       ROS_INFO("orientation: %f, %f, %f, %f", target_pose.orientation.x, target_pose.orientation.y, target_pose.orientation.z, target_pose.orientation.w);
+       target_pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
        sendNavGoal(target_pose);
    }
    if(flag == 2)
    {
        // 丢失敌人之后的巡图
    }
+}
+
+void RoboControl::read_xml_file()
+{
+    cv::FileStorage fs("/home/ubuntu/robot/src/robo_navigation/launch/matrix.xml", cv::FileStorage::READ);
+    fs["Point"] >> point_list;
+} 
+
+int RoboControl::find_enemy_self_closest_point(double enemy_x, double enemy_y, double self_x, double self_y)
+{
+    vector<float> dis_list;
+    for (int i = 0; i < point_list.rows; i++)
+    {
+        float d_enemy_x = enemy_x - point_list.at<double>(i, 0) * 1.0 / 100;
+        float d_enemy_y = enemy_y - point_list.at<double>(i, 1) * 1.0 / 100;
+
+        float d_self_x = self_x - point_list.at<double>(i, 0) * 1.0 / 100;
+        float d_self_y = self_y - point_list.at<double>(i, 1) * 1.0 / 100;
+        
+        float distance_enemy = sqrt(d_enemy_x * d_enemy_x + d_enemy_y * d_enemy_y);
+        float distance_self = sqrt(d_self_x * d_self_x + d_self_y * d_self_y);
+        
+        if (distance_enemy < 1.0 || distance_enemy > 2.0)
+        {
+            distance_enemy = 1000.0;
+        }
+
+        dis_list.push_back(distance_self + distance_enemy);
+    }
+
+    vector<float>::iterator smallest = min_element(dis_list.begin(), dis_list.end());
+
+    int n = distance(dis_list.begin(), smallest);
+    return n;
+}
+
+void RoboControl::sendEnemyTarget(const geometry_msgs::Pose &msg)
+{
+    nav_msgs::Odometry enemy_odom_target_msg;
+    enemy_odom_target_msg.header.stamp = ros::Time::now();;
+    enemy_odom_target_msg.header.frame_id = "odom";
+    enemy_odom_target_msg.child_frame_id = "target";
+    enemy_odom_target_msg.pose.pose.position.x = msg.position.x;
+    enemy_odom_target_msg.pose.pose.position.y = msg.position.y;
+    enemy_odom_target_msg.pose.pose.orientation = msg.orientation;
+    pub_enemy_target.publish(enemy_odom_target_msg);
+}
+
+float RoboControl::calculator_enemy_angle(double enemy_x, double enemy_y, double self_x, double self_y)
+{
+    float dx = enemy_x - self_x;
+    float dy = enemy_y - self_y;
+    float angle = atan2(dy, dx);
+    return angle * 180.0 / PI + 90.0;
+}
+
+void RoboControl::cb_ukf_enemy_information(const nav_msgs::Odometry &msg)
+{
+    robo_ukf_enemy_information = msg.pose.pose;
 }

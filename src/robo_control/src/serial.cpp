@@ -24,17 +24,17 @@ void Serial::configurePort() {  // configure the port
 }
 
 bool Serial::SendData(struct RobotMsgToMCU msg) {
-  unsigned char send_bytes[MSGTOMCU_SIZE * 2 + 2] = {0x00};
+  unsigned char send_bytes[255] = {0x00};
   send_bytes[0] = 0x7F;
-  send_bytes[MSGTOMCU_SIZE * 2 + 1] = 0x7E;
+  send_bytes[sizeof(msg) + 1] = 0x7E;
   unsigned char* ptr_send_bytes = send_bytes + 1;
   memcpy(ptr_send_bytes, &msg, sizeof(msg));
 
   // printf ("%X %X%X %X%X %X%X %X%X %X%X %X%X %X%X
   // %X\n",send_bytes[0],send_bytes[1],send_bytes[2],send_bytes[3],send_bytes[4],send_bytes[5
   // ],send_bytes[6],send_bytes[7],send_bytes[8],send_bytes[9],send_bytes[10],send_bytes[11],send_bytes[12],send_bytes[13],send_bytes[14],send_bytes[15]);
-
-  if (16 == write(fd, send_bytes, 16))  // Send data
+  int len=sizeof(msg)+2;
+  if (len == write(fd, send_bytes, len))  // Send data
     return true;
   return false;
 }
@@ -54,7 +54,7 @@ bool Serial::ReadData(struct RobotMsgFromMCU& msg) {
       ptr++;
       // printf("%X\n",tmp[0]);
       if (tmp[0] == 0x7E) {
-        if (buf[MSGFROMMCU_SIZE+1] == 0x7E) {
+        if (buf[sizeof(msg)+1] == 0x7E) {
           //printf("ready\n");
           // printf ("%X %X%X %X%X %X%X %X%X %X%X %X%X %X%X
           // %X\n",buf[0],buf[1],buf[2],buf[3],buf[4],buf[5],buf[6],buf[7],buf[8],buf[9],buf[10],buf[11],buf[12],buf[13],buf[14],buf[15]);

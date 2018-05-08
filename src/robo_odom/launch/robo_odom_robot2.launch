@@ -76,18 +76,18 @@
 
   <node pkg="robo_odom" type="ukf_yaw_node.py" name="ukf_yaw_node">
     <param name="p_std_yaw" value="0.002"/>
-		<param name="v_std_yaw" value="1.1"/>
-		<param name="dt" value="0.125"/>
+		<param name="v_std_yaw" value="0.01"/>
+		<param name="dt" value="0.0125"/>
   </node>
 	
   <node pkg="robo_odom" type="ukf_process_node.py" name="ukf_process_node" output = "screen">
-    <param name="p_std_x" value="0.001"/>
-		<param name="p_std_y" value="0.001"/>
-		<param name="v_std_x" value="0.2"/>
-		<param name="v_std_y" value="0.2"/>
-		<param name="a_std_x" value="1.5"/>
-		<param name="a_std_y" value="1.5"/>
-		<param name="dt" value="0.125"/>
+    <param name="p_std_x" value="0.03"/>
+		<param name="p_std_y" value="0.03"/>
+		<param name="v_std_x" value="0.0127"/>
+		<param name="v_std_y" value="0.0127"/>
+		<param name="a_std_x" value="0.15"/>
+		<param name="a_std_y" value="0.15"/>
+		<param name="dt" value="0.0125"/>
   </node>
 
 </launch>

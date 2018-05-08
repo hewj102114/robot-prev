@@ -26,7 +26,7 @@ def callback_scan(data):
     if loop==0:
 	plt.subplot(121,polar=True) 
 	plt.plot(theta,rho,lw=2)
-	plt.plot(theta[thr],rho[thr],lw=10,color='red')
+	plt.plot(theta[thr:thr+2],rho[thr:thr+2],lw=10,color='red')
 	plt.plot(theta[thr+30:thr+32],rho[thr+30:thr+32],lw=10,color='red')
 	plt.plot(theta[thr-30+360:thr-28+360],rho[thr-30+360:thr-28+360],lw=10,color='red')
 	plt.plot(theta[thr+90:thr+92],rho[thr+90:thr+92],lw=10,color='yellow')

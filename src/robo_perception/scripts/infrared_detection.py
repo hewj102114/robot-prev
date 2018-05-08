@@ -42,14 +42,19 @@ count = 0
 frame_rate_idx = 0
 frame_rate = 0.0
 flag = True
-qn_ukf = [0, 0, 0, 0]
-team_x = team_y = 0
+qn_odom = [0, 0, 0, 0]
+team_x = team_y = team_relative_x = team_relative_y = 0
+odom_pos_x = odom_pos_y = 0
 
 video = cv2.VideoWriter('/home/ubuntu/robot/src/robo_perception/scripts/visual/demo.avi',
                         cv2.VideoWriter_fourcc(*"MJPG"),
                         20,
                         (848, 480))
 
+def TFinit():
+    global tfBuffer
+    tfBuffer = tf2_ros.Buffer()
+    listener = tf2_ros.TransformListener(tfBuffer)
 
 def DetectInit():
     global sess, model, mc
@@ -82,13 +87,54 @@ def DetectInit():
     sess = tf.Session(config=config)
     saver.restore(sess, checkpoint)
 
+# TODO: 检测结果不稳定, 1. 通过装甲板的颜色识别. 2. 通过车身整体颜色识别
+def enemy_self_identify(rgb_image, robo_bboxes, show_image=False):
+    enemy = []
+    for robo_bbox in robo_bboxes:
+        cx, cy, w, h = robo_bbox
+        resize_const = 620.0
+        aligned_w = w * (848.0 / resize_const)
+        aligned_h = h * (848.0 / resize_const)
+        aligned_cx = (cx - 424) * (848.0 / resize_const) + 424.0 + 15.0
+        alinged_cy = (cy - 240) * (848.0 / resize_const) + 240.0
 
+        aligned_robo_bbox = [aligned_cx, alinged_cy, aligned_w, aligned_h]
+        x_min = int(aligned_robo_bbox[0] - aligned_robo_bbox[2]/2)
+        x_max = int(aligned_robo_bbox[0] + aligned_robo_bbox[2]/2)
+        y_min = int(aligned_robo_bbox[1] - aligned_robo_bbox[3]/2)
+        y_max = int(aligned_robo_bbox[1] + aligned_robo_bbox[3]/2)
+        # rgb -> bgr
+        robo_image = rgb_image[y_min:y_max, x_min:x_max, ::-1]
+        h_, w_, c_ = robo_image.shape
+        # print(robo_image)
+        b_channel = np.sum(robo_image[int(h_/2):-1,:,0])
+        g_channel = np.sum(robo_image[int(h_/2):-1,:,1])
+        r_channel = np.sum(robo_image[int(h_/2):-1,:,2])
+        if b_channel < r_channel:
+            judge = 1       # enemy
+        else:
+            judge = 0       # self
+        if show_image:
+            cv2.rectangle(rgb_image, (int(x_min), int(y_min)), (int(x_max), int(y_max)), (255,0,0), 2)
+            # cv2.rectangle(im, (int(x_min), int(y_min)), (int(x_max), int(y_max)), (255,0,0), 2)
+            cv2.imshow('rgb', rgb_image)
+            cv2.imshow('robo_image', robo_image)
+        enemy.append(judge)
+    return enemy
+
+def filter_distance(distance):
+    sorted_distance = np.sort(distance)
+
+    low = sorted_distance[distance.shape[0] / 4]
+    high = sorted_distance[3 * distance.shape[0] / 4]
+    filter_distance = sorted_distance[np.where((sorted_distance>low) & (sorted_distance < high))]
+    return np.mean(filter_distance)
 
 def TsDet_callback(infrared_image, pointcloud):
-    print("====================================new image======================================")
-    print("===================================================================================")
-    global count, sess, model, mc, video, frame_rate_list, frame_rate_idx, frame_rate
-    print('I here rgb and pointcloud !', count)
+    #print("====================================new image======================================")
+    #print("===================================================================================")
+    global count, sess, model, mc, video, frame_rate_list, frame_rate_idx, frame_rate, align_image
+    #print('I here rgb and pointcloud !', count)
     count = count + 1
 
     bridge = CvBridge()
@@ -121,7 +167,6 @@ def TsDet_callback(infrared_image, pointcloud):
     final_boxes, final_probs, final_class = model.filter_prediction(det_boxes[0],
                                                                     det_probs[0],
                                                                     det_class[0])
-
     # 按照阈值筛选bbox
     keep_idx = np.squeeze(np.argwhere(
         np.array(final_probs) > mc.PLOT_PROB_THRESH))
@@ -145,8 +190,11 @@ def TsDet_callback(infrared_image, pointcloud):
         print("bboxes: %s, probs: %s, class: %s" %
               (final_class, final_probs, final_class))
 
+    # TODO: 距离太远的时候, 检测不到轮子，只能检测到车身
+    # TODO: 使用颜色特征决定计算点云距离的位置
     # 0 -> red, 1 -> wheel, 2 -> blue
     # 检测到车并且检测到轮子, 进入此 if, 目的是为了减少误检率
+    robo_bboxes = []
     if len(final_boxes) > 0 and np.any(final_class == 0) and np.any(final_class == 1):
         #judge detect how much robots
         robot_final_idx = np.array(np.where(final_class != 1))
@@ -154,10 +202,11 @@ def TsDet_callback(infrared_image, pointcloud):
             robo_idx = robot_final_idx[0, _]
             robo_bbox = final_boxes[robo_idx, :]
             cx, cy, w, h = robo_bbox[0], robo_bbox[1], robo_bbox[2], robo_bbox[3]   # 获取车bbox的坐标, 宽度和高度
-
+            robo_bboxes.append(robo_bbox)
+            print("area: ", w*h)
             # 用于提取点云的范围大小
-            pointcloud_w = 5
-            pointcloud_h = 5
+            pointcloud_w = 25
+            pointcloud_h = 25
 
             # 对点云进行约束
             if pointcloud_w > robo_bbox[2]:
@@ -166,14 +215,16 @@ def TsDet_callback(infrared_image, pointcloud):
                 pointcloud_h = robo_bbox[3]
 
             # 使用中心位置的 pointcloud_w*pointcloud_h 的点云计算距离
-            #x_ = np.arange(int(cx - pointcloud_w/2), int(cx + pointcloud_w/2), 1)
-            #y_ = np.arange(int(cy - pointcloud_h/2), int(cy + pointcloud_h/2), 1)
+            # x_ = np.arange(int(cx - pointcloud_w/2), int(cx + pointcloud_w/2), 1)
+            # y_ = np.arange(int(cy - pointcloud_h/2), int(cy + pointcloud_h/2), 1)
 
             # 使用bbox下方的点云计算距离, 大概是装甲板的位置
             x_ = np.arange(int(cx - pointcloud_w / 2),
                         int(cx + pointcloud_w / 2), 1)
             y_ = np.arange(int(cy + h / 2 - h / 6 - pointcloud_h),
                         int(cy + h / 2 - h / 6), 1)
+            y_ = np.arange(int(cy - pointcloud_h / 2),
+                        int(cy + pointcloud_h / 2), 1)
             roi = [[x, y] for x in x_ for y in y_]
             rois.append(roi)
             # 提取特定位置的点云
@@ -183,9 +234,9 @@ def TsDet_callback(infrared_image, pointcloud):
 
             # 对提取到的点云进行 reshape
             # TODO: 应该不需要这一步
-            positionX = robo_pointcloud[:, 0].reshape(-1, pointcloud_w*pointcloud_h).squeeze()
-            positionY = robo_pointcloud[:, 1].reshape(-1, pointcloud_w*pointcloud_h).squeeze()
-            positionZ = robo_pointcloud[:, 2].reshape(-1, pointcloud_w*pointcloud_h).squeeze()
+            positionX = robo_pointcloud[:, 0].reshape(-1, pointcloud_w * pointcloud_h).squeeze()
+            positionY = robo_pointcloud[:, 1].reshape(-1, pointcloud_w * pointcloud_h).squeeze()
+            positionZ = robo_pointcloud[:, 2].reshape(-1, pointcloud_w * pointcloud_h).squeeze()
 
             # 剔除距离为 nan 的点
             positionX = positionX[np.logical_not(np.isnan(positionX))]
@@ -193,14 +244,26 @@ def TsDet_callback(infrared_image, pointcloud):
             positionZ = positionZ[np.logical_not(np.isnan(positionZ))]
 
             # 计算距离均值, 得到最终距离
+            filter_avgX = filter_distance(positionX)
+            filter_avgY = filter_distance(positionY)
+            filter_avgZ = filter_distance(positionZ)
+            
             avgX = np.mean(positionX)
             avgY = np.mean(positionY)
             avgZ = np.mean(positionZ)
-            robo_position.append([avgX, avgY, avgZ])
-
+            print("filter_avgX, avgX", filter_avgX, avgX)
+            print("filter_avgY, avgY", filter_avgY, avgY)
+            print("filter_avgZ, avgZ", filter_avgZ, avgZ)
+            
+            if np.isnan(avgX) or np.isnan(avgY) or np.isnan(avgZ):
+                print("continue")                                
+                continue
+            else:
+                robo_position.append([avgX, avgY, avgZ])
             if mc.DEBUG:
                 print('enemy position:', avgX, avgY, avgZ)
 
+        enemy_self_list = enemy_self_identify(align_image, robo_bboxes)
         # 检测完敌人, 对得到的距离信息进行处理
         # tf 包转换
         br = tf2_ros.TransformBroadcaster()
@@ -216,7 +279,8 @@ def TsDet_callback(infrared_image, pointcloud):
         if robo_position.shape[0] == 1:
             robo_position = np.array(robo_position)
 
-        robot_idx = 0
+        red_idx = 0
+        blue_idx = 0
         for object_idx in range(robo_position.shape[0]):
             # ROS 中发送数据
             enemy = Object()
@@ -227,11 +291,17 @@ def TsDet_callback(infrared_image, pointcloud):
 
             t.header.stamp = rospy.Time.now()
             t.header.frame_id = 'realsense_camera'
-
-            t.child_frame_id = 'robot' + str(robot_idx)
-            enemy.team.data = 'robot' + str(robot_idx)
-            robot_idx = robot_idx + 1
-
+            if enemy_self_list[object_idx] == 1:    # enemy(red)
+                str_enemy_self = 'red'
+                t.child_frame_id = str_enemy_self + str(red_idx)
+                enemy.team.data = str_enemy_self + str(red_idx)
+                red_idx = red_idx + 1
+            else:
+                str_enemy_self = 'blue'
+                t.child_frame_id = str_enemy_self + str(blue_idx)
+                enemy.team.data = str_enemy_self + str(blue_idx)
+                blue_idx = blue_idx + 1
+            print(str_enemy_self)
             t.transform.translation.x = robo_position[object_idx, 2]
             t.transform.translation.y = -robo_position[object_idx, 0]
             t.transform.translation.z = robo_position[object_idx, 1]
@@ -250,10 +320,10 @@ def TsDet_callback(infrared_image, pointcloud):
         enemy_position.header.frame_id = 'enemy'
         enemy_position.num = 0
         enemy_position.object = []
-
-
-
     pub.publish(enemy_position)
+
+
+    
     t_filter = time.time()
     times['filter'] = t_filter - t_detect
     times['total'] = time.time() - t_start
@@ -294,8 +364,8 @@ def TsDet_callback(infrared_image, pointcloud):
                 '/home/ubuntu/robot/src/robo_perception/scripts/visual', 'out_' + file_name)
             im = im.astype('uint8')
             cv2.imwrite(out_file_name, im)
-
         if mc.SHOW:
+            im = im.astype('uint8')
             cv2.imshow('demo', im)
             cv2.waitKey(3)
 
@@ -309,34 +379,38 @@ def TsDet_callback(infrared_image, pointcloud):
             # pub_dr.publish(Im_to_ros)
 
 
-def callback_ukf(ukf):
-    global qn_ukf, ukf_pos_x, ukf_pos_y
-    # only yaw are available
-    ukf_pos_x = ukf.pose.pose.position.x
-    ukf_pos_y = ukf.pose.pose.position.y
-    qn_ukf = [ukf.pose.pose.orientation.x, ukf.pose.pose.orientation.y, ukf.pose.pose.orientation.z,
-              ukf.pose.pose.orientation.w]
-    # (ukf_roll,ukf_pitch,ukf_yaw) = euler_from_quaternion(qn_ukf)
+# def callback_odom(odom):
+#     global qn_odom, odom_pos_x, odom_pos_y
+#     # only yaw are available
+#     odom_pos_x = odom.pose.pose.position.x
+#     odom_pos_y = odom.pose.pose.position.y
+#     qn_odom = [odom.pose.pose.orientation.x, odom.pose.pose.orientation.y, odom.pose.pose.orientation.z,
+#               odom.pose.pose.orientation.w]
+#     # (odom_roll,odom_pitch,odom_yaw) = euler_from_quaternion(qn_odom)
 
-def callback_team(team):
-    global team_x, team_y
-    team_x = team.pose.pose.position.x
-    team_y = team.pose.pose.position.y
+
+
+def callback_rgb(rgb):
+    global align_image
+    bridge = CvBridge()
+    try:
+        align_image = bridge.imgmsg_to_cv2(rgb, desired_encoding="8UC3")
+
+    except CvBridgeError as error:
+        print(error)
 
 rospy.init_node('rgb_detection')
+TFinit()
 DetectInit()
 rgb_sub = message_filters.Subscriber('camera/infra1/image_rect_raw', Image)
-# rgb_sub = message_filters.Subscriber('camera/infra1/image_rect_raw', Image)
-subukf = rospy.Subscriber('ukf/pos', Odometry, callback_ukf)
-subteam = rospy.Subscriber('/ukf/pos', Odometry, callback_team)
+#subodom = rospy.Subscriber('odom', Odometry, callback_odom)
+subrgb = rospy.Subscriber('/camera/color/image_raw', Image, callback_rgb)
+
 pc_sub = message_filters.Subscriber('camera/points', PointCloud2)
-# depth_sub = message_filters.Subscriber('camera/depth/image_rect_raw', Image)
 pub = rospy.Publisher('infrared_detection/enemy_position', ObjectList, queue_size=1)
-# pub_dr = rospy.Publisher('rgb_detection/detection_result', Image, queue_size=1)
 
 # TODO 在后面的试验中调调整slop
-TsDet = message_filters.ApproximateTimeSynchronizer(
-    [rgb_sub, pc_sub], queue_size=5, slop=0.1, allow_headerless=False)
+TsDet = message_filters.ApproximateTimeSynchronizer([rgb_sub, pc_sub], queue_size=5, slop=0.1, allow_headerless=False)
 TsDet.registerCallback(TsDet_callback)
 
 

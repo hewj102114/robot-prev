@@ -23,6 +23,7 @@ find_package(catkin REQUIRED COMPONENTS
 add_message_files(
    FILES
    ArmorInfo.msg
+   FishCamInfo.msg
 )
 
 generate_messages(
@@ -59,6 +60,12 @@ ${CPP_FILES}
 add_dependencies(armor_detect ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(armor_detect ${OpenCV_LIBS} pthread ${catkin_LIBRARIES})
 
+add_executable(fishcamera_detect
+src/FishCam_node.cpp
+src/RMVideoCapture.cpp
+)
+add_dependencies(fishcamera_detect ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(fishcamera_detect ${OpenCV_LIBS} pthread ${catkin_LIBRARIES})
 
 add_executable(read_camera
 src/ReadCamera.cpp

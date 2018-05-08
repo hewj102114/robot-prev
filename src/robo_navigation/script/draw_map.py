@@ -65,7 +65,7 @@ def add_edge(i,j):
     nei_matrix[i][j]=1
     nei_matrix[j][i]=1
 
-add_edge(1,2)
+#add_edge(1,2)
 add_edge(0,1)
 add_edge(0,2)
 add_edge(2,3)

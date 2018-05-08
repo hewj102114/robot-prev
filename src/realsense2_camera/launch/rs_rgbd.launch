@@ -79,11 +79,11 @@ Processing enabled by this node:
   <arg name="color_fps"           default="60"/>
   <arg name="gyro_fps"            default="1000"/>
   <arg name="accel_fps"           default="1000"/>
-  <arg name="enable_imu"          default="true"/>
+  <arg name="enable_imu"          default="false"/>
 
   <arg name="enable_pointcloud"   default="false"/>
-  <arg name="enable_sync"         default="true"/>
-  <arg name="align_depth"         default="true"/>
+  <arg name="enable_sync"         default="false"/>
+  <arg name="align_depth"         default="false"/>
 
   <!-- rgbd_launch specific arguments -->
 
@@ -168,7 +168,7 @@ Processing enabled by this node:
     <group if="$(eval depth_registered_processing and sw_registered_processing)">
       <node pkg="nodelet" type="nodelet" name="register_depth"
             args="load depth_image_proc/register $(arg manager) $(arg bond)" respawn="$(arg respawn)">
-        <remap from="rgb/camera_info"             to="$(arg rgb)/camera_info" />
+        <remap from="rgb/camera_info"             to="$(arg ir)/camera_info" />
         <remap from="depth/camera_info"           to="$(arg depth)/camera_info" />
         <remap from="depth/image_rect"            to="$(arg depth)/image_rect_raw" />
         <remap from="depth_registered/image_rect" to="$(arg depth_registered)/sw_registered/image_rect_raw" />
@@ -196,11 +196,11 @@ Processing enabled by this node:
     </group>
 
 
-
+	<!-- Publish registered XYZ point cloud with sw registered input-->
       <node pkg="nodelet" type="nodelet" name="points"
             args="load depth_image_proc/point_cloud_xyz $(arg manager) $(arg bond)"
 	        respawn="$(arg respawn)">
-        <remap from="image_rect" to="aligned_depth_to_infra1/image_raw"/>
+        <remap from="image_rect" to="depth_registered/sw_registered/image_rect_raw"/>
         <remap from="points" to="points"/>
     <!-- Use raw image for efficiency -->
     </node>

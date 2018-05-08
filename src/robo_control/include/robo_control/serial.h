@@ -7,8 +7,8 @@
 #include <termios.h>  // POSIX terminal control definitionss
 #include <unistd.h>   // UNIX standard function definitions
 
-#define MSGTOMCU_SIZE 7
-#define MSGFROMMCU_SIZE 34
+// #define MSGTOMCU_SIZE 7
+// #define MSGFROMMCU_SIZE 34
 struct RobotMsgToMCU {
   char chassis_mode = 0;
   char gimbal_mode = 0;
@@ -49,6 +49,7 @@ struct RobotMsgFromMCU {
   short int wheel_odom_y = 0;
   char uwb_ready_flag = 0;
   char init_flag=0;
+  short int bullet_speed=0;
 };
 
 class Serial {
