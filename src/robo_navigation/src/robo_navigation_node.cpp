@@ -95,8 +95,9 @@ void RoboNav::cb_tar_pose(const geometry_msgs::PoseConstPtr &msg)
     if (cur_pose.position.y == 0 & cur_pose.position.x == 0)
 	return;
     double dis = sqrt(pow(cur_pose.position.x - msg->position.x, 2) + pow(cur_pose.position.y - msg->position.y, 2));
-    if (dis < 0.5)
-	state.data = true;
+    double dyaw = abs(tf::getYaw(cur_pose.orientation)-tf::getYaw(msg->orientation));
+    if (dis < 0.5&& dyaw<0.1)
+        state.data = true;
     else
 	state.data = false;
     //ROS_INFO("dis: %f", dis);
