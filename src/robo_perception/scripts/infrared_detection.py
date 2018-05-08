@@ -36,6 +36,7 @@ from nets import *
 
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
+from sklearn.cluster import KMeans
 
 frame_rate_list = np.zeros(10)
 count = 0
@@ -60,7 +61,7 @@ def DetectInit():
     global sess, model, mc
 
     detect_net = 'squeezeDet'
-    checkpoint = '/home/ubuntu/robot/src/robo_perception/scripts/weights/Infrared-Image/model.ckpt-99000'
+    checkpoint = '/home/ubuntu/robot/src/robo_perception/scripts/weights/Infrared-Armor-988-Images/model.ckpt-99999'
 
     assert detect_net == 'squeezeDet' or detect_net == 'squeezeDet+', 'Selected nueral net architecture not supported'
 
@@ -123,12 +124,15 @@ def enemy_self_identify(rgb_image, robo_bboxes, show_image=False):
     return enemy
 
 def filter_distance(distance):
-    sorted_distance = np.sort(distance)
-
-    low = sorted_distance[int(distance.shape[0] / 4)]
-    high = sorted_distance[int(3 * distance.shape[0] / 4)]
-    filter_distance = sorted_distance[np.where((sorted_distance>low) & (sorted_distance < high))]
-    return np.mean(filter_distance)
+    kmeans = KMeans(n_clusters=3, random_state=0).fit(distance.reshape(-1, 1))
+    center1, center2, center3 = kmeans.cluster_centers_
+    sorted_distance = np.sort(np.array([center1, center2, center3]))
+    return sorted_distance[1]
+    # sorted_distance = np.sort(distance)
+    # low = sorted_distance[int(distance.shape[0] / 4)]
+    # high = sorted_distance[int(3 * distance.shape[0] / 4)]
+    # filter_distance = sorted_distance[np.where((sorted_distance>low) & (sorted_distance < high))]
+    # return np.mean(filter_distance)
 
 def TsDet_callback(infrared_image, pointcloud):
     #print("====================================new image======================================")
@@ -197,7 +201,7 @@ def TsDet_callback(infrared_image, pointcloud):
     robo_bboxes = []
     if len(final_boxes) > 0 and np.any(final_class == 0) and np.any(final_class == 1):
         #judge detect how much robots
-        robot_final_idx = np.array(np.where(final_class != 1))
+        robot_final_idx = np.array(np.where(final_class == 0))
         for _ in range(robot_final_idx.shape[1]):
             robo_idx = robot_final_idx[0, _]
             robo_bbox = final_boxes[robo_idx, :]
@@ -244,16 +248,16 @@ def TsDet_callback(infrared_image, pointcloud):
             positionZ = positionZ[np.logical_not(np.isnan(positionZ))]
 
             # 计算距离均值, 得到最终距离
-            # filter_avgX = filter_distance(positionX)
-            # filter_avgY = filter_distance(positionY)
-            # filter_avgZ = filter_distance(positionZ)
+            filter_avgX = filter_distance(positionX)
+            filter_avgY = filter_distance(positionY)
+            filter_avgZ = filter_distance(positionZ)
             
             avgX = np.mean(positionX)
             avgY = np.mean(positionY)
             avgZ = np.mean(positionZ)
-            # print("filter_avgX, avgX", filter_avgX, avgX)
-            # print("filter_avgY, avgY", filter_avgY, avgY)
-            # print("filter_avgZ, avgZ", filter_avgZ, avgZ)
+            print("filter_avgX, avgX", filter_avgX, avgX)
+            print("filter_avgY, avgY", filter_avgY, avgY)
+            print("filter_avgZ, avgZ", filter_avgZ, avgZ)
             
             if np.isnan(avgX) or np.isnan(avgY) or np.isnan(avgZ):
                 print("continue")
