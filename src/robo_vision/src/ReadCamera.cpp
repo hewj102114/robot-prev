@@ -28,14 +28,13 @@ int main(int argc, char **argv) {
     image_transport::ImageTransport it(nh);
     image_transport::Publisher pub_image = it.advertise(image_topic, 1);
 
-    RMVideoCapture cap(dev_name.c_str(), 1);
+    RMVideoCapture cap(dev_name.c_str(),2);
     cap.info();
     cap.setVideoFormat(image_width, image_height, 1);
     cap.getCurrentSetting();
     cap.setExposureTime(0, exposure_time);  // settings->exposure_time);
     cap.startStream();
     ROS_INFO("Image Producer Start!");
-
     cv::Mat img;
     while (ros::ok()) {
         ros::Time start=ros::Time::now();
@@ -50,4 +49,5 @@ int main(int argc, char **argv) {
         img_msg.encoding = sensor_msgs::image_encodings::BGR8;
         pub_image.publish(img_msg.toImageMsg());
     }
+    cap.closeStream();
 }

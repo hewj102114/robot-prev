@@ -65,6 +65,7 @@ PNP_INIT = True
 ENABLE_PREDICT = True
 PNP_LAST_AVAILABLE = False
 PNP_DATA_AVAILABLE = False
+PNP_LAST_VEL = False
 RS_LAST_AVAILABLE = False
 RS_DATA_AVAILABLE = False
 RS_PREDICT_INIT = True
@@ -85,7 +86,7 @@ LOST_TRESH = 10
 
 ukf_result = []
 robo_vel_x = robo_vel_y = 0
-pnp_vel_x = pnp_vel_y = pnp_pos_x = pnp_pos_y = last_pnp_pos_x = last_pnp_pos_y = 0
+pnp_vel_x = pnp_vel_y = pnp_pos_x = pnp_pos_y = last_pnp_pos_x = last_pnp_pos_y = last_pnp_vel_x = last_pnp_vel_y = 0
 odom_yaw = odom_pos_x = odom_pos_y = odom_vel_x = odom_vel_y = 0
 rs_pos_x = rs_pos_y = rs_vel_x = rs_vel_y = last_rs_pos_x = last_rs_pos_y = 0
 gimbal_yaw = gimbal_dtheta = 0
@@ -108,8 +109,23 @@ def f_cv(x, dt):
                   [0,  0, 0,  1]], dtype=float)
     return np.dot(F, x)
 
+def f_cv_9x9(x, dt):
+    """ state transition function for a 
+    constant velocity aircraft"""
+    
+    F = np.array([[1, dt, 0.5*dt*dt, 0,  0,          0],
+                  [0,  1, dt,        0,  0,          0],
+                  [0,  0, 1,         0,  0,          0],
+                  [0,  0, 0,         1, dt,  0.5*dt*dt],
+                  [0,  0, 0,         0,  1,         dt],
+                  [0,  0, 0,         0,  0,          1]], dtype=float)
+    return np.dot(F, x)
+
 def h_cv(x):
     return np.array([x[0], x[1], x[2], x[3]])
+
+def h_cv_6(x):
+    return np.array([x[0], x[1], x[2], x[3], x[4], x[5]])
 
 
 def UKFRsInit(in_dt, init_x):
@@ -131,18 +147,19 @@ def UKFRsInit(in_dt, init_x):
 def UKFPnpInit(in_dt, init_x):
     global ukf_pnp
 
-    p_std_x, p_std_y = 0.02, 0.02
-    v_std_x, v_std_y = 0.2, 0.2
+    p_std_x, p_std_y = 0.6, 0.6
+    v_std_x, v_std_y = 5, 5
+    a_std_x, a_std_y = 60, 60
     dt = in_dt 
 
 
-    sigmas = MerweScaledSigmaPoints(4, alpha=.1, beta=2., kappa=-1.0)
-    ukf_pnp = UKF(dim_x=4, dim_z=4, fx=f_cv, hx=h_cv, dt=dt, points=sigmas)
+    sigmas = MerweScaledSigmaPoints(6, alpha=.1, beta=2., kappa=-1.0)
+    ukf_pnp = UKF(dim_x=6, dim_z=6, fx=f_cv_9x9, hx=h_cv_6, dt=dt, points=sigmas)
     ukf_pnp.x = init_x
-    ukf_pnp.R = np.diag([p_std_x, v_std_x, p_std_y, v_std_y]) 
-    ukf_pnp.Q[0:2, 0:2] = Q_discrete_white_noise(2, dt=dt, var=0.2)
-    ukf_pnp.Q[2:4, 2:4] = Q_discrete_white_noise(2, dt=dt, var=0.2)
-    ukf_pnp.P = np.diag([8, 1.5 ,5, 1.5])
+    ukf_pnp.R = np.diag([p_std_x, v_std_x, a_std_x, p_std_y, v_std_y, a_std_y]) 
+    ukf_pnp.Q[0:3, 0:3] = Q_discrete_white_noise(3, dt=dt, var=2)
+    ukf_pnp.Q[3:6, 3:6] = Q_discrete_white_noise(3, dt=dt, var=2)
+    ukf_pnp.P = np.diag([8, 1.5 ,0.2 ,5, 1.5, 0.2])
 
 def TFinit():
     global tfBuffer
@@ -288,7 +305,7 @@ def callback_pnp(pnp):
     global pnp_pos_x, pnp_pos_y, aim_target_x, aim_target_y, pnp_lost_counter, last_pnp_pos_x, last_pnp_pos_y, pnp_vel_x, pnp_vel_y
     global pnp_last_time, pnp_lost_time, tfBuffer, pnp_trans, ukf_pnp
     global PNP_DATA_AVAILABLE, PNP_LAST_AVAILABLE, PNP_INIT, ENABLE_PREDICT, PNP_PREDICT_INIT,PNP_UKF_AVAILABLE
-    global ukf_pnp_pos_x,ukf_pnp_pos_y, ukf_pnp_vel_x,ukf_pnp_vel_y
+    global ukf_pnp_pos_x,ukf_pnp_pos_y, ukf_pnp_vel_x,ukf_pnp_vel_y,PNP_LAST_VEL,last_pnp_vel_x,last_pnp_vel_y
 
     if PNP_INIT == True:
         print "pnp callback init Finished!"
@@ -296,7 +313,7 @@ def callback_pnp(pnp):
         pnp_last_time = 0
         pnp_lost_time = []
         pnp_trans = TransformStamped()
-        PNP_INIT = False   
+        PNP_INIT = False  
     elif ENABLE_PREDICT:
         FIND_PNP = False
         pnp_time = pnp.header.stamp.secs + pnp.header.stamp.nsecs * 10**-9
@@ -322,7 +339,8 @@ def callback_pnp(pnp):
         if np.sqrt((aim_target_x - pnp_pos_x) ** 2 + (aim_target_y - pnp_pos_y) ** 2) > PNP_CLOSE_THRESH:
             FIND_PNP = False
             PNP_LAST_AVAILABLE = False
-
+            PNP_LAST_VEL = False
+            
 
         if FIND_PNP == True:
             #print 'USE PNP PREDICTING'
@@ -332,7 +350,17 @@ def callback_pnp(pnp):
                 #last data available, use to update the speed
                 pnp_vel_x = (pnp_pos_x - last_pnp_pos_x) / dt
                 pnp_vel_y = (pnp_pos_y - last_pnp_pos_y) / dt
-                PNP_DATA_AVAILABLE = True
+
+
+                if PNP_LAST_VEL:
+                    pnp_acc_x = (pnp_vel_x - last_pnp_vel_x)/dt
+                    pnp_acc_y = (pnp_vel_y - last_pnp_vel_y)/dt
+                    print pnp_vel_x,last_pnp_vel_x,pnp_acc_x, pnp_acc_y
+                    PNP_DATA_AVAILABLE = True
+                    
+                last_pnp_vel_x = pnp_vel_x
+                last_pnp_vel_y = pnp_vel_y
+                PNP_LAST_VEL = True
                 #print 'x',pnp_pos_x,last_pnp_pos_x,pnp_vel_x,'y',pnp_pos_y,last_pnp_pos_y,pnp_vel_y
             else:
                 PNP_DATA_AVAILABLE = False
@@ -346,26 +374,27 @@ def callback_pnp(pnp):
             pnp_lost_counter = pnp_lost_counter + 1
             pnp_lost_time.append(dt)
             PNP_LAST_AVAILABLE = False
+            PNP_LAST_VEL = False
             PNP_DATA_AVAILABLE = False
         #print 'PNP_DATA_AVAILABLE',PNP_DATA_AVAILABLE,'PNP_LAST_AVAILABLE',PNP_LAST_AVAILABLE
         pnp_last_time = pnp_time
 
         PNP_UKF_AVAILABLE = False
         if PNP_PREDICT_INIT and PNP_DATA_AVAILABLE:
-            UKFPnpInit(0.02, np.array([pnp_pos_x, pnp_vel_x, pnp_pos_y, pnp_vel_y]))
+            UKFPnpInit(0.01, np.array([pnp_pos_x, pnp_vel_x,pnp_acc_x, pnp_pos_y, pnp_vel_y, pnp_acc_y]))
             ukf_pnp_pos_x = ukf_pnp.x[0]
             ukf_pnp_vel_x = ukf_pnp.x[1]
-            ukf_pnp_pos_y = ukf_pnp.x[2]
-            ukf_pnp_vel_y = ukf_pnp.x[3]  
+            ukf_pnp_pos_y = ukf_pnp.x[3]
+            ukf_pnp_vel_y = ukf_pnp.x[4]  
             PNP_PREDICT_INIT = False
         elif PNP_DATA_AVAILABLE:
-            pnp_ukf_input = [pnp_pos_x, pnp_vel_x, pnp_pos_y, pnp_vel_y]
+            pnp_ukf_input = [pnp_pos_x, pnp_vel_x, pnp_acc_x, pnp_pos_y, pnp_vel_y, pnp_acc_y]
             ukf_pnp.predict()
             ukf_pnp.update(pnp_ukf_input)
             ukf_pnp_pos_x = ukf_pnp.x[0]
             ukf_pnp_vel_x = ukf_pnp.x[1]
-            ukf_pnp_pos_y = ukf_pnp.x[2]
-            ukf_pnp_vel_y = ukf_pnp.x[3] 
+            ukf_pnp_pos_y = ukf_pnp.x[3]
+            ukf_pnp_vel_y = ukf_pnp.x[4] 
             #print 'PNP','X',pnp_pos_x,'Y',pnp_pos_y, 'VX',pnp_vel_x,'VY',pnp_vel_x,'PDA',PNP_DATA_AVAILABLE
             PNP_UKF_AVAILABLE = True
 
@@ -425,7 +454,7 @@ def callback_gimbal(gimbal):
 
 rospy.init_node('ukf_predict_node')
 UKFRsInit(0.033,np.array([0., 0., 0., 0.]))
-UKFPnpInit(0.033,np.array([0., 0., 0., 0.]))
+UKFPnpInit(0.01,np.array([0., 0., 0., 0.,0.,0.]))
 TFinit()
 subenemy = rospy.Subscriber('infrared_detection/enemy_position', ObjectList, callback_enemy)
 subpnp = rospy.Subscriber('base/armor_pose', PoseStamped, callback_pnp)
@@ -460,14 +489,14 @@ while not rospy.is_shutdown():
         ukf_out_vel_y = ukf_pnp_vel_y
         UNABLE_PREDICT = 0
         TEMPERAL_LOST = 0
-        print 'predict!'
+        #print 'predict!'
     else:
-        print 'temperal unable to predict!','pnp_lost_counter',pnp_lost_counter,'rs_lost_counter',rs_lost_counter 
+        #print 'temperal unable to predict!','pnp_lost_counter',pnp_lost_counter,'rs_lost_counter',rs_lost_counter 
         TEMPERAL_LOST = 1
 
     if pnp_lost_counter > LOST_TRESH and rs_lost_counter > LOST_TRESH:
         UNABLE_PREDICT = 1
-        print 'UNABLE TO PREDICT!!!!!!!!!!!!'
+        #print 'UNABLE TO PREDICT!!!!!!!!!!!!'
 
     #from gimbal yaw to global gimbal_yaw
     global_gimbal_yaw = odom_yaw + gimbal_yaw
@@ -478,10 +507,10 @@ while not rospy.is_shutdown():
         global_gimbal_yaw = global_gimbal_yaw - 2 * np.pi
 
     
-    if PNP_UKF_AVAILABLE or RS_UKF_AVAILABLE and 0:
-        print 'RS','X',rs_pos_x,'Y',rs_pos_y, 'VX',rs_vel_x,'VY',rs_vel_y,'RDA',RS_DATA_AVAILABLE
-        print 'PNP','X',pnp_pos_x,'Y',pnp_pos_y, 'VX',pnp_vel_x,'VY',pnp_vel_x,'PDA',PNP_DATA_AVAILABLE
-        print 'KALMAN', 'X',ukf_out_pos_x,'Y',ukf_out_pos_y, 'VX',ukf_out_vel_x,'VY',ukf_out_vel_y
+    # if PNP_UKF_AVAILABLE or RS_UKF_AVAILABLE:
+    #     print 'RS','X',rs_pos_x,'Y',rs_pos_y, 'VX',rs_vel_x,'VY',rs_vel_y,'RDA',RS_DATA_AVAILABLE
+    #     print 'PNP','X',pnp_pos_x,'Y',pnp_pos_y, 'VX',pnp_vel_x,'VY',pnp_vel_x,'PDA',PNP_DATA_AVAILABLE
+    #     print 'KALMAN', 'X',ukf_out_pos_x,'Y',ukf_out_pos_y, 'VX',ukf_out_vel_x,'VY',ukf_out_vel_y
 
     #   #
     #           #
@@ -547,7 +576,7 @@ while not rospy.is_shutdown():
     elif predict_pos.pose.pose.orientation.w <=  - MAX_PREDICT_ANGLE:
         predict_pos.pose.pose.orientation.w = -MAX_PREDICT_ANGLE
 
-    #predict_pos.pose.pose.orientation.w = 0
+    # predict_pos.pose.pose.orientation.w = 0
 
     pub_ukf_vel.publish(predict_pos) 
 

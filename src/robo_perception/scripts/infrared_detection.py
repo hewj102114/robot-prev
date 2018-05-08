@@ -136,6 +136,20 @@ def filter_distance(distance):
     # filter_distance = sorted_distance[np.where((sorted_distance>low) & (sorted_distance < high))]
     # return np.mean(filter_distance)
 
+def judge_armor(robo_bbox, final_boxes, armor_idx):
+    # 判断哪一个装甲板属于谁
+    cx, cy, w, h = robo_bbox[0], robo_bbox[1], robo_bbox[2], robo_bbox[3]
+    for _ in range(armor_idx.shape[1]):
+        idx = armor_idx[0, _]
+        armor_bbox = final_boxes[idx, :]
+        armor_cx, armor_cy, armor_w, armor_h = armor_bbox[0], armor_bbox[1], armor_bbox[2], armor_bbox[3]
+        if (armor_cx > cx - w / 2 and armor_cx < cx + w / 2 and armor_cy > cy - h / 2 and armor_cy < cy + h / 2):
+            return armor_bbox
+    # 如果没有满足条件的armor, 返回整个车
+    return robo_bbox
+
+
+
 def TsDet_callback(infrared_image, pointcloud):
     #print("====================================new image======================================")
     #print("===================================================================================")
@@ -201,41 +215,40 @@ def TsDet_callback(infrared_image, pointcloud):
     # 0 -> red, 1 -> wheel, 2 -> blue
     # 检测到车并且检测到轮子, 进入此 if, 目的是为了减少误检率
     robo_bboxes = []
-    if len(final_boxes) > 0 and np.any(final_class == 0) and np.any(final_class == 1):
+    if len(final_boxes) > 0 and np.any(final_class == 0) and (np.any(final_class == 1) or np.any(final_class == 2)):
         #judge detect how much robots
         robot_final_idx = np.array(np.where(final_class == 0))
+        armor_idx = np.array(np.where(final_class == 2))
         for _ in range(robot_final_idx.shape[1]):
             robo_idx = robot_final_idx[0, _]
             robo_bbox = final_boxes[robo_idx, :]
             cx, cy, w, h = robo_bbox[0], robo_bbox[1], robo_bbox[2], robo_bbox[3]   # 获取车bbox的坐标, 宽度和高度
+            armor_bbox = judge_armor(robo_bbox, final_boxes, armor_idx)
+            # armor_bbox = robo_bbox
+            armor_cx, armor_cy, armor_w, armor_h = armor_bbox[0], armor_bbox[1], armor_bbox[2], armor_bbox[3]
             robo_bboxes.append(robo_bbox)
-            print("area: ", w*h)
             # 用于提取点云的范围大小
-            pointcloud_w = 5
-            pointcloud_h = 5
+            pointcloud_w = int(3*armor_w/5)
+            pointcloud_h = int(3*armor_h/5)
 
-            # 对点云进行约束
-            if pointcloud_w > robo_bbox[2]:
-                pointcloud_w = robo_bbox[2]
-            if pointcloud_h > robo_bbox[3]:
-                pointcloud_h = robo_bbox[3]
+            # 对点云进行约束, 使用装甲板检测的结果
+            if pointcloud_w > armor_bbox[2]:
+                pointcloud_w = armor_bbox[2]
+            if pointcloud_h > armor_bbox[3]:
+                pointcloud_h = armor_bbox[3]
 
             # 使用中心位置的 pointcloud_w*pointcloud_h 的点云计算距离
             # x_ = np.arange(int(cx - pointcloud_w/2), int(cx + pointcloud_w/2), 1)
             # y_ = np.arange(int(cy - pointcloud_h/2), int(cy + pointcloud_h/2), 1)
 
             # 使用bbox下方的点云计算距离, 大概是装甲板的位置
-            x_ = np.arange(int(cx - pointcloud_w / 2),
-                        int(cx + pointcloud_w / 2), 1)
-            y_ = np.arange(int(cy + h / 2 - h / 6 - pointcloud_h),
-                        int(cy + h / 2 - h / 6), 1)
-            # y_ = np.arange(int(cy - pointcloud_h / 2),
-            #             int(cy + pointcloud_h / 2), 1)
+            x_ = np.arange(int(armor_cx - pointcloud_w / 2), int(armor_cx + pointcloud_w / 2), 1)
+            y_ = np.arange(int(armor_cy + armor_h / 2 - armor_h / 6 - pointcloud_h), int(armor_cy + armor_h / 2 - armor_h / 6), 1)
+            y_ = np.arange(int(armor_cy - pointcloud_h / 2), int(armor_cy + pointcloud_h / 2), 1)
             roi = [[x, y] for x in x_ for y in y_]
             rois.append(roi)
             # 提取特定位置的点云
-            points = list(pc2.read_points(pointcloud, skip_nans=False,
-                                        field_names=("x", "y", "z"), uvs=roi))
+            points = list(pc2.read_points(pointcloud, skip_nans=False, field_names=("x", "y", "z"), uvs=roi))
             robo_pointcloud = np.array(points)
 
             # 对提取到的点云进行 reshape
@@ -250,16 +263,31 @@ def TsDet_callback(infrared_image, pointcloud):
             positionZ = positionZ[np.logical_not(np.isnan(positionZ))]
 
             # 计算距离均值, 得到最终距离
-            filter_avgX = filter_distance(positionX)
-            filter_avgY = filter_distance(positionY)
-            filter_avgZ = filter_distance(positionZ)
-            
             avgX = np.mean(positionX)
             avgY = np.mean(positionY)
             avgZ = np.mean(positionZ)
-            print("filter_avgX, avgX", filter_avgX, avgX)
-            print("filter_avgY, avgY", filter_avgY, avgY)
-            print("filter_avgZ, avgZ", filter_avgZ, avgZ)
+            # sorted_avgX = np.sort(positionX)
+            # sorted_avgY = np.sort(positionY)
+            # sorted_avgZ = np.sort(positionZ)
+            
+            # print("sorted_avgX:", sorted_avgX)
+            # print("sorted_avgY:", sorted_avgY)
+            # print("sorted_avgZ:", sorted_avgZ)
+            # print("sorted_avgZ min to max:", np.min(sorted_avgZ), np.max(sorted_avgZ), np.max(sorted_avgZ) - np.min(sorted_avgZ))
+            
+            
+
+            # filter_avgX = filter_distance(positionX)
+            # filter_avgY = filter_distance(positionY)
+            # filter_avgZ = filter_distance(positionZ)
+
+            # avgX = filter_avgX
+            # avgY = filter_avgY
+            # avgZ = filter_avgZ
+
+            # print("filter_avgX, avgX", filter_avgX, avgX)
+            # print("filter_avgY, avgY", filter_avgY, avgY)
+            # print("filter_avgZ, avgZ", filter_avgZ, avgZ)
             
             if np.isnan(avgX) or np.isnan(avgY) or np.isnan(avgZ):
                 print("continue")
@@ -340,7 +368,7 @@ def TsDet_callback(infrared_image, pointcloud):
     print(time_str)
 
     # # TODO(bichen): move this color dict to configuration file
-    cls2clr = {'robot': (0, 0, 255), 'wheel': (0, 255, 0)}
+    cls2clr = {'robot': (0, 0, 255), 'wheel': (0, 255, 0), 'armor':(255,255,0)}
     if mc.VISUAL:
         im = _draw_box(im,
                        final_boxes,
@@ -352,8 +380,11 @@ def TsDet_callback(infrared_image, pointcloud):
             avgY = robo_position[_, 1]
             avgZ = robo_position[_, 2]
             position_str = 'x=' + str(round(avgX, 3)) + ' y=' + str(round(avgY, 3)) + ' z=' + str(round(avgZ, 3))
+            # filter_position_str = 'x=' + str(round(filter_avgX, 3)) + ' y=' + str(round(filter_avgY, 3)) + ' z=' + str(round(filter_avgZ, 3))
             font = cv2.FONT_HERSHEY_SIMPLEX
             cv2.putText(im, position_str, (10, 30*(_ + 1)), font, 0.7, (0, 255, 255), 2)
+            # cv2.putText(im, filter_position_str, (10, 60*(_ + 1)), font, 0.7, (0, 255, 255), 2)
+            
         for _ in range(len(rois)):
             cv2.rectangle(im, (rois[_][0][0], rois[_][0][1]), (rois[_][-1][0], rois[_][-1][1]), (255, 0, 0), 5)
 
