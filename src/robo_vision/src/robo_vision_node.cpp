@@ -50,6 +50,12 @@ image_transport::ImageTransport it(nh);
         "/home/ubuntu/robot/src/robo_vision/param/param_config.xml";
     Settings setting(config_file_name);
 
+    // angle offset
+    double offset_anlge_x = 0;
+    double offset_anlge_y = 0;
+    private_nh.getParam("offset_anlge_x",offset_anlge_x);
+    private_nh.getParam("offset_anlge_y",offset_anlge_y);
+
     // get robot id & choose the calibration file
     string intrinsic_file;
     private_nh.getParam("intrinsic_file",intrinsic_file);
@@ -79,9 +85,7 @@ image_transport::ImageTransport it(nh);
     Point2f image_center = Point2f(cam_matrix_480.at<double>(0, 2),
                                    cam_matrix_480.at<double>(1, 2));
 
-    // angle offset
-    double offset_anlge_x = 0.4;
-    const double offset_anlge_y = 0;
+
     double pre_angle_x = 0.0, pre_angle_y = 0.0;
 
     // load armor detector setting
