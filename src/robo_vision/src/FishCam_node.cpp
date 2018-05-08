@@ -66,7 +66,7 @@ void prosess(Mat &img, vector<Vec3f> &pt_center)
         uchar b = *ptr_src;
         uchar g = *(++ptr_src);
         uchar r = *(++ptr_src);
-        if (r > 200)
+        if (r > 160)
             *ptr_img_gray = 255;
         else
             *ptr_img_gray = 0;
@@ -93,7 +93,7 @@ void prosess(Mat &img, vector<Vec3f> &pt_center)
     vector<vector<Point2i>>::const_iterator it = contours_br.begin();
     for (int i = 0; i < contours_br.size(); i++)
     {
-        if (contours_br[i].size() < 20)
+        if (contours_br[i].size() <8)
             continue;
         RotatedRect rect = minAreaRect(contours_br[i]);
         rect = adjustRRect(rect);
@@ -104,8 +104,8 @@ void prosess(Mat &img, vector<Vec3f> &pt_center)
         }
     }
 #ifdef SHOW_IMAGE
-        //imshow("con", img_contour);
-        //imshow("rb", img_rb);
+        imshow("con", img_contour);
+        imshow("rb", img_gray);
 #endif
 
     const uchar *ptr_con_begin = img_contour.data;
@@ -113,11 +113,20 @@ void prosess(Mat &img, vector<Vec3f> &pt_center)
     const uchar *ptr_con_end = img_contour.data + img_contour.cols * img_contour.rows;
     for (; ptr_con_src != ptr_con_end; ++ptr_con_src)
     {
+
         if (*ptr_con_src > 100)
         {
             int pt_y = (ptr_con_src - ptr_con_begin) / img_contour.cols;
             int pt_x = ((ptr_con_src - ptr_con_begin)) % img_contour.cols;
-            pt.push_back(Point2f(pt_x, pt_y));
+            if (pt_x < 10 || pt_y < 10 || pt_x > img_contour.cols - 10 || pt_y > img_contour.rows - 10)
+                continue;
+            Mat small_roi;
+            img_rb(Rect(Point(pt_x - 10, pt_y - 10), Point(pt_x + 10, pt_y + 10))).copyTo(small_roi);
+            if (countNonZero(img_rb) > 0)
+            {
+                cout << countNonZero(img_rb) << endl;
+                pt.push_back(Point2f(pt_x, pt_y));
+            }
         }
     }
 
@@ -221,11 +230,11 @@ int main(int argc, char **argv)
             circle(src_right, Point2f(pt_center_right[i][0], pt_center_right[i][1]), 10,
                    Scalar(255, 255, 255), 10);
         }
-        line(src_left,Point(cam_left_radius-100,0),Point(cam_left_radius-100,cam_left_down-cam_left_up),Scalar(255),3);
-        line(src_left,Point(cam_left_radius+100,0),Point(cam_left_radius+100,cam_left_down-cam_left_up),Scalar(255),3);
-        line(src_right,Point(cam_right_radius-100,0),Point(cam_right_radius-100,cam_right_down-cam_right_up),Scalar(255),3);
-        line(src_right,Point(cam_right_radius+100,0),Point(cam_right_radius+100,cam_right_down-cam_right_up),Scalar(255),3);
-        
+        line(src_left, Point(cam_left_radius - 100, 0), Point(cam_left_radius - 100, cam_left_down - cam_left_up), Scalar(255), 3);
+        line(src_left, Point(cam_left_radius + 100, 0), Point(cam_left_radius + 100, cam_left_down - cam_left_up), Scalar(255), 3);
+        line(src_right, Point(cam_right_radius - 100, 0), Point(cam_right_radius - 100, cam_right_down - cam_right_up), Scalar(255), 3);
+        line(src_right, Point(cam_right_radius + 100, 0), Point(cam_right_radius + 100, cam_right_down - cam_right_up), Scalar(255), 3);
+
         imshow("l", src_left);
         imshow("r", src_right);
         waitKey(1);
@@ -241,6 +250,7 @@ int main(int argc, char **argv)
                 int ret = fisheye_pose_estimate(pt_center_left[0][0], pt_center_left[0][1], cam_left_radius);
 
                 geometry_msgs::Vector3 vecmsg;
+                fishcam_msg.size=1;
                 vecmsg.x = 135 + ret * 45;
                 vecmsg.z = pt_center_left[0][2];
                 fishcam_msg.target.push_back(vecmsg);
@@ -251,6 +261,7 @@ int main(int argc, char **argv)
                 geometry_msgs::Vector3 vecmsg;
                 vecmsg.x = -135 + ret * 45;
                 vecmsg.z = pt_center_right[0][2];
+                fishcam_msg.size=1;
                 fishcam_msg.target.push_back(vecmsg);
             }
         }
@@ -265,8 +276,12 @@ int main(int argc, char **argv)
                     geometry_msgs::Vector3 vecmsg;
                     vecmsg.x = 135 + ret1 * 45;
                     vecmsg.z = pt_center_left[0][2] + pt_center_left[1][2];
+                    fishcam_msg.size=1;
                     fishcam_msg.target.push_back(vecmsg);
-                }else{
+                }
+                else
+                {
+                    fishcam_msg.size=2;
                     geometry_msgs::Vector3 vecmsg;
                     vecmsg.x = 135 + ret1 * 45;
                     vecmsg.z = pt_center_left[0][2];
@@ -276,16 +291,21 @@ int main(int argc, char **argv)
                     fishcam_msg.target.push_back(vecmsg);
                 }
             }
-            else if(pt_center_right.size() == 2){
+            else if (pt_center_right.size() == 2)
+            {
                 int ret1 = fisheye_pose_estimate(pt_center_right[0][0], pt_center_right[0][1], cam_left_radius);
                 int ret2 = fisheye_pose_estimate(pt_center_right[1][0], pt_center_right[1][1], cam_left_radius);
                 if (ret1 == ret2)
                 {
+                    fishcam_msg.size=1;
                     geometry_msgs::Vector3 vecmsg;
                     vecmsg.x = -135 + ret1 * 45;
                     vecmsg.z = pt_center_right[0][2] + pt_center_right[1][2];
                     fishcam_msg.target.push_back(vecmsg);
-                }else{
+                }
+                else
+                {
+                    fishcam_msg.size=2;
                     geometry_msgs::Vector3 vecmsg;
                     vecmsg.x = -135 + ret1 * 45;
                     vecmsg.z = pt_center_right[0][2];
@@ -295,16 +315,21 @@ int main(int argc, char **argv)
                     fishcam_msg.target.push_back(vecmsg);
                 }
             }
-            else{
+            else
+            {
                 int ret1 = fisheye_pose_estimate(pt_center_left[0][0], pt_center_left[0][1], cam_left_radius);
                 int ret2 = fisheye_pose_estimate(pt_center_right[0][0], pt_center_right[0][1], cam_left_radius);
-                 if (ret1 ==1 && ret2==-1)
+                if (ret1 == 1 && ret2 == -1)
                 {
+                    fishcam_msg.size=1;
                     geometry_msgs::Vector3 vecmsg;
                     vecmsg.x = 180;
                     vecmsg.z = pt_center_left[0][2] + pt_center_right[0][2];
                     fishcam_msg.target.push_back(vecmsg);
-                }else{
+                }
+                else
+                {
+                    fishcam_msg.size=2;
                     geometry_msgs::Vector3 vecmsg;
                     vecmsg.x = 135 + ret1 * 45;
                     vecmsg.z = pt_center_left[0][2];
@@ -313,10 +338,9 @@ int main(int argc, char **argv)
                     vecmsg.z = pt_center_right[0][2];
                     fishcam_msg.target.push_back(vecmsg);
                 }
-            } 
-
+            }
         }
-            pub_fisheye_list.publish(fishcam_msg);
+        pub_fisheye_list.publish(fishcam_msg);
         ros::spinOnce();
         rate.sleep();
     }
