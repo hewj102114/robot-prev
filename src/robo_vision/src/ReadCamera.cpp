@@ -38,7 +38,11 @@ int main(int argc, char **argv) {
 
     cv::Mat img;
     while (ros::ok()) {
+        ros::Time start=ros::Time::now();
         cap >> img;
+        ros::Time end =ros::Time::now();
+        ros::Duration dua=end-start;
+       // ROS_INFO("TTT  %f",dua.toSec());
         cv_bridge::CvImage img_msg;
         img_msg.header.stamp = ros::Time::now();
         img_msg.header.frame_id = "image";

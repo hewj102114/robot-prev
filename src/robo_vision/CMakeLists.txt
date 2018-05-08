@@ -29,7 +29,7 @@ add_message_files(
 generate_messages(
    DEPENDENCIES
    geometry_msgs
-  std_msgs
+   std_msgs
 )
 
 catkin_package( 

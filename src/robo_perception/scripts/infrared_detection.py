@@ -125,8 +125,8 @@ def enemy_self_identify(rgb_image, robo_bboxes, show_image=False):
 def filter_distance(distance):
     sorted_distance = np.sort(distance)
 
-    low = sorted_distance[distance.shape[0] / 4]
-    high = sorted_distance[3 * distance.shape[0] / 4]
+    low = sorted_distance[int(distance.shape[0] / 4)]
+    high = sorted_distance[int(3 * distance.shape[0] / 4)]
     filter_distance = sorted_distance[np.where((sorted_distance>low) & (sorted_distance < high))]
     return np.mean(filter_distance)
 
@@ -244,19 +244,19 @@ def TsDet_callback(infrared_image, pointcloud):
             positionZ = positionZ[np.logical_not(np.isnan(positionZ))]
 
             # 计算距离均值, 得到最终距离
-            filter_avgX = filter_distance(positionX)
-            filter_avgY = filter_distance(positionY)
-            filter_avgZ = filter_distance(positionZ)
+            # filter_avgX = filter_distance(positionX)
+            # filter_avgY = filter_distance(positionY)
+            # filter_avgZ = filter_distance(positionZ)
             
             avgX = np.mean(positionX)
             avgY = np.mean(positionY)
             avgZ = np.mean(positionZ)
-            print("filter_avgX, avgX", filter_avgX, avgX)
-            print("filter_avgY, avgY", filter_avgY, avgY)
-            print("filter_avgZ, avgZ", filter_avgZ, avgZ)
+            # print("filter_avgX, avgX", filter_avgX, avgX)
+            # print("filter_avgY, avgY", filter_avgY, avgY)
+            # print("filter_avgZ, avgZ", filter_avgZ, avgZ)
             
             if np.isnan(avgX) or np.isnan(avgY) or np.isnan(avgZ):
-                print("continue")                                
+                print("continue")
                 continue
             else:
                 robo_position.append([avgX, avgY, avgZ])

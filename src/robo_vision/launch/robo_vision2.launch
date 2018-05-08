@@ -29,10 +29,10 @@
 <param name="cam_left_center" value="656"/>
 <param name="cam_left_radius" value="486"/>
 <param name="cam_left_up" value="235"/>
-<param name="cam_left_down" value="680"/>
-<param name="cam_right_center" value="716"/>
+<param name="cam_left_down" value="650"/>
+<param name="cam_right_center" value="600"/>
 <param name="cam_right_radius" value="486"/>
 <param name="cam_right_up" value="235"/>
-<param name="cam_right_down" value="680"/>
+<param name="cam_right_down" value="650"/>
 </node> 
 </launch>

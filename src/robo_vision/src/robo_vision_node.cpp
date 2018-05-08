@@ -20,6 +20,7 @@ using namespace std;
 using namespace cv;
 
 Mat img_recv;
+int pre_seq=0,cur_seq=0;
 
 void image_callback(const sensor_msgs::ImageConstPtr& msg) {
     Mat img_temp = cv_bridge::toCvShare(msg, "bgr8")->image;
@@ -29,6 +30,7 @@ ROS_INFO("recv");
     } else {
         //cv::imshow("view", img_temp);
         img_recv = img_temp.clone();
+        cur_seq=msg->header.seq;
     }
 }
 
@@ -100,7 +102,7 @@ image_transport::ImageTransport it(nh);
     VideoWriter writer("/home/ubuntu/VideoTest.avi",
                        CV_FOURCC('M', 'J', 'P', 'G'), 25, Size(640, 480));
 
-    ros::Rate rate(100);
+    ros::Rate rate(150);
     ROS_INFO("Image Consumer Start!");
 
     //armor_detector_flag
@@ -108,13 +110,13 @@ image_transport::ImageTransport it(nh);
     while (ros::ok()) 
     {
         ROS_INFO("loop");
-        if (img_recv.empty()) 
+        if (img_recv.empty() || pre_seq==cur_seq) 
         {
             ros::spinOnce();
             rate.sleep();
             continue;
         }
-        
+        pre_seq=cur_seq;
         img_recv.copyTo(src);
         if (setting.show_image) 
         {
@@ -219,7 +221,7 @@ image_transport::ImageTransport it(nh);
             if (miss_detection_cnt < 5)
             {
                 msg_armor_info.mode    = miss_detection_cnt;
-                msg_armor_info.angle.x = (pre_angle_x + offset_anlge_x) * 100;  // yaw
+                // msg_armor_info.angle.x = (pre_angle_x + offset_anlge_x) * 100;  // yaw
                 msg_armor_info.angle.y = (pre_angle_y + offset_anlge_y) * 100;
                 
             } 
