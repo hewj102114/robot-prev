@@ -101,7 +101,7 @@ int main(int argc, char **argv)
 	chassis 1:velcity 2:angle pose 3:init
 	*/
 	geometry_msgs::Pose target_pose;
-	int work_state = 4;
+	int work_state = 3;
 	ros::Rate loop_rate(150);
 	bool first_in = true;
 	long long int count = 0;
@@ -394,7 +394,7 @@ int main(int argc, char **argv)
 			{
 				lose_gimbal_count = 0;
 				// first_in_armor_flag = false;
-				work_state = 4;
+				work_state = 3;
 				target_gimbal_angle = 1000;
 				first_in = true;
 			}
