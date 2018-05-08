@@ -87,6 +87,7 @@ def DetectInit():
     sess = tf.Session(config=config)
     saver.restore(sess, checkpoint)
 
+# TODO: 检测结果不稳定, 1. 通过装甲板的颜色识别. 2. 通过车身整体颜色识别
 def enemy_self_identify(rgb_image, robo_bboxes, show_image=False):
     enemy = []
     for robo_bbox in robo_bboxes:
@@ -120,6 +121,14 @@ def enemy_self_identify(rgb_image, robo_bboxes, show_image=False):
             cv2.imshow('robo_image', robo_image)
         enemy.append(judge)
     return enemy
+
+def filter_distance(distance):
+    sorted_distance = np.sort(distance)
+
+    low = sorted_distance[distance.shape[0] / 4]
+    high = sorted_distance[3 * distance.shape[0] / 4]
+    filter_distance = sorted_distance[np.where((sorted_distance>low) & (sorted_distance < high))]
+    return np.mean(filter_distance)
 
 def TsDet_callback(infrared_image, pointcloud):
     #print("====================================new image======================================")
@@ -194,10 +203,10 @@ def TsDet_callback(infrared_image, pointcloud):
             robo_bbox = final_boxes[robo_idx, :]
             cx, cy, w, h = robo_bbox[0], robo_bbox[1], robo_bbox[2], robo_bbox[3]   # 获取车bbox的坐标, 宽度和高度
             robo_bboxes.append(robo_bbox)
-
+            print("area: ", w*h)
             # 用于提取点云的范围大小
-            pointcloud_w = 5
-            pointcloud_h = 5
+            pointcloud_w = 25
+            pointcloud_h = 25
 
             # 对点云进行约束
             if pointcloud_w > robo_bbox[2]:
@@ -214,6 +223,8 @@ def TsDet_callback(infrared_image, pointcloud):
                         int(cx + pointcloud_w / 2), 1)
             y_ = np.arange(int(cy + h / 2 - h / 6 - pointcloud_h),
                         int(cy + h / 2 - h / 6), 1)
+            y_ = np.arange(int(cy - pointcloud_h / 2),
+                        int(cy + pointcloud_h / 2), 1)
             roi = [[x, y] for x in x_ for y in y_]
             rois.append(roi)
             # 提取特定位置的点云
@@ -233,9 +244,17 @@ def TsDet_callback(infrared_image, pointcloud):
             positionZ = positionZ[np.logical_not(np.isnan(positionZ))]
 
             # 计算距离均值, 得到最终距离
+            filter_avgX = filter_distance(positionX)
+            filter_avgY = filter_distance(positionY)
+            filter_avgZ = filter_distance(positionZ)
+            
             avgX = np.mean(positionX)
             avgY = np.mean(positionY)
             avgZ = np.mean(positionZ)
+            print("filter_avgX, avgX", filter_avgX, avgX)
+            print("filter_avgY, avgY", filter_avgY, avgY)
+            print("filter_avgZ, avgZ", filter_avgZ, avgZ)
+            
             if np.isnan(avgX) or np.isnan(avgY) or np.isnan(avgZ):
                 print("continue")                                
                 continue
