@@ -176,6 +176,8 @@ class RoboControl
 
     cv::Mat point_list;
 
+    bool callback_navigation_flag = false;
+
     // yaw: 1 -> 2
     KeyPoint KEY_POINT[30] = {
         {0, 1.30, 0.80, 0 * PI / 180.0},

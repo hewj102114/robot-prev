@@ -299,7 +299,8 @@ geometry_msgs::Pose RoboNav::adjustlocalgoal(double yaw)
     {
         pid_x.stop = false;
         pid_y.stop = false;
-        local_goal.position.x = local_goal_x - 0.1;
+        local_goal.position.x = local_goal_x - 0.1*cos(yaw);
+        local_goal.position.y = local_goal_y - 0.1*sin(yaw);
     }
     else
     {
@@ -318,8 +319,8 @@ geometry_msgs::Pose RoboNav::adjustlocalgoal(double yaw)
     {
         pid_x.stop = false;
         pid_y.stop = false;
-        local_goal.position.x = local_goal_x - 0.1;
-        local_goal.position.y = local_goal_y - 0.1;
+        local_goal.position.x = local_goal_x + 0.1*(sin(yaw)-cos(yaw));
+        local_goal.position.y = local_goal_y - 0.1*(cos(yaw)+sin(yaw));
     }
     else
     {
@@ -333,7 +334,8 @@ geometry_msgs::Pose RoboNav::adjustlocalgoal(double yaw)
     {
         pid_x.stop = false;
         pid_y.stop = false;
-        local_goal.position.y = local_goal_y - 0.1;
+        local_goal.position.x = local_goal_x + 0.1*sin(yaw);
+        local_goal.position.y = local_goal_y - 0.1*cos(yaw);
     }
     else
     {
@@ -352,8 +354,8 @@ geometry_msgs::Pose RoboNav::adjustlocalgoal(double yaw)
     {
         pid_x.stop = false;
         pid_y.stop = false;
-        local_goal.position.x = local_goal_x + 0.1;
-        local_goal.position.y = local_goal_y - 0.1;
+        local_goal.position.x = local_goal_x + 0.1*(cos(yaw)+sin(yaw));
+        local_goal.position.y = local_goal_y + 0.1*(sin(yaw)-cos(yaw));
     }
     else
     {
@@ -367,7 +369,8 @@ geometry_msgs::Pose RoboNav::adjustlocalgoal(double yaw)
     {
         pid_x.stop = false;
         pid_y.stop = true;
-        local_goal.position.x = local_goal_x + 0.1;
+        local_goal.position.x = local_goal_x + 0.1*cos(yaw);
+        local_goal.position.y = local_goal_y + 0.1*sin(yaw);
     }
     else
     {
@@ -386,8 +389,8 @@ geometry_msgs::Pose RoboNav::adjustlocalgoal(double yaw)
     {
         pid_x.stop = false;
         pid_y.stop = false;
-        local_goal.position.x = local_goal_x + 0.1;
-        local_goal.position.y = local_goal_y + 0.1;
+        local_goal.position.x = local_goal_x + 0.1*(cos(yaw)-sin(yaw));
+        local_goal.position.y = local_goal_y + 0.1*(sin(yaw)+cos(yaw));
     }
     else
     {
@@ -401,7 +404,8 @@ geometry_msgs::Pose RoboNav::adjustlocalgoal(double yaw)
     {
         pid_x.stop = false;
         pid_y.stop = false;
-        local_goal.position.y = local_goal_y + 0.1;
+        local_goal.position.x = local_goal_x - 0.1*sin(yaw);
+        local_goal.position.y = local_goal_y + 0.1*cos(yaw);
     }
     else
     {
@@ -420,8 +424,8 @@ geometry_msgs::Pose RoboNav::adjustlocalgoal(double yaw)
     {
         pid_x.stop = false;
         pid_y.stop = false;
-        local_goal.position.x = local_goal_x - 0.1;
-        local_goal.position.y = local_goal_y + 0.1;
+        local_goal.position.x = local_goal_x - 0.1*(cos(yaw)+sin(yaw));
+        local_goal.position.y = local_goal_y + 0.1*(cos(yaw)-sin(yaw));
     }
     else
     {
