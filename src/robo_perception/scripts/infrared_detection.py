@@ -36,7 +36,7 @@ from nets import *
 
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
-from sklearn.cluster import KMeans
+# from sklearn.cluster import KMeans
 
 
 
@@ -93,9 +93,11 @@ def DetectInit():
 def judge_blue_red_hsv(img):
     # robo_image -> bgr
     # https://blog.csdn.net/wanggsx918/article/details/23272669
+    # print (type(img), np.shape(img))
     image_hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-    
+    # print(type(image_hsv))
     H, S, V = cv2.split(image_hsv)
+
     LowerBlue = np.array([100, 43, 46])
     UpperBlue = np.array([124, 255, 255])
     
@@ -135,6 +137,23 @@ def in_range(num, low, up):
         num = up
     return num
 
+def filter_min_max(xmin, xmax, ymin, ymax):
+    if xmin == xmax:
+        if xmin == 0:
+            xmax = xmax + 1
+        elif xmax == 848:
+            xmin = xmin - 1
+        else:
+            xmax = xmax + 1
+    if ymin == ymax:
+        if ymin == 0:
+            ymax = ymax + 1
+        elif ymax == 848:
+            ymin = ymin - 1
+        else:
+            ymax = ymax + 1
+    return xmin, xmax, ymin, ymax
+
 # TODO: 检测结果不稳定, 1. 通过装甲板的颜色识别. 2. 通过车身整体颜色识别
 def enemy_self_identify(rgb_image, robo_bboxes, show_image=False, save_image = False):
     enemy = []
@@ -158,8 +177,10 @@ def enemy_self_identify(rgb_image, robo_bboxes, show_image=False, save_image = F
         y_min = in_range(y_min, 0, 424)
         y_max = in_range(y_max, 0, 424)
         
+        x_min, x_max, y_min, y_max = filter_min_max(x_min, x_max, y_min, y_max)
+        
         # rgb -> bgr
-        robo_image = rgb_image[y_min:y_max, x_min:x_max, ::-1]
+        robo_image = rgb_image[y_min:y_max, x_min:x_max, ::-1].copy()
         result = judge_blue_red_hsv(robo_image)
         result = enemy.append(result)
         if save_image:
@@ -171,16 +192,16 @@ def enemy_self_identify(rgb_image, robo_bboxes, show_image=False, save_image = F
             # cv2.imshow('robo_image', robo_image)     
     return enemy
 
-def filter_distance(distance):
-    kmeans = KMeans(n_clusters=3, random_state=0).fit(distance.reshape(-1, 1))
-    center1, center2, center3 = kmeans.cluster_centers_
-    sorted_distance = np.sort(np.array([center1, center2, center3]))
-    return sorted_distance[1]
-    # sorted_distance = np.sort(distance)
-    # low = sorted_distance[int(distance.shape[0] / 4)]
-    # high = sorted_distance[int(3 * distance.shape[0] / 4)]
-    # filter_distance = sorted_distance[np.where((sorted_distance>low) & (sorted_distance < high))]
-    # return np.mean(filter_distance)
+# def filter_distance(distance):
+#     kmeans = KMeans(n_clusters=3, random_state=0).fit(distance.reshape(-1, 1))
+#     center1, center2, center3 = kmeans.cluster_centers_
+#     sorted_distance = np.sort(np.array([center1, center2, center3]))
+#     return sorted_distance[1]
+#     # sorted_distance = np.sort(distance)
+#     # low = sorted_distance[int(distance.shape[0] / 4)]
+#     # high = sorted_distance[int(3 * distance.shape[0] / 4)]
+#     # filter_distance = sorted_distance[np.where((sorted_distance>low) & (sorted_distance < high))]
+#     # return np.mean(filter_distance)
 
 def judge_armor(robo_bbox, final_boxes, armor_idx):
     # 判断哪一个装甲板属于谁

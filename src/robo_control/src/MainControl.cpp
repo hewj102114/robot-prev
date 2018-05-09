@@ -101,10 +101,10 @@ int main(int argc, char **argv)
 	chassis 1:velcity 2:angle pose 3:init
 	*/
 	geometry_msgs::Pose target_pose;
-	int work_state = 4;
+	int work_state = 0;
 	int center_state = 0;
 	ros::Rate loop_rate(150);
-	bool first_in = true;
+	bool realsense_first_in = true;
 	long long int count = 0;
 	float first_in_gimbal_angle = 0;
 	float current_gimbal_angle = 0;
@@ -134,6 +134,7 @@ int main(int argc, char **argv)
 		case 0:
 		{
 			ROS_INFO("Stage 0: Go to center!!!!!!");
+
 			switch (center_state)
 			{
 				case 0:
@@ -141,9 +142,9 @@ int main(int argc, char **argv)
 					// 1. going center
 					target_pose.position.x = 4.0;
 					target_pose.position.y = 2.5;
-					target_pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, 3.14);
+					target_pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
 					robo_ctl.sendNavGoal(target_pose);
-					if (robo_ctl.finish_navigation.data)	// arrive center
+					if (robo_ctl.finish_navigation.data && robo_ctl.callback_navigation_flag == true)	// arrive center
 					{
 						center_start_time = ros::Time::now();
 						arrived_center_flag = true;
@@ -167,6 +168,7 @@ int main(int argc, char **argv)
 					robo_ctl.sendMCUMsg(1, 1, robo_ctl.cmd_vel_msg.v_x, robo_ctl.cmd_vel_msg.v_y, robo_ctl.cmd_vel_msg.v_yaw, 0, 0, 0);
 					break;
 				}
+
 				// realsense
 				case 1:
 				{
@@ -245,8 +247,13 @@ int main(int argc, char **argv)
 					}
 					break;
 				}
-				if (arrived_center_flag)
+				
+				default:
+					break;
+			}
+			if (robo_ctl.finish_navigation.data)
 				{
+
 					ros::Duration timeout(5);
 					if(ros::Time::now() - center_start_time >= timeout)	// 完成 5S 计时
 					{
@@ -265,10 +272,11 @@ int main(int argc, char **argv)
 						target_gimbal_angle = 1000;
 						center_first_in = true;						
 					}
+					if (robo_ctl.armor_info_msg.mode == 1 && robo_ctl.enemy_information.num == 0)
+					{
+						work_state = 1;
+					}
 				}
-				default:
-					break;
-			}
 			break;
 		}
 
@@ -370,10 +378,10 @@ int main(int argc, char **argv)
 			
 			ROS_INFO("predicted angle: %f", enemy_self_angle);
 			count ++;
-			if (robo_ctl.enemy_information.num > 0 && first_in == true && count % 1 == 0 && robo_ctl.robo_ukf_enemy_information.orientation.z != 999)
+			if (robo_ctl.enemy_information.num > 0 && realsense_first_in == true && count % 1 == 0 && robo_ctl.robo_ukf_enemy_information.orientation.z != 999)
 			{
 				ROS_INFO("sent angle information!!!!!!!!!!");
-				first_in = false;
+				realsense_first_in = false;
 				first_in_gimbal_angle = robo_ctl.game_msg.gimbalAngleYaw;
 				target_gimbal_angle = enemy_self_angle;
 				// ROS_INFO("=============================================================\n========================================================================\n====================================================================\n=======================================================================\n==========================================================================\n");
@@ -395,6 +403,10 @@ int main(int argc, char **argv)
 				first_in_armor_flag = true;
 				detected_armor_flag = false;
 				first_in_armor_timer = ros::Time::now();
+
+				// 自身跳转
+				// target_gimbal_angle = 1000;
+				// realsense_first_in = true;
 			}
 			break;
 		}
@@ -440,7 +452,6 @@ int main(int argc, char **argv)
 				lose_gimbal_count = 0;
 				detected_armor_flag = true;
 				first_in_armor_flag = false;
-				// first_in_armor_flag = false;
 				robo_ctl.sendMCUMsg(1,
 									2,
 									0,
@@ -488,10 +499,9 @@ int main(int argc, char **argv)
 			if (lose_gimbal_count > 400)
 			{
 				lose_gimbal_count = 0;
-				// first_in_armor_flag = false;
-				work_state = 4;
+				work_state = 3;
 				target_gimbal_angle = 1000;
-				first_in = true;
+				realsense_first_in = true;
 			}
 			last_armor_info_msg_mode = robo_ctl.armor_info_msg.mode;
 
@@ -528,6 +538,7 @@ int main(int argc, char **argv)
 
 	//gimbal 1:serach 2:shoot
 	//chassis 1:velcity 2:angle pose 3:init
+
 	int keypoint_num = 1;
 	while (ros::ok())
 	{

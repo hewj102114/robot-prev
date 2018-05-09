@@ -164,6 +164,7 @@ void RoboControl::sendNavGoal(geometry_msgs::Pose &target_pose)
     //     if (abs(target_pose.position.x - nav_current_goal.position.x) > 0.2 ||
     //         abs(target_pose.position.y - nav_current_goal.position.y) > 0.2) {
     pub_nav_goal.publish(target_pose);
+    callback_navigation_flag = false;
     //     }
 }
 
@@ -250,6 +251,7 @@ int RoboControl::getClosestKeyPoint(float pose_x, float pose_y)
 void RoboControl::cb_finish_navigation(const std_msgs::Bool &msg)
 {
     finish_navigation = msg;
+    callback_navigation_flag = true;
 }
 
 void RoboControl::cb_enemy_information(const robo_perception::ObjectList &msg)
