@@ -47,6 +47,7 @@ import time
 from numpy.random import randn
 import numpy as np
 from tf.transformations import quaternion_from_euler, euler_from_quaternion
+from geometry_msgs.msg import TransformStamped
 import tf2_ros
 from filterpy.kalman import UnscentedKalmanFilter as UKF
 from filterpy.kalman import KalmanFilter
@@ -239,7 +240,6 @@ pub_odom = rospy.Publisher('odom', Odometry, queue_size=1)
 rate = rospy.Rate(80)  # 80hz
 while not rospy.is_shutdown():
     global pos_fuse_x, vel_wheel_x, pos_fuse_y, vel_wheel_y, acc_imu_x, acc_imu_y,ukf_yaw
-
     ukf_input = [pos_fuse_x, vel_wheel_x, acc_imu_x, pos_fuse_y, vel_wheel_y,acc_imu_y]
     ukf.predict()
     ukf.update(ukf_input)
@@ -248,11 +248,11 @@ while not rospy.is_shutdown():
     ukf_out_pos_y = ukf.x[3]
     ukf_vel_y = ukf.x[4]
     # print ukf.x
-    # print 'UWB x:', pos_uwb_x, 'UWB y:', pos_uwb_y
-    # print 'FUSE x', pos_fuse_x, 'FUSE y', pos_fuse_y
-    # print 'KALMAN x', ukf_out_pos_x, 'KALMAN y', ukf_out_pos_y
-    # print 'KV x', ukf_vel_x, 'KV y', ukf_vel_y
-    # print 'yaw',ukf_yaw
+    print 'UWB x:', pos_uwb_x, 'UWB y:', pos_uwb_y
+    print 'FUSE x', pos_fuse_x, 'FUSE y', pos_fuse_y
+    print 'KALMAN x', ukf_out_pos_x, 'KALMAN y', ukf_out_pos_y
+    print 'KV x', ukf_vel_x, 'KV y', ukf_vel_y
+    print 'yaw',ukf_yaw
 
     # send ukf/pos      
     ukf_pos = Odometry()
@@ -275,7 +275,7 @@ while not rospy.is_shutdown():
 
     odom = Odometry()
     odom.header.frame_id = "odom"
-    odom.header.child_frame_id = "base_link"
+    odom.child_frame_id = "base_link"
     odom.header.stamp = rospy.Time.now()
     odom.pose.pose.position.x = ukf_out_pos_x + np.cos(ukf_yaw)*0.13
     odom.pose.pose.position.y = ukf_out_pos_y + np.sin(ukf_yaw)*0.13
@@ -286,7 +286,7 @@ while not rospy.is_shutdown():
     odom.pose.pose.orientation.w = qn_ukf[3]
     odom.twist.twist.linear.x = ukf_vel_x
     odom.twist.twist.linear.y = ukf_vel_y
-	pub_odom.publish(odom)
+    pub_odom.publish(odom)
 
 
     #send odom tf
@@ -295,8 +295,8 @@ while not rospy.is_shutdown():
     t.header.stamp = rospy.Time.now()
     t.header.frame_id = 'odom'
     t.child_frame_id = 'base_link'
-    t.transform.translation.x = pose.pose.position.x+cos(cur_yaw)*0.13
-    t.transform.translation.y = pose.pose.position.y+sin(cur_yaw)*0.13
+    t.transform.translation.x = odom.pose.pose.position.x+np.cos(ukf_yaw)*0.13
+    t.transform.translation.y = odom.pose.pose.position.y+np.sin(ukf_yaw)*0.13
     t.transform.translation.z = 0
     t.transform.rotation.x = qn_ukf[0]
     t.transform.rotation.y = qn_ukf[1]

@@ -232,7 +232,7 @@ void RoboNav::get_vel(geometry_msgs::Twist &msg_vel)
     }
     ROS_INFO("cur_yaw: %f, dyaw %f ",cur_yaw, dyaw);
     vel_yaw = pid_yaw.calc(dyaw);
-    if (abs(dyaw) < 0.1)
+    if (abs(dyaw) < 0.05)
         vel_yaw = 0;
 
     msg_vel.linear.x = vel_x;
