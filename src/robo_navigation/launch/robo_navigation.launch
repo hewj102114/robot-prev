@@ -10,12 +10,12 @@
     name="tf_map_odom"
     pkg="tf"
     type="static_transform_publisher"
-    args="-1 -1 0 0 0 0 map odom 40" />
+    args="-1 -1 0 0 0 0 map odom 10" />
 <node
     name="tf_laser_base"
     pkg="tf"
     type="static_transform_publisher"
-    args="0 0 0 3.14 0 0 base_link laser 40" />
+    args="0 0 0 3.14 0 0 base_link laser 10" />
 
 <node pkg="robo_navigation" type="robo_navigation" name="robo_navigation" output="screen">
 <param name="Kp_linear"  type="double" value="1.5"/>

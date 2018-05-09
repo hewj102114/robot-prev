@@ -90,7 +90,7 @@ LOST_TRESH = 10
 #LOW PASS FILTER
 LPF_ORDER = 6
 PNP_LPS_SAMPLING_FREQ = 100.0       # sample rate, Hz
-PNP_LPF_CUTOFF = 3.3  # desired cutoff frequency of the filter, Hz
+PNP_LPF_CUTOFF = 5  # desired cutoff frequency of the filter, Hz
 
 RS_LPS_SAMPLING_FREQ = 100.0       # sample rate, Hz
 RS_LPF_CUTOFF = 8  # desired cutoff frequency of the filter, Hz
@@ -350,8 +350,7 @@ def callback_pnp(pnp):
             FIND_PNP = True
 
             try:
-                pnp_trans = tfBuffer.
-                ('odom', 'enemy_pnp_link', rospy.Time(0))
+                pnp_trans = tfBuffer.lookup_transform('odom', 'enemy_pnp_link', rospy.Time(0))
             except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
                 print('PNP TF TRANS TRANS FAIL! check your code')
             #print pnp_trans
@@ -536,10 +535,10 @@ while not rospy.is_shutdown():
         global_gimbal_yaw = global_gimbal_yaw - 2 * np.pi
 
     
-    # if PNP_UKF_AVAILABLE or RS_UKF_AVAILABLE:
-    #     print 'RS','X',rs_pos_x,'Y',rs_pos_y, 'VX',rs_vel_x,'VY',rs_vel_y,'RDA',RS_DATA_AVAILABLE
-    #     print 'PNP','X',pnp_pos_x,'Y',pnp_pos_y, 'VX',pnp_vel_x,'VY',pnp_vel_x,'PDA',PNP_DATA_AVAILABLE
-    #     print 'KALMAN', 'X',ukf_out_pos_x,'Y',ukf_out_pos_y, 'VX',ukf_out_vel_x,'VY',ukf_out_vel_y
+    if PNP_UKF_AVAILABLE or RS_UKF_AVAILABLE:
+        print 'RS','X',rs_pos_x,'Y',rs_pos_y, 'VX',rs_vel_x,'VY',rs_vel_y,'RDA',RS_DATA_AVAILABLE
+        print 'PNP','X',pnp_pos_x,'Y',pnp_pos_y, 'VX',pnp_vel_x,'VY',pnp_vel_x,'PDA',PNP_DATA_AVAILABLE
+        print 'KALMAN', 'X',ukf_out_pos_x,'Y',ukf_out_pos_y, 'VX',ukf_out_vel_x,'VY',ukf_out_vel_y
 
     #   #
     #           #
