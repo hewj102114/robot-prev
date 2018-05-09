@@ -5,11 +5,13 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <image_transport/image_transport.h>
+#include <nav_msgs/Odometry.h>
 #include <ros/ros.h>
 #include <tf/transform_datatypes.h>
+#include <tf/transform_listener.h>
 #include <tf2_ros/transform_broadcaster.h>
-
 #include "robo_vision/AngleSolver.hpp"
+#include "robo_vision/Armor.h"
 #include "robo_vision/ArmorDetector.hpp"
 #include "robo_vision/ArmorInfo.h"
 #include "robo_vision/Predictor.hpp"
@@ -21,29 +23,27 @@ using namespace cv;
 
 Mat img_recv;
 int pre_seq = 0, cur_seq = 0;
+geometry_msgs::Pose enemy_pose;
 
-void image_callback(const sensor_msgs::ImageConstPtr &msg)
-{
+void image_callback(const sensor_msgs::ImageConstPtr &msg) {
     Mat img_temp = cv_bridge::toCvShare(msg, "bgr8")->image;
-    //ROS_INFO("recv");
-    if (img_temp.empty())
-    {
+    // ROS_INFO("recv");
+    if (img_temp.empty()) {
         ROS_ERROR("Could't not get image");
-    }
-    else
-    {
-        //cv::imshow("view", img_temp);
+    } else {
+        // cv::imshow("view", img_temp);
         img_recv = img_temp.clone();
         cur_seq = msg->header.seq;
     }
 }
 
-int main(int argc, char *argv[])
-{
+void cb_enemy(const nav_msgs::Odometry &msg) { enemy_pose = msg.pose.pose; }
+int main(int argc, char *argv[]) {
     // ros init
     ros::init(argc, argv, "robo_vision");
     ros::NodeHandle nh;
     ros::NodeHandle private_nh("~");
+    ros::Subscriber sub_enemy = nh.subscribe("enemy/pose", 1, &cb_enemy);
     // ros publisher
     ros::Publisher pub_armor_info =
         nh.advertise<robo_vision::ArmorInfo>("base/armor_info", 1);
@@ -51,7 +51,8 @@ int main(int argc, char *argv[])
         nh.advertise<geometry_msgs::PoseStamped>("base/armor_pose", 1);
     tf2_ros::TransformBroadcaster enemy_pnp_tf;
     image_transport::ImageTransport it(nh);
-    image_transport::Subscriber image_sub = it.subscribe("usbcamera/image", 1, &image_callback);
+    image_transport::Subscriber image_sub =
+        it.subscribe("usbcamera/image", 1, &image_callback);
     // load setting from fil
     char *config_file_name =
         "/home/ubuntu/robot/src/robo_vision/param/param_config.xml";
@@ -68,10 +69,8 @@ int main(int argc, char *argv[])
     private_nh.getParam("intrinsic_file", intrinsic_file);
     cout << intrinsic_file << endl;
     FileStorage fs(intrinsic_file, FileStorage::READ);
-    if (!fs.isOpened())
-    {
-        ROS_ERROR("Could not open the configuration file: %s",
-                  intrinsic_file);
+    if (!fs.isOpened()) {
+        ROS_ERROR("Could not open the configuration file: %s", intrinsic_file);
         return 0;
     }
     Mat cam_matrix_480, distortion_coeff_480;
@@ -84,7 +83,7 @@ int main(int argc, char *argv[])
     double r_data[] = {1, 0, 0, 0, 1, 0, 0, 0, 1};
     double t_data[] = {
         0, ptz_camera_y,
-        ptz_camera_z}; // ptz org position in camera coodinate system
+        ptz_camera_z};  // ptz org position in camera coodinate system
     Mat t_camera_ptz(3, 1, CV_64FC1, t_data);
     Mat r_camera_ptz(3, 3, CV_64FC1, r_data);
 
@@ -110,25 +109,22 @@ int main(int argc, char *argv[])
     ros::Rate rate(150);
     ROS_INFO("Image Consumer Start!");
 
-    //armor_detector_flag
+    // armor_detector_flag
     int armor_detector_flag = 0;
-    while (ros::ok())
-    {
-        //ROS_INFO("loop");
-        if (img_recv.empty() || pre_seq == cur_seq)
-        {
+    while (ros::ok()) {
+        // ROS_INFO("loop");
+        if (img_recv.empty() || pre_seq == cur_seq) {
             ros::spinOnce();
             rate.sleep();
             continue;
         }
         pre_seq = cur_seq;
         img_recv.copyTo(src);
-        if (setting.show_image)
-        {
+        if (setting.show_image) {
             src.copyTo(src_csm);
         }
 
-        //msg init
+        // msg init
         robo_vision::ArmorInfo msg_armor_info;
         msg_armor_info.header.stamp = ros::Time::now();
         msg_armor_info.header.frame_id = "base_link";
@@ -136,158 +132,203 @@ int main(int argc, char *argv[])
         vector<ArmorTarget> armor_target;
         double angle_x = 0.0, angle_y = 0.0;
 
-        armor_target = armor_detector.getTargetAera(src);
-
-        if (angle_solver.getAngle(armor_target, angle_x, angle_y) == true)
-        {
+        armor_detector.getAllTargetAera(src, armor_target);
+        msg_armor_info.armor_count = armor_target.size();
+        tf::TransformListener tf_;
+        if (armor_target.size() != 0) {
             miss_detection_cnt = 0;
-
-            double z = angle_solver.position_in_camera.at<double>(2, 0);
-            double y = angle_solver.position_in_camera.at<double>(1, 0);
-            double x = angle_solver.position_in_camera.at<double>(0, 0);
-
-            // publish armor info data
-            if (abs(angle_x) < 10 && abs(angle_y) < 10)
-            {
-                msg_armor_info.mode = 3;
-                armor_detector_flag = 3;
+            float distance = 0, idx = 0;
+            for (int i = 0; i < armor_target.size(); i++) {
+                robo_vision::Armor armor_msg;
+                angle_solver.getAngle(armor_target[i], angle_x, angle_y);
+                armor_msg.pose.x =
+                    angle_solver.position_in_camera.at<double>(0, 0);
+                armor_msg.pose.y =
+                    angle_solver.position_in_camera.at<double>(1, 0);
+                armor_msg.pose.z =
+                    angle_solver.position_in_camera.at<double>(2, 0);
+                armor_msg.angle.x = (angle_x + offset_anlge_x) * 100.0;
+                armor_msg.angle.y = (angle_y + offset_anlge_y) * 100.0;
+                tf::Stamped<tf::Pose> ident(
+                    tf::Transform(
+                        tf::createIdentityQuaternion(),
+                        tf::Vector3(armor_msg.pose.x, armor_msg.pose.y,
+                                    armor_msg.pose.z)),
+                    ros::Time(0), "camera_link");
+                tf::Stamped<tf::Pose> odom_pose;
+                try {
+                    tf_.transformPose("odom", ident, odom_pose);
+                } catch (tf::TransformException e) {
+                    ROS_WARN("Failed to compute odom pose, skipping scan (%s)",
+                             e.what());
+                    continue;
+                }
+                armor_msg.pose_odom.x = odom_pose.getOrigin().x();
+                armor_msg.pose_odom.y = odom_pose.getOrigin().y();
+                msg_armor_info.armor_list.push_back(armor_msg);
+                float cur_distance =
+                    sqrt(pow(enemy_pose.position.x - armor_msg.pose_odom.x, 2) +
+                         pow(enemy_pose.position.y - armor_msg.pose_odom.y, 2));
+                if (cur_distance < distance) {
+                    idx = i;
+                    distance = cur_distance;
+                }
             }
-            else
-            {
-                msg_armor_info.mode = 2;
-                armor_detector_flag = 2;
-            }
-            msg_armor_info.pose_image.x = armor_target.center.x;
-            msg_armor_info.pose_image.y = armor_target.center.y;
-            msg_armor_info.pose_global.position.x = x * 1.0 / 100;
-            msg_armor_info.pose_global.position.y = y * 1.0 / 100;
-            msg_armor_info.pose_global.position.z = z * 1.0 / 100;
 
-            int const_max = 2000;
-
-            msg_armor_info.angle.x = (angle_x + offset_anlge_x) * 100;
-            ; // yaw
-            msg_armor_info.angle.y = (angle_y + offset_anlge_y) * 100;
-            ; // pitch
-            if (msg_armor_info.angle.x > const_max)
-            {
-                msg_armor_info.angle.x = const_max;
-            }
-            if (msg_armor_info.angle.x < -const_max)
-            {
-                msg_armor_info.angle.x = -const_max;
+            if (distance < 0.5) {
+                // armor pub
             }
             pub_armor_info.publish(msg_armor_info);
 
-            // publish global pose data
-            geometry_msgs::PoseStamped armor_pose_msg;
-            armor_pose_msg.header.stamp = ros::Time::now();
-            armor_pose_msg.header.frame_id = "usb_camera_link";
-            armor_pose_msg.pose = msg_armor_info.pose_global;
-            pub_armor_pose.publish(armor_pose_msg);
-
-            // publish enemy tf transform
-            geometry_msgs::TransformStamped enemy_trans;
-            enemy_trans.header.stamp = ros::Time::now();
-            enemy_trans.header.frame_id = "usb_camera_link";
-            enemy_trans.child_frame_id = "enemy_pnp_link";
-            enemy_trans.transform.translation.x = x * 1.0 / 100;
-            enemy_trans.transform.translation.y = y * 1.0 / 100;
-            enemy_trans.transform.translation.z = z * 1.0 / 100;
-            enemy_trans.transform.rotation =
-            tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
-            enemy_pnp_tf.sendTransform(enemy_trans);
-
-            pre_angle_x = angle_x;
-            pre_angle_y = angle_y;
-
-            cout << "armor_detector_flag = " << armor_detector_flag << endl;
-            ROS_INFO("FIND ENERMY ARMOR");
         }
-        else
-        {
-            // publish zero global pose data
-            geometry_msgs::PoseStamped armor_pose_msg;
-            armor_pose_msg.header.stamp = ros::Time::now();
-            armor_pose_msg.header.frame_id = "usb_camera_link";
-            armor_pose_msg.pose.position.x = 0;
-            armor_pose_msg.pose.position.y = 0;
-            armor_pose_msg.pose.position.z = 0;
-            armor_pose_msg.pose.orientation.x = 0;
-            armor_pose_msg.pose.orientation.y = 0;
-            armor_pose_msg.pose.orientation.z = 0;
-            armor_pose_msg.pose.orientation.w = 1;
-            pub_armor_pose.publish(armor_pose_msg);
-
-            // miss <5 use history data
-            if (miss_detection_cnt < 5)
-            {
-                msg_armor_info.mode = miss_detection_cnt;
-                // msg_armor_info.angle.x = (pre_angle_x + offset_anlge_x) * 100;  // yaw
-                msg_armor_info.angle.y = (pre_angle_y + offset_anlge_y) * 100;
-            }
-            else
-            {
-                msg_armor_info.mode = 0;
-            }
-
-            msg_armor_info.mode = 1;
-            armor_detector_flag = 1;
-            pub_armor_info.publish(msg_armor_info);
-
-            cout << "armor_detector_flag = " << armor_detector_flag << endl;
-            ROS_INFO(" Miss the detctor ");
-            ++miss_detection_cnt;
+        else{
+            //lost
         }
 
-        ROS_INFO("angle_x = %f , angle_y = %f", msg_armor_info.angle.x, msg_armor_info.angle.y);
+        // if (angle_solver.getAngle(armor_target, angle_x, angle_y) == true) {
+        //     miss_detection_cnt = 0;
 
-        // draw result
-        if (setting.show_image > 0)
-        {
-            circle(src_csm, image_center, 3, CV_RGB(0, 255, 0), 2);
+        //     double z = angle_solver.position_in_camera.at<double>(2, 0);
+        //     double y = angle_solver.position_in_camera.at<double>(1, 0);
+        //     double x = angle_solver.position_in_camera.at<double>(0, 0);
 
-            circle(src_csm, armor_target.ld, 2, CV_RGB(255, 255, 0), 2);
-            circle(src_csm, armor_target.lu, 2, CV_RGB(255, 255, 0), 2);
-            circle(src_csm, armor_target.ru, 2, CV_RGB(255, 255, 0), 2);
-            circle(src_csm, armor_target.rd, 2, CV_RGB(255, 255, 0), 2);
-            line(src_csm, armor_target.ld, armor_target.lu, CV_RGB(0, 255, 0),
-                 1);
-            line(src_csm, armor_target.lu, armor_target.ru, CV_RGB(0, 255, 0),
-                 1);
-            line(src_csm, armor_target.ru, armor_target.rd, CV_RGB(0, 255, 0),
-                 1);
-            line(src_csm, armor_target.rd, armor_target.ld, CV_RGB(0, 255, 0),
-                 1);
+        //     // publish armor info data
+        //     if (abs(angle_x) < 10 && abs(angle_y) < 10) {
+        //         msg_armor_info.mode = 3;
+        //         armor_detector_flag = 3;
+        //     } else {
+        //         msg_armor_info.mode = 2;
+        //         armor_detector_flag = 2;
+        //     }
+        //     msg_armor_info.pose_image.x = armor_target.center.x;
+        //     msg_armor_info.pose_image.y = armor_target.center.y;
+        //     msg_armor_info.pose_global.position.x = x * 1.0 / 100;
+        //     msg_armor_info.pose_global.position.y = y * 1.0 / 100;
+        //     msg_armor_info.pose_global.position.z = z * 1.0 / 100;
 
-            Mat xyz = angle_solver.position_in_camera;
+        //     int const_max = 2000;
 
-            if (!xyz.empty())
-            {
-                char str[30];
-                sprintf(str, "%.1f, %.1f", msg_armor_info.angle.x,
-                        msg_armor_info.angle.y);
-                putText(src_csm, str, Point(10, 40),
-                        CV_FONT_HERSHEY_COMPLEX_SMALL, 1.3, CV_RGB(128, 255, 0),
-                        1);
-                char str2[30];
-                sprintf(str2, "%.1f, %.1f, %.1f", xyz.at<double>(0, 0),
-                        xyz.at<double>(1, 0), xyz.at<double>(2, 0));
-                putText(src_csm, str2, Point(10, 80),
-                        CV_FONT_HERSHEY_COMPLEX_SMALL, 1, CV_RGB(128, 255, 0),
-                        1);
-                Mat s = angle_solver.position_in_ptz;
-                sprintf(str2, "%.1f, %.1f, %.1f", s.at<double>(0, 0),
-                        s.at<double>(0, 1), s.at<double>(0, 2));
-                putText(src_csm, str2, Point(10, 120),
-                        CV_FONT_HERSHEY_COMPLEX_SMALL, 1, CV_RGB(128, 255, 0),
-                        1);
-            }
+        //     msg_armor_info.angle.x = (angle_x + offset_anlge_x) * 100;
+        //     ;  // yaw
+        //     msg_armor_info.angle.y = (angle_y + offset_anlge_y) * 100;
+        //     ;  // pitch
+        //     if (msg_armor_info.angle.x > const_max) {
+        //         msg_armor_info.angle.x = const_max;
+        //     }
+        //     if (msg_armor_info.angle.x < -const_max) {
+        //         msg_armor_info.angle.x = -const_max;
+        //     }
+        //     pub_armor_info.publish(msg_armor_info);
 
-            writer << src_csm;
-            imshow("result", src_csm);
-            waitKey(1);
-        }
+        //     // publish global pose data
+        //     geometry_msgs::PoseStamped armor_pose_msg;
+        //     armor_pose_msg.header.stamp = ros::Time::now();
+        //     armor_pose_msg.header.frame_id = "usb_camera_link";
+        //     armor_pose_msg.pose = msg_armor_info.pose_global;
+        //     pub_armor_pose.publish(armor_pose_msg);
+
+        //     // publish enemy tf transform
+        //     geometry_msgs::TransformStamped enemy_trans;
+        //     enemy_trans.header.stamp = ros::Time::now();
+        //     enemy_trans.header.frame_id = "usb_camera_link";
+        //     enemy_trans.child_frame_id = "enemy_pnp_link";
+        //     enemy_trans.transform.translation.x = x * 1.0 / 100;
+        //     enemy_trans.transform.translation.y = y * 1.0 / 100;
+        //     enemy_trans.transform.translation.z = z * 1.0 / 100;
+        //     enemy_trans.transform.rotation =
+        //         tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
+        //     enemy_pnp_tf.sendTransform(enemy_trans);
+
+        //     pre_angle_x = angle_x;
+        //     pre_angle_y = angle_y;
+
+        //     cout << "armor_detector_flag = " << armor_detector_flag << endl;
+        //     ROS_INFO("FIND ENERMY ARMOR");
+        // } else {
+        //     // publish zero global pose data
+        //     geometry_msgs::PoseStamped armor_pose_msg;
+        //     armor_pose_msg.header.stamp = ros::Time::now();
+        //     armor_pose_msg.header.frame_id = "usb_camera_link";
+        //     armor_pose_msg.pose.position.x = 0;
+        //     armor_pose_msg.pose.position.y = 0;
+        //     armor_pose_msg.pose.position.z = 0;
+        //     armor_pose_msg.pose.orientation.x = 0;
+        //     armor_pose_msg.pose.orientation.y = 0;
+        //     armor_pose_msg.pose.orientation.z = 0;
+        //     armor_pose_msg.pose.orientation.w = 1;
+        //     pub_armor_pose.publish(armor_pose_msg);
+
+        //     // miss <5 use history data
+        //     if (miss_detection_cnt < 5) {
+        //         msg_armor_info.mode = miss_detection_cnt;
+        //         // msg_armor_info.angle.x = (pre_angle_x + offset_anlge_x) *
+        //         // 100;  // yaw
+        //         msg_armor_info.angle.y = (pre_angle_y + offset_anlge_y) *
+        //         100;
+        //     } else {
+        //         msg_armor_info.mode = 0;
+        //     }
+
+        //     msg_armor_info.mode = 1;
+        //     armor_detector_flag = 1;
+        //     pub_armor_info.publish(msg_armor_info);
+
+        //     cout << "armor_detector_flag = " << armor_detector_flag << endl;
+        //     ROS_INFO(" Miss the detctor ");
+        //     ++miss_detection_cnt;
+        // }
+
+        // ROS_INFO("angle_x = %f , angle_y = %f", msg_armor_info.angle.x,
+        //          msg_armor_info.angle.y);
+
+        // // draw result
+        // if (setting.show_image > 0) {
+        //     circle(src_csm, image_center, 3, CV_RGB(0, 255, 0), 2);
+
+        //     circle(src_csm, armor_target.ld, 2, CV_RGB(255, 255, 0), 2);
+        //     circle(src_csm, armor_target.lu, 2, CV_RGB(255, 255, 0), 2);
+        //     circle(src_csm, armor_target.ru, 2, CV_RGB(255, 255, 0), 2);
+        //     circle(src_csm, armor_target.rd, 2, CV_RGB(255, 255, 0), 2);
+        //     line(src_csm, armor_target.ld, armor_target.lu, CV_RGB(0, 255,
+        //     0),
+        //          1);
+        //     line(src_csm, armor_target.lu, armor_target.ru, CV_RGB(0, 255,
+        //     0),
+        //          1);
+        //     line(src_csm, armor_target.ru, armor_target.rd, CV_RGB(0, 255,
+        //     0),
+        //          1);
+        //     line(src_csm, armor_target.rd, armor_target.ld, CV_RGB(0, 255,
+        //     0),
+        //          1);
+
+        //     Mat xyz = angle_solver.position_in_camera;
+
+        //     if (!xyz.empty()) {
+        //         char str[30];
+        //         sprintf(str, "%.1f, %.1f", msg_armor_info.angle.x,
+        //                 msg_armor_info.angle.y);
+        //         putText(src_csm, str, Point(10, 40),
+        //                 CV_FONT_HERSHEY_COMPLEX_SMALL, 1.3, CV_RGB(128, 255,
+        //                 0), 1);
+        //         char str2[30];
+        //         sprintf(str2, "%.1f, %.1f, %.1f", xyz.at<double>(0, 0),
+        //                 xyz.at<double>(1, 0), xyz.at<double>(2, 0));
+        //         putText(src_csm, str2, Point(10, 80),
+        //                 CV_FONT_HERSHEY_COMPLEX_SMALL, 1, CV_RGB(128, 255,
+        //                 0), 1);
+        //         Mat s = angle_solver.position_in_ptz;
+        //         sprintf(str2, "%.1f, %.1f, %.1f", s.at<double>(0, 0),
+        //                 s.at<double>(0, 1), s.at<double>(0, 2));
+        //         putText(src_csm, str2, Point(10, 120),
+        //                 CV_FONT_HERSHEY_COMPLEX_SMALL, 1, CV_RGB(128, 255,
+        //                 0), 1);
+        //     }
+
+        //     writer << src_csm;
+        //     imshow("result", src_csm);
+        //     waitKey(1);
+        // }
         ros::spinOnce();
         rate.sleep();
     }

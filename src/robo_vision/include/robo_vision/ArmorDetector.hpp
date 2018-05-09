@@ -89,7 +89,7 @@ class ArmorDetector {
   }
 
   struct ArmorTarget getTargetAera(const cv::Mat &src);
-  void getAllTargetAera(const cv::Mat &src,vector<ArmorTarget>& armor_target);
+  void getAllTargetAera(const cv::Mat &src,std::vector<ArmorTarget>& armor_target);
   void setLastResult(const cv::RotatedRect &rect) { _res_last = rect; }
   const cv::RotatedRect &getLastResult() const { return _res_last; }
 
@@ -132,7 +132,7 @@ class ArmorDetector {
 
   void chooseAllTarget(std::vector<cv::RotatedRect> &left_rects,
                     std::vector<cv::RotatedRect> &right_rects,
-                    vector<ArmorTarget> &armor_target);
+                    std::vector<ArmorTarget> &armor_target);
   /**
    * @brief boundingRRect Bounding of two ratate rectangle (minumum area that
    * contacts two inputs)

@@ -529,7 +529,6 @@ struct ArmorTarget ArmorDetector::getTargetAera(const cv::Mat &src)
 
 void ArmorDetector::getAllTargetAera(const cv::Mat &src,vector<ArmorTarget>& armor_target){
 	setImage(src);
-	ArmorTarget armor_target;
 	vector<RotatedRect> contours_rect;
 
 	findContourInEnemyColor(contours_rect);
@@ -538,7 +537,13 @@ void ArmorDetector::getAllTargetAera(const cv::Mat &src,vector<ArmorTarget>& arm
 	//cout<<"Size "<<contours_rect.size()<<"   "<<left_rects.size()<<"   "<<right_rects.size()<<endl;
 
 	chooseAllTarget(left_rects, right_rects, armor_target);
-	if (armor_target.size != 0){
-		
-	}
+	
+		for(int i=0;i<armor_target.size();i++){
+		armor_target[i].center = armor_target[i].center + Point2f(_dect_rect.x, _dect_rect.y);
+		armor_target[i].lu = armor_target[i].lu + Point2f(_dect_rect.x, _dect_rect.y);
+		armor_target[i].ld = armor_target[i].ld + Point2f(_dect_rect.x, _dect_rect.y);
+		armor_target[i].ru = armor_target[i].ru + Point2f(_dect_rect.x, _dect_rect.y);
+		armor_target[i].rd = armor_target[i].rd + Point2f(_dect_rect.x, _dect_rect.y);
+		}
+	
 }
