@@ -131,7 +131,7 @@ int main(int argc, char **argv)
 		{
 			ROS_INFO("Stage 0: Go to center!!!!!!");
 
-			target_pose.position.x = 4.0;
+			target_pose.position.x = 3.9;
 			target_pose.position.y = 2.5;
 			target_pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, 3.14);
 
@@ -164,13 +164,18 @@ int main(int argc, char **argv)
 			if (robo_ctl.finish_goto_center == true)
 			{
 				// 没有发现敌人
-				if (true)
+				target_pose.position.x = 3.8;
+				target_pose.position.y = 2.5;
+				target_pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
+
+				robo_ctl.sendNavGoal(target_pose);
+				if (robo_ctl.finish_navigation.data)
 				{
 					work_state = 1;
 				}
 				else
 				{
-					work_state = 2;
+					//work_state = 2;
 				}
 			}
 			robo_ctl.sendMCUMsg(1, 1, robo_ctl.cmd_vel_msg.v_x, robo_ctl.cmd_vel_msg.v_y, robo_ctl.cmd_vel_msg.v_yaw, 0, 0, 0);

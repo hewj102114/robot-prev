@@ -60,6 +60,6 @@ double PIDctrl::calc(double &curErr)
 		output=outMax*output/abs(output);
 	}
 	
-	if(stop==true) output=0;
+	if(stop==true) output=output/5;
 	return output;
 }
