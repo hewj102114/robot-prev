@@ -60,7 +60,7 @@ from geometry_msgs.msg import TransformStamped
 from geometry_msgs.msg import PoseStamped
 from robo_control.msg import GameInfo
 
-T_PNP_DELAY = 0.26 #系统延时系数，单位秒
+T_PNP_DELAY = 0.06 #系统延时系数，单位秒
 T_RS_DELAY = 0.06
 RS_INIT = True
 PNP_INIT = True
@@ -68,6 +68,7 @@ PNP_INIT = True
 ENABLE_PREDICT = True
 PNP_LAST_AVAILABLE = False
 PNP_DATA_AVAILABLE = False
+PNP_LAST_VEL = False
 RS_LAST_AVAILABLE = False
 RS_DATA_AVAILABLE = False
 RS_PREDICT_INIT = True
@@ -87,7 +88,7 @@ RS_CLOSE_THRESH = 10 #判断rs是否瞄准到了正确目标
 LOST_TRESH = 10
 
 #LOW PASS FILTER
-LPF_ORDER = 8
+LPF_ORDER = 6
 PNP_LPS_SAMPLING_FREQ = 100.0       # sample rate, Hz
 PNP_LPF_CUTOFF = 4  # desired cutoff frequency of the filter, Hz
 
@@ -98,7 +99,7 @@ lpf_input_list = deque([0,0,0,0,0],maxlen = 6)
 
 ukf_result = []
 robo_vel_x = robo_vel_y = 0
-pnp_vel_x = pnp_vel_y = pnp_pos_x = pnp_pos_y = last_pnp_pos_x = last_pnp_pos_y = 0
+pnp_vel_x = pnp_vel_y = pnp_pos_x = pnp_pos_y = last_pnp_pos_x = last_pnp_pos_y = last_pnp_vel_x = last_pnp_vel_y = 0
 odom_yaw = odom_pos_x = odom_pos_y = odom_vel_x = odom_vel_y = 0
 rs_pos_x = rs_pos_y = rs_vel_x = rs_vel_y = last_rs_pos_x = last_rs_pos_y = 0
 gimbal_yaw = gimbal_dtheta = 0
@@ -170,18 +171,19 @@ def UKFRsInit(in_dt, init_x):
 def UKFPnpInit(in_dt, init_x):
     global ukf_pnp
 
-    p_std_x, p_std_y = 0.04, 0.04
-    v_std_x, v_std_y = 0.3, 0.3
+    p_std_x, p_std_y = 0.4, 0.4
+    v_std_x, v_std_y = 1, 1
+    a_std_x, a_std_y = 30, 30
     dt = in_dt 
 
 
-    sigmas = MerweScaledSigmaPoints(4, alpha=.1, beta=2., kappa=-1.0)
-    ukf_pnp = UKF(dim_x=4, dim_z=4, fx=f_cv, hx=h_cv, dt=dt, points=sigmas)
+    sigmas = MerweScaledSigmaPoints(6, alpha=.1, beta=2., kappa=-1.0)
+    ukf_pnp = UKF(dim_x=6, dim_z=6, fx=f_cv_9x9, hx=h_cv_6, dt=dt, points=sigmas)
     ukf_pnp.x = init_x
-    ukf_pnp.R = np.diag([p_std_x, v_std_x, p_std_y, v_std_y]) 
-    ukf_pnp.Q[0:2, 0:2] = Q_discrete_white_noise(2, dt=dt, var=2)
-    ukf_pnp.Q[2:4, 2:4] = Q_discrete_white_noise(2, dt=dt, var=2)
-    ukf_pnp.P = np.diag([8, 1.5  ,5, 1.5])
+    ukf_pnp.R = np.diag([p_std_x, v_std_x, a_std_x, p_std_y, v_std_y, a_std_y]) 
+    ukf_pnp.Q[0:3, 0:3] = Q_discrete_white_noise(3, dt=dt, var=2)
+    ukf_pnp.Q[3:6, 3:6] = Q_discrete_white_noise(3, dt=dt, var=2)
+    ukf_pnp.P = np.diag([8, 1.5 ,0.2 ,5, 1.5, 0.2])
 
 def TFinit():
     global tfBuffer
@@ -327,7 +329,7 @@ def callback_pnp(pnp):
     global pnp_pos_x, pnp_pos_y, aim_target_x, aim_target_y, pnp_lost_counter, last_pnp_pos_x, last_pnp_pos_y, pnp_vel_x, pnp_vel_y
     global pnp_last_time, pnp_lost_time, tfBuffer, pnp_trans, ukf_pnp
     global PNP_DATA_AVAILABLE, PNP_LAST_AVAILABLE, PNP_INIT, ENABLE_PREDICT, PNP_PREDICT_INIT,PNP_UKF_AVAILABLE
-    global ukf_pnp_pos_x,ukf_pnp_pos_y, ukf_pnp_vel_x,ukf_pnp_vel_y
+    global ukf_pnp_pos_x,ukf_pnp_pos_y, ukf_pnp_vel_x,ukf_pnp_vel_y,PNP_LAST_VEL,last_pnp_vel_x,last_pnp_vel_y
 
     if PNP_INIT == True:
         print "pnp callback init Finished!"
@@ -361,6 +363,7 @@ def callback_pnp(pnp):
         if np.sqrt((aim_target_x - pnp_pos_x) ** 2 + (aim_target_y - pnp_pos_y) ** 2) > PNP_CLOSE_THRESH:
             FIND_PNP = False
             PNP_LAST_AVAILABLE = False
+            PNP_LAST_VEL = False
             
 
         if FIND_PNP == True:
@@ -371,8 +374,20 @@ def callback_pnp(pnp):
                 #last data available, use to update the speed
                 pnp_vel_x = (pnp_pos_x - last_pnp_pos_x) / dt
                 pnp_vel_y = (pnp_pos_y - last_pnp_pos_y) / dt
-                PNP_DATA_AVAILABLE = True
+
+
+                if PNP_LAST_VEL:
+                    pnp_acc_x = (pnp_vel_x - last_pnp_vel_x)/dt
+                    pnp_acc_y = (pnp_vel_y - last_pnp_vel_y)/dt
+                    #print pnp_vel_x,last_pnp_vel_x,pnp_acc_x, pnp_acc_y
+                    #if pnp_acc_x>1.2 or pnp_acc_y >1.2:
+                    #     PNP_DATA_AVAILABLE = False
+                    # else:
+                    PNP_DATA_AVAILABLE = True
                     
+                last_pnp_vel_x = pnp_vel_x
+                last_pnp_vel_y = pnp_vel_y
+                PNP_LAST_VEL = True
                 #print 'x',pnp_pos_x,last_pnp_pos_x,pnp_vel_x,'y',pnp_pos_y,last_pnp_pos_y,pnp_vel_y
             else:
                 PNP_DATA_AVAILABLE = False
@@ -386,26 +401,27 @@ def callback_pnp(pnp):
             pnp_lost_counter = pnp_lost_counter + 1
             pnp_lost_time.append(dt)
             PNP_LAST_AVAILABLE = False
+            PNP_LAST_VEL = False
             PNP_DATA_AVAILABLE = False
         #print 'PNP_DATA_AVAILABLE',PNP_DATA_AVAILABLE,'PNP_LAST_AVAILABLE',PNP_LAST_AVAILABLE
         pnp_last_time = pnp_time
 
         PNP_UKF_AVAILABLE = False
         if PNP_PREDICT_INIT and PNP_DATA_AVAILABLE:
-            UKFPnpInit(0.01, np.array([pnp_pos_x, pnp_vel_x, pnp_pos_y, pnp_vel_y]))
+            UKFPnpInit(0.01, np.array([pnp_pos_x, pnp_vel_x,pnp_acc_x, pnp_pos_y, pnp_vel_y, pnp_acc_y]))
             ukf_pnp_pos_x = ukf_pnp.x[0]
             ukf_pnp_vel_x = ukf_pnp.x[1]
-            ukf_pnp_pos_y = ukf_pnp.x[2]
-            ukf_pnp_vel_y = ukf_pnp.x[3]  
+            ukf_pnp_pos_y = ukf_pnp.x[3]
+            ukf_pnp_vel_y = ukf_pnp.x[4]  
             PNP_PREDICT_INIT = False
         elif PNP_DATA_AVAILABLE:
-            pnp_ukf_input = [pnp_pos_x, pnp_vel_x, pnp_pos_y, pnp_vel_y]
+            pnp_ukf_input = [pnp_pos_x, pnp_vel_x, pnp_acc_x, pnp_pos_y, pnp_vel_y, pnp_acc_y]
             ukf_pnp.predict()
             ukf_pnp.update(pnp_ukf_input)
             ukf_pnp_pos_x = ukf_pnp.x[0]
             ukf_pnp_vel_x = ukf_pnp.x[1]
-            ukf_pnp_pos_y = ukf_pnp.x[2]
-            ukf_pnp_vel_y = ukf_pnp.x[3]
+            ukf_pnp_pos_y = ukf_pnp.x[3]
+            ukf_pnp_vel_y = ukf_pnp.x[4]
 
             #print 'PNP','X',pnp_pos_x,'Y',pnp_pos_y, 'VX',pnp_vel_x,'VY',pnp_vel_x,'PDA',PNP_DATA_AVAILABLE
             PNP_UKF_AVAILABLE = True
