@@ -220,9 +220,9 @@ void RoboNav::get_vel(geometry_msgs::Twist &msg_vel)
     }
     double cur_yaw =tf::getYaw(cur_pose.orientation);
     double dyaw;
-    ROS_INFO("cur_yaw: %f, dyaw %f ",cur_yaw, dyaw);
+    
     if (fix_angle>0 && cur_yaw <0 && (fix_angle- cur_yaw)> 3.14){
-        dyaw = cur_yaw + 6.28-fix_angle;
+        dyaw = -(cur_yaw + 6.28-fix_angle);
     }
     else if (fix_angle<0 && cur_yaw >0 && (cur_yaw-fix_angle)> 3.14){
         dyaw = fix_angle  + 6.28- cur_yaw;
@@ -230,7 +230,7 @@ void RoboNav::get_vel(geometry_msgs::Twist &msg_vel)
     else{
         dyaw = fix_angle - cur_yaw;
     }
-
+    ROS_INFO("cur_yaw: %f, dyaw %f ",cur_yaw, dyaw);
     vel_yaw = pid_yaw.calc(dyaw);
     if (abs(dyaw) < 0.1)
         vel_yaw = 0;
