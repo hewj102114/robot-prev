@@ -91,7 +91,7 @@ def DetectInit():
     saver.restore(sess, checkpoint)
 
 # TODO: 检测结果不稳定, 1. 通过装甲板的颜色识别. 2. 通过车身整体颜色识别
-def enemy_self_identify(rgb_image, robo_bboxes, show_image=False):
+def enemy_self_identify(rgb_image, robo_bboxes, armor_bboxes, show_image=True):
     enemy = []
     for robo_bbox in robo_bboxes:
         cx, cy, w, h = robo_bbox
@@ -215,6 +215,7 @@ def TsDet_callback(infrared_image, pointcloud):
     # 0 -> red, 1 -> wheel, 2 -> blue
     # 检测到车并且检测到轮子, 进入此 if, 目的是为了减少误检率
     robo_bboxes = []
+    armor_bboxes = []
     if len(final_boxes) > 0 and np.any(final_class == 0) and (np.any(final_class == 1) or np.any(final_class == 2)):
         #judge detect how much robots
         robot_final_idx = np.array(np.where(final_class == 0))
@@ -227,6 +228,7 @@ def TsDet_callback(infrared_image, pointcloud):
             # armor_bbox = robo_bbox
             armor_cx, armor_cy, armor_w, armor_h = armor_bbox[0], armor_bbox[1], armor_bbox[2], armor_bbox[3]
             robo_bboxes.append(robo_bbox)
+            armor_bboxes.append(armor_bbox)
             # 用于提取点云的范围大小
             pointcloud_w = int(3*armor_w/5)
             pointcloud_h = int(3*armor_h/5)
@@ -297,7 +299,7 @@ def TsDet_callback(infrared_image, pointcloud):
             if mc.DEBUG:
                 print('enemy position:', avgX, avgY, avgZ)
 
-        enemy_self_list = enemy_self_identify(align_image, robo_bboxes)
+        enemy_self_list = enemy_self_identify(align_image, robo_bboxes, armor_bboxes)
         # 检测完敌人, 对得到的距离信息进行处理
         # tf 包转换
         br = tf2_ros.TransformBroadcaster()
