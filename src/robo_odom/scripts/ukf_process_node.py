@@ -247,11 +247,11 @@ while not rospy.is_shutdown():
     ukf_out_pos_y = ukf.x[3]
     ukf_vel_y = ukf.x[4]
     # print ukf.x
-    print 'UWB x:', pos_uwb_x, 'UWB y:', pos_uwb_y
-    print 'FUSE x', pos_fuse_x, 'FUSE y', pos_fuse_y
-    print 'KALMAN x', ukf_out_pos_x, 'KALMAN y', ukf_out_pos_y
-    print 'KV x', ukf_vel_x, 'KV y', ukf_vel_y
-    print 'yaw',ukf_yaw
+    # print 'UWB x:', pos_uwb_x, 'UWB y:', pos_uwb_y
+    # print 'FUSE x', pos_fuse_x, 'FUSE y', pos_fuse_y
+    # print 'KALMAN x', ukf_out_pos_x, 'KALMAN y', ukf_out_pos_y
+    # print 'KV x', ukf_vel_x, 'KV y', ukf_vel_y
+    # print 'yaw',ukf_yaw
 
     ukf_pos = Odometry()
     ukf_pos.header.frame_id = "odom"
