@@ -133,7 +133,7 @@ int main(int argc, char *argv[])
         msg_armor_info.header.stamp = ros::Time::now();
         msg_armor_info.header.frame_id = "base_link";
 
-        ArmorTarget armor_target;
+        vector<ArmorTarget> armor_target;
         double angle_x = 0.0, angle_y = 0.0;
 
         armor_target = armor_detector.getTargetAera(src);

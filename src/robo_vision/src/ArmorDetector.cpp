@@ -380,6 +380,36 @@ void ArmorDetector::findTargetInContours(const vector<RotatedRect> &contours_rec
 #endif
 }
 
+void ArmorDetector::chooseAllTarget(std::vector<cv::RotatedRect> &left_rects,
+                    std::vector<cv::RotatedRect> &right_rects,
+                    vector<ArmorTarget> &armor_target){
+	if (left_rects.size() < 1)
+	{
+		_is_lost = true;
+		return;
+	}
+	for (int i = 0; i < left_rects.size(); i++)
+	{
+		RotatedRect rect = boundingRRect(left_rects[i], right_rects[i]);
+
+		double wh_ratio = rect.size.width / rect.size.height;
+		if (wh_ratio > 3 || wh_ratio < 1)
+			continue;
+		ArmorTarget armor;
+		Point2f lu, ld, ru, rd;
+		getRotatedRectPoint(left_rects[i], lu, ld, ru, rd);
+		armor.lu = (lu+ru)/2.0;
+		armor.ld = (ld+rd)/2.0;
+		getRotatedRectPoint(right_rects[i], lu, ld, ru, rd);
+		armor.ru =  (lu+ru)/2.0;
+		armor.rd =  (ld+rd)/2.0;
+		armor.center = (left_rects[i].center + right_rects[i].center) / 2;
+		armor.rect = boundingRRect(left_rects[i], right_rects[i]);
+		armor_target.push_back(armor);
+	}
+
+}
+
 void ArmorDetector::chooseTarget(vector<RotatedRect> &left_rects, vector<RotatedRect> &right_rects, struct ArmorTarget &armor_target)
 {
 
@@ -399,11 +429,9 @@ void ArmorDetector::chooseTarget(vector<RotatedRect> &left_rects, vector<Rotated
 		if (wh_ratio > 3 || wh_ratio < 1)
 			continue;
 
-		const Size2f size_last = _res_last.size;
-		if (_is_lost == false && size_last.width > _para.min_light_delta_w)
+		if (_is_lost == false && _res_last.size.width > _para.min_light_delta_w)
 		{
-			double percent = 0.50 * size_last.width;
-			if (abs(rect.size.width - size_last.width) > percent)
+			if (abs(rect.center.x - _res_last.center.x) >rect.size.width)
 			{
 				//#ifdef COUT_LOG
 				//cout << "refused 0 : size_last.width: " << size_last.width << "\tcur width: "  << rect.size.width << endl;
@@ -496,4 +524,21 @@ struct ArmorTarget ArmorDetector::getTargetAera(const cv::Mat &src)
 			_res_last = RotatedRect();
 	}
 	return armor_target;
+}
+
+
+void ArmorDetector::getAllTargetAera(const cv::Mat &src,vector<ArmorTarget>& armor_target){
+	setImage(src);
+	ArmorTarget armor_target;
+	vector<RotatedRect> contours_rect;
+
+	findContourInEnemyColor(contours_rect);
+	vector<RotatedRect> left_rects, right_rects;
+	findTargetInContours(contours_rect, left_rects, right_rects);
+	//cout<<"Size "<<contours_rect.size()<<"   "<<left_rects.size()<<"   "<<right_rects.size()<<endl;
+
+	chooseAllTarget(left_rects, right_rects, armor_target);
+	if (armor_target.size != 0){
+		
+	}
 }

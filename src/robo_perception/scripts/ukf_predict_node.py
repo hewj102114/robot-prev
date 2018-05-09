@@ -60,7 +60,7 @@ from geometry_msgs.msg import TransformStamped
 from geometry_msgs.msg import PoseStamped
 from robo_control.msg import GameInfo
 
-T_PNP_DELAY = 0.26 #系统延时系数，单位秒
+T_PNP_DELAY = 0.28 #系统延时系数，单位秒
 T_RS_DELAY = 0.06
 RS_INIT = True
 PNP_INIT = True
@@ -87,12 +87,12 @@ RS_CLOSE_THRESH = 10 #判断rs是否瞄准到了正确目标
 LOST_TRESH = 10
 
 #LOW PASS FILTER
-LPF_ORDER = 8
+LPF_ORDER = 7
 PNP_LPS_SAMPLING_FREQ = 100.0       # sample rate, Hz
-PNP_LPF_CUTOFF = 4  # desired cutoff frequency of the filter, Hz
+PNP_LPF_CUTOFF = 10  # desired cutoff frequency of the filter, Hz
 
 RS_LPS_SAMPLING_FREQ = 100.0       # sample rate, Hz
-RS_LPF_CUTOFF = 8  # desired cutoff frequency of the filter, Hz
+RS_LPF_CUTOFF = 30  # desired cutoff frequency of the filter, Hz
 
 lpf_input_list = deque([0,0,0,0,0],maxlen = 6)
 
@@ -154,8 +154,8 @@ def h_cv_6(x):
 def UKFRsInit(in_dt, init_x):
     global ukf_rs
 
-    p_std_x, p_std_y = 0.01, 0.01
-    v_std_x, v_std_y = 0.01, 0.01
+    p_std_x, p_std_y = 0.002, 0.002
+    v_std_x, v_std_y = 0.002, 0.002
     dt = in_dt 
 
 
@@ -494,7 +494,7 @@ while not rospy.is_shutdown():
         ukf_out_vel_y = ukf_rs_vel_y
         UNABLE_PREDICT = 0
         TEMPERAL_LOST = 0
-    elif PNP_UKF_AVAILABLE:  
+    elif PNP_UKF_AVAILABLE and 0:  
         ukf_out_pos_x = ukf_pnp_pos_x  
         ukf_out_vel_x = ukf_pnp_vel_x
         ukf_out_pos_y = ukf_pnp_pos_y 
