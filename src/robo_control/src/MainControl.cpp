@@ -141,7 +141,7 @@ int main(int argc, char **argv)
 					// 1. going center
 					target_pose.position.x = 4.0;
 					target_pose.position.y = 2.5;
-					target_pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, 3.14);
+					target_pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
 					robo_ctl.sendNavGoal(target_pose);
 					if (robo_ctl.finish_navigation.data)	// arrive center
 					{
