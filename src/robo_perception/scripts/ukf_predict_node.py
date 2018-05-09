@@ -44,6 +44,8 @@ import time
 from numpy.random import randn
 import numpy as np
 from tf.transformations import quaternion_from_euler, euler_from_quaternion
+from scipy.signal import butter, lfilter, freqz
+from collections import deque
 
 from filterpy.kalman import UnscentedKalmanFilter as UKF
 from filterpy.kalman import KalmanFilter
@@ -58,7 +60,8 @@ from geometry_msgs.msg import TransformStamped
 from geometry_msgs.msg import PoseStamped
 from robo_control.msg import GameInfo
 
-T_DELAY = 0.32 #系统延时系数，单位秒
+T_PNP_DELAY = 0.6 #系统延时系数，单位秒
+T_RS_DELAY = 0.06
 RS_INIT = True
 PNP_INIT = True
 
@@ -84,6 +87,16 @@ PNP_CLOSE_THRESH = 10 #判断pnp是否瞄准到了正确目标
 RS_CLOSE_THRESH = 10 #判断rs是否瞄准到了正确目标
 LOST_TRESH = 10
 
+#LOW PASS FILTER
+LPF_ORDER = 6
+PNP_LPS_SAMPLING_FREQ = 100.0       # sample rate, Hz
+PNP_LPF_CUTOFF = 3.3  # desired cutoff frequency of the filter, Hz
+
+RS_LPS_SAMPLING_FREQ = 100.0       # sample rate, Hz
+RS_LPF_CUTOFF = 8  # desired cutoff frequency of the filter, Hz
+
+lpf_input_list = deque([0,0,0,0,0],maxlen = 6)
+
 ukf_result = []
 robo_vel_x = robo_vel_y = 0
 pnp_vel_x = pnp_vel_y = pnp_pos_x = pnp_pos_y = last_pnp_pos_x = last_pnp_pos_y = last_pnp_vel_x = last_pnp_vel_y = 0
@@ -97,6 +110,17 @@ rs_lost_time = []
 pnp_lost_time = []
 aim_target_x = aim_target_y = 0
 
+def butter_lowpass(cutoff, fs, order=5):
+    nyq = 0.5 * fs
+    normal_cutoff = cutoff / nyq
+    b, a = butter(order, normal_cutoff, btype='low', analog=False)
+    return b, a
+
+
+def butter_lowpass_filter(data, cutoff, fs, order=5):
+    b, a = butter_lowpass(cutoff, fs, order=order)
+    y = lfilter(b, a, data)
+    return y
 
 # S（i+1） = S（i） + V*dt
 def f_cv(x, dt):
@@ -147,9 +171,9 @@ def UKFRsInit(in_dt, init_x):
 def UKFPnpInit(in_dt, init_x):
     global ukf_pnp
 
-    p_std_x, p_std_y = 0.6, 0.6
-    v_std_x, v_std_y = 5, 5
-    a_std_x, a_std_y = 60, 60
+    p_std_x, p_std_y = 0.4, 0.4
+    v_std_x, v_std_y = 0.5, 0.5
+    a_std_x, a_std_y = 30, 30
     dt = in_dt 
 
 
@@ -326,7 +350,8 @@ def callback_pnp(pnp):
             FIND_PNP = True
 
             try:
-                pnp_trans = tfBuffer.lookup_transform('odom', 'enemy_pnp_link', rospy.Time(0))
+                pnp_trans = tfBuffer.
+                ('odom', 'enemy_pnp_link', rospy.Time(0))
             except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
                 print('PNP TF TRANS TRANS FAIL! check your code')
             #print pnp_trans
@@ -355,7 +380,10 @@ def callback_pnp(pnp):
                 if PNP_LAST_VEL:
                     pnp_acc_x = (pnp_vel_x - last_pnp_vel_x)/dt
                     pnp_acc_y = (pnp_vel_y - last_pnp_vel_y)/dt
-                    print pnp_vel_x,last_pnp_vel_x,pnp_acc_x, pnp_acc_y
+                    #print pnp_vel_x,last_pnp_vel_x,pnp_acc_x, pnp_acc_y
+                    #if pnp_acc_x>1.2 or pnp_acc_y >1.2:
+                    #     PNP_DATA_AVAILABLE = False
+                    # else:
                     PNP_DATA_AVAILABLE = True
                     
                 last_pnp_vel_x = pnp_vel_x
@@ -394,7 +422,8 @@ def callback_pnp(pnp):
             ukf_pnp_pos_x = ukf_pnp.x[0]
             ukf_pnp_vel_x = ukf_pnp.x[1]
             ukf_pnp_pos_y = ukf_pnp.x[3]
-            ukf_pnp_vel_y = ukf_pnp.x[4] 
+            ukf_pnp_vel_y = ukf_pnp.x[4]
+
             #print 'PNP','X',pnp_pos_x,'Y',pnp_pos_y, 'VX',pnp_vel_x,'VY',pnp_vel_x,'PDA',PNP_DATA_AVAILABLE
             PNP_UKF_AVAILABLE = True
 
@@ -471,11 +500,11 @@ while not rospy.is_shutdown():
     global rs_pos_x, rs_pos_y, rs_vel_x, rs_vel_y, last_pnp_pos_x, last_pnp_pos_y, rs_lost_counter, pnp_lost_counter
     global LOST_TRESH, TEMPERAL_LOST,RS_DATA_AVAILABLE, PNP_DATA_AVAILABLE,gimbal_dtheta
     global TARGET_RECETIVED, ukf_rs_pos_x,ukf_rs_pos_y, ukf_rs_vel_x,ukf_rs_vel_y,ukf_pnp_pos_x,ukf_pnp_pos_y, ukf_pnp_vel_x,ukf_pnp_vel_y
-    global PNP_UKF_AVAILABLE,RS_UKF_AVAILABLE
+    global PNP_UKF_AVAILABLE,RS_UKF_AVAILABLE, lpf_input_list, LPF_CUTOFF, LPS_SAMPLING_FREQ, LPF_ORDER
 
 
     # 选择传感器预测优先级
-    if RS_UKF_AVAILABLE and 0:
+    if RS_UKF_AVAILABLE:
         ukf_out_pos_x = ukf_rs_pos_x  
         ukf_out_vel_x = ukf_rs_vel_x
         ukf_out_pos_y = ukf_rs_pos_y 
@@ -523,7 +552,7 @@ while not rospy.is_shutdown():
     # distance_to_enemy
     # Bullet flying time = 17m/s
 
-    if PNP_UKF_AVAILABLE or RS_UKF_AVAILABLE:
+    if RS_UKF_AVAILABLE:
         #计算相对速度
         relative_speed_x = ukf_out_vel_x - odom_vel_x
         relative_speed_y = ukf_out_vel_y - odom_vel_y
@@ -541,7 +570,35 @@ while not rospy.is_shutdown():
         #计算子弹飞行时间
         T_FLY = distance_to_enemy / BULLET_SPEED
         #反解算出需要的预瞄角度
-        predict_angle = np.arctan(V_verticle * (T_DELAY + T_FLY) / distance_to_enemy)
+        predict_angle = np.arctan(V_verticle * (T_RS_DELAY + T_FLY) / distance_to_enemy)
+
+        lpf_input_list.append(predict_angle)
+        lpf_out_list = butter_lowpass_filter(lpf_input_list, RS_LPF_CUTOFF, RS_LPS_SAMPLING_FREQ, LPF_ORDER)
+        predict_angle = lpf_out_list[5]
+
+    elif PNP_UKF_AVAILABLE:
+        #计算相对速度
+        relative_speed_x = ukf_out_vel_x - odom_vel_x
+        relative_speed_y = ukf_out_vel_y - odom_vel_y
+        #print 'relative_speed_x',relative_speed_x,'relative_speed_y',relative_speed_y
+        #计算水平于枪口方向的速度,trans to ploe axis then calculate verticle speed
+        # target_speed = np.sqrt(relative_speed_x**2 + relative_speed_y**2)
+        # target_theta = np.arctan2(relative_speed_y , relative_speed_x)
+        # V_verticle = target_speed * np.sin(2 * np.pi - (global_gimbal_yaw + target_theta + 90))
+        # print 'target_speed',target_speed, 'target_theta',target_theta,'V_verticle',V_verticle
+        V_verticle = relative_speed_x * np.sin(global_gimbal_yaw) + relative_speed_y * np.cos(global_gimbal_yaw)
+        #print 'V_verticle',V_verticle,'global_gimbal_yaw',global_gimbal_yaw,'relative_speed_x',relative_speed_x,'relative_speed_y',relative_speed_y
+        #print V_verticle, odom_yaw
+        #计算检测到的目标和我自身的距离
+        distance_to_enemy = np.sqrt((ukf_out_pos_x - (odom_pos_x + 0.22*np.cos(odom_yaw)))**2 +(ukf_out_pos_y - (odom_pos_y+ 0.22*np.cos(odom_yaw)))**2)
+        #计算子弹飞行时间
+        T_FLY = distance_to_enemy / BULLET_SPEED
+        #反解算出需要的预瞄角度
+        predict_angle = np.arctan(V_verticle * (T_PNP_DELAY + T_FLY) / distance_to_enemy)
+
+        lpf_input_list.append(predict_angle)
+        lpf_out_list = butter_lowpass_filter(lpf_input_list, PNP_LPF_CUTOFF, PNP_LPS_SAMPLING_FREQ, LPF_ORDER)
+        predict_angle = lpf_out_list[5]
 
     predict_pos = Odometry()
     predict_pos.header.frame_id = "predict"
@@ -556,27 +613,28 @@ while not rospy.is_shutdown():
     
     predict_pos.pose.pose.orientation.x = UNABLE_PREDICT    
     predict_pos.pose.pose.orientation.y = aimtheta
-    if TARGET_RECETIVED == True:
-        
+    if TARGET_RECETIVED == True: 
         #dyaw between target and gimbal
         gimbal_dtheta = aimtheta - global_gimbal_yaw 
         # print 'gimbal_dtheta',gimbal_dtheta/np.pi*180,'aimtheta', aimtheta, 'global_gimbal_yaw',global_gimbal_yaw/np.pi*180
         predict_pos.pose.pose.orientation.z = gimbal_dtheta
     else:
         predict_pos.pose.pose.orientation.z = 999 
+
     #send predict when ukf avaliable
     if PNP_UKF_AVAILABLE or RS_UKF_AVAILABLE:
         predict_pos.pose.pose.orientation.w = -predict_angle/np.pi*180
     elif pnp_lost_counter > LOST_TRESH and rs_lost_counter > LOST_TRESH:
         predict_pos.pose.pose.orientation.w = 0
-        
+
+
     #MAX PREDICT ANGLE
     if predict_pos.pose.pose.orientation.w >= MAX_PREDICT_ANGLE:
         predict_pos.pose.pose.orientation.w = MAX_PREDICT_ANGLE
-    elif predict_pos.pose.pose.orientation.w <=  - MAX_PREDICT_ANGLE:
+    elif predict_pos.pose.pose.orientation.w <= - MAX_PREDICT_ANGLE:
         predict_pos.pose.pose.orientation.w = -MAX_PREDICT_ANGLE
 
-    # predict_pos.pose.pose.orientation.w = 0
+    #predict_pos.pose.pose.orientation.w = 0
 
     pub_ukf_vel.publish(predict_pos) 
 

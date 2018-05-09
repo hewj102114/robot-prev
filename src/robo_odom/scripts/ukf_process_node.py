@@ -234,6 +234,7 @@ subwheel = rospy.Subscriber(
 subyaw = rospy.Subscriber('ukf/yaw', Odometry, callback_yaw)
 
 pub_ukf_pos = rospy.Publisher('ukf/pos', Odometry, queue_size=1)
+pub_odom = rospy.Publisher('odom', Odometry, queue_size=1)
 
 rate = rospy.Rate(80)  # 80hz
 while not rospy.is_shutdown():
@@ -247,12 +248,13 @@ while not rospy.is_shutdown():
     ukf_out_pos_y = ukf.x[3]
     ukf_vel_y = ukf.x[4]
     # print ukf.x
-    print 'UWB x:', pos_uwb_x, 'UWB y:', pos_uwb_y
-    print 'FUSE x', pos_fuse_x, 'FUSE y', pos_fuse_y
-    print 'KALMAN x', ukf_out_pos_x, 'KALMAN y', ukf_out_pos_y
-    print 'KV x', ukf_vel_x, 'KV y', ukf_vel_y
-    print 'yaw',ukf_yaw
+    # print 'UWB x:', pos_uwb_x, 'UWB y:', pos_uwb_y
+    # print 'FUSE x', pos_fuse_x, 'FUSE y', pos_fuse_y
+    # print 'KALMAN x', ukf_out_pos_x, 'KALMAN y', ukf_out_pos_y
+    # print 'KV x', ukf_vel_x, 'KV y', ukf_vel_y
+    # print 'yaw',ukf_yaw
 
+    # send ukf/pos      
     ukf_pos = Odometry()
     ukf_pos.header.frame_id = "odom"
     ukf_pos.header.stamp = rospy.Time.now()
@@ -270,5 +272,36 @@ while not rospy.is_shutdown():
     ukf_pos.twist.twist.linear.y = ukf_vel_y
 
     pub_ukf_pos.publish(ukf_pos)
+
+    odom = Odometry()
+    odom.header.frame_id = "odom"
+    odom.header.child_frame_id = "base_link"
+    odom.header.stamp = rospy.Time.now()
+    odom.pose.pose.position.x = ukf_out_pos_x + np.cos(ukf_yaw)*0.13
+    odom.pose.pose.position.y = ukf_out_pos_y + np.sin(ukf_yaw)*0.13
+    odom.pose.pose.position.z = 0
+    odom.pose.pose.orientation.x = qn_ukf[0]
+    odom.pose.pose.orientation.y = qn_ukf[1]
+    odom.pose.pose.orientation.z = qn_ukf[2]
+    odom.pose.pose.orientation.w = qn_ukf[3]
+    odom.twist.twist.linear.x = ukf_vel_x
+    odom.twist.twist.linear.y = ukf_vel_y
+	pub_odom.publish(odom)
+
+
+    #send odom tf
+    br = tf2_ros.TransformBroadcaster()
+    t = TransformStamped()
+    t.header.stamp = rospy.Time.now()
+    t.header.frame_id = 'odom'
+    t.child_frame_id = 'base_link'
+    t.transform.translation.x = pose.pose.position.x+cos(cur_yaw)*0.13
+    t.transform.translation.y = pose.pose.position.y+sin(cur_yaw)*0.13
+    t.transform.translation.z = 0
+    t.transform.rotation.x = qn_ukf[0]
+    t.transform.rotation.y = qn_ukf[1]
+    t.transform.rotation.z = qn_ukf[2]
+    t.transform.rotation.w = qn_ukf[3]
+    br.sendTransform(t) 
 
     rate.sleep()

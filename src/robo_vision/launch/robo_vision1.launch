@@ -4,7 +4,7 @@
     <param name="dev_name" value="/dev/ttyVideo0"/>
     <param name="image_width" value="640"/>
     <param name="image_height" value="480"/>
-    <param name="exposure_time" value="64"/>
+    <param name="exposure_time" value="63"/>
 </node>
 <node pkg="robo_vision" type="armor_detect" name="armor_detect" output="screen">
     <param name="intrinsic_file" value="/home/ubuntu/robot/src/robo_vision/param/camera-01-640.xml"/>

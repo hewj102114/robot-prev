@@ -34,7 +34,7 @@ int main(int argc, char **argv) {
     cap.getCurrentSetting();
     cap.setExposureTime(0, exposure_time);  // settings->exposure_time);
     cap.startStream();
-    ROS_INFO("Image Producer Start!");
+    ROS_INFO("[robo_vision_readcam -- %s ]Image Producer Start!",dev_name.c_str());
     cv::Mat img;
     while (ros::ok()) {
         ros::Time start=ros::Time::now();

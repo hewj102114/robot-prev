@@ -20,21 +20,26 @@ using namespace std;
 using namespace cv;
 
 Mat img_recv;
-int pre_seq=0,cur_seq=0;
+int pre_seq = 0, cur_seq = 0;
 
-void image_callback(const sensor_msgs::ImageConstPtr& msg) {
+void image_callback(const sensor_msgs::ImageConstPtr &msg)
+{
     Mat img_temp = cv_bridge::toCvShare(msg, "bgr8")->image;
-ROS_INFO("recv");
-    if (img_temp.empty()) {
+    //ROS_INFO("recv");
+    if (img_temp.empty())
+    {
         ROS_ERROR("Could't not get image");
-    } else {
+    }
+    else
+    {
         //cv::imshow("view", img_temp);
         img_recv = img_temp.clone();
-        cur_seq=msg->header.seq;
+        cur_seq = msg->header.seq;
     }
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[])
+{
     // ros init
     ros::init(argc, argv, "robo_vision");
     ros::NodeHandle nh;
@@ -45,25 +50,26 @@ int main(int argc, char* argv[]) {
     ros::Publisher pub_armor_pose =
         nh.advertise<geometry_msgs::PoseStamped>("base/armor_pose", 1);
     tf2_ros::TransformBroadcaster enemy_pnp_tf;
-image_transport::ImageTransport it(nh);
+    image_transport::ImageTransport it(nh);
     image_transport::Subscriber image_sub = it.subscribe("usbcamera/image", 1, &image_callback);
     // load setting from fil
-    char* config_file_name =
+    char *config_file_name =
         "/home/ubuntu/robot/src/robo_vision/param/param_config.xml";
     Settings setting(config_file_name);
 
     // angle offset
     double offset_anlge_x = 0;
     double offset_anlge_y = 0;
-    private_nh.getParam("offset_anlge_x",offset_anlge_x);
-    private_nh.getParam("offset_anlge_y",offset_anlge_y);
+    private_nh.getParam("offset_anlge_x", offset_anlge_x);
+    private_nh.getParam("offset_anlge_y", offset_anlge_y);
 
     // get robot id & choose the calibration file
     string intrinsic_file;
-    private_nh.getParam("intrinsic_file",intrinsic_file);
-    cout<<intrinsic_file<<endl;
+    private_nh.getParam("intrinsic_file", intrinsic_file);
+    cout << intrinsic_file << endl;
     FileStorage fs(intrinsic_file, FileStorage::READ);
-    if (!fs.isOpened()) {
+    if (!fs.isOpened())
+    {
         ROS_ERROR("Could not open the configuration file: %s",
                   intrinsic_file);
         return 0;
@@ -78,7 +84,7 @@ image_transport::ImageTransport it(nh);
     double r_data[] = {1, 0, 0, 0, 1, 0, 0, 0, 1};
     double t_data[] = {
         0, ptz_camera_y,
-        ptz_camera_z};  // ptz org position in camera coodinate system
+        ptz_camera_z}; // ptz org position in camera coodinate system
     Mat t_camera_ptz(3, 1, CV_64FC1, t_data);
     Mat r_camera_ptz(3, 3, CV_64FC1, r_data);
 
@@ -86,7 +92,6 @@ image_transport::ImageTransport it(nh);
                              r_camera_ptz, 13.5, 5.8);
     Point2f image_center = Point2f(cam_matrix_480.at<double>(0, 2),
                                    cam_matrix_480.at<double>(1, 2));
-
 
     double pre_angle_x = 0.0, pre_angle_y = 0.0;
 
@@ -107,18 +112,18 @@ image_transport::ImageTransport it(nh);
 
     //armor_detector_flag
     int armor_detector_flag = 0;
-    while (ros::ok()) 
+    while (ros::ok())
     {
-        ROS_INFO("loop");
-        if (img_recv.empty() || pre_seq==cur_seq) 
+        //ROS_INFO("loop");
+        if (img_recv.empty() || pre_seq == cur_seq)
         {
             ros::spinOnce();
             rate.sleep();
             continue;
         }
-        pre_seq=cur_seq;
+        pre_seq = cur_seq;
         img_recv.copyTo(src);
-        if (setting.show_image) 
+        if (setting.show_image)
         {
             src.copyTo(src_csm);
         }
@@ -133,8 +138,7 @@ image_transport::ImageTransport it(nh);
 
         armor_target = armor_detector.getTargetAera(src);
 
-  
-        if (angle_solver.getAngle(armor_target, angle_x, angle_y) == true) 
+        if (angle_solver.getAngle(armor_target, angle_x, angle_y) == true)
         {
             miss_detection_cnt = 0;
 
@@ -143,28 +147,28 @@ image_transport::ImageTransport it(nh);
             double x = angle_solver.position_in_camera.at<double>(0, 0);
 
             // publish armor info data
-            if(abs(angle_x) < 10 && abs(angle_y) < 10)
+            if (abs(angle_x) < 10 && abs(angle_y) < 10)
             {
-               msg_armor_info.mode = 3;
-               armor_detector_flag = 3;
+                msg_armor_info.mode = 3;
+                armor_detector_flag = 3;
             }
             else
             {
-               msg_armor_info.mode = 2;
-	           armor_detector_flag = 2;
+                msg_armor_info.mode = 2;
+                armor_detector_flag = 2;
             }
             msg_armor_info.pose_image.x = armor_target.center.x;
             msg_armor_info.pose_image.y = armor_target.center.y;
             msg_armor_info.pose_global.position.x = x * 1.0 / 100;
             msg_armor_info.pose_global.position.y = y * 1.0 / 100;
             msg_armor_info.pose_global.position.z = z * 1.0 / 100;
-            
+
             int const_max = 2000;
-            
+
             msg_armor_info.angle.x = (angle_x + offset_anlge_x) * 100;
-            ;  // yaw
+            ; // yaw
             msg_armor_info.angle.y = (angle_y + offset_anlge_y) * 100;
-            ;  // pitch
+            ; // pitch
             if (msg_armor_info.angle.x > const_max)
             {
                 msg_armor_info.angle.x = const_max;
@@ -191,17 +195,15 @@ image_transport::ImageTransport it(nh);
             enemy_trans.transform.translation.y = y * 1.0 / 100;
             enemy_trans.transform.translation.z = z * 1.0 / 100;
             enemy_trans.transform.rotation =
-            tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
+                tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
             enemy_pnp_tf.sendTransform(enemy_trans);
-
-            
 
             pre_angle_x = angle_x;
             pre_angle_y = angle_y;
-            
+
             cout << "armor_detector_flag = " << armor_detector_flag << endl;
             ROS_INFO("FIND ENERMY ARMOR");
-        } 
+        }
         else
         {
             // publish zero global pose data
@@ -217,21 +219,20 @@ image_transport::ImageTransport it(nh);
             armor_pose_msg.pose.orientation.w = 1;
             pub_armor_pose.publish(armor_pose_msg);
 
-             // miss <5 use history data
+            // miss <5 use history data
             if (miss_detection_cnt < 5)
             {
-                msg_armor_info.mode    = miss_detection_cnt;
+                msg_armor_info.mode = miss_detection_cnt;
                 // msg_armor_info.angle.x = (pre_angle_x + offset_anlge_x) * 100;  // yaw
                 msg_armor_info.angle.y = (pre_angle_y + offset_anlge_y) * 100;
-                
-            } 
-            else 
+            }
+            else
             {
                 msg_armor_info.mode = 0;
             }
 
             msg_armor_info.mode = 1;
-	        armor_detector_flag = 1;
+            armor_detector_flag = 1;
             pub_armor_info.publish(msg_armor_info);
 
             cout << "armor_detector_flag = " << armor_detector_flag << endl;
@@ -239,13 +240,11 @@ image_transport::ImageTransport it(nh);
             ++miss_detection_cnt;
         }
 
-        ROS_INFO("angle_x = %f , angle_y = %f" , msg_armor_info.angle.x, msg_armor_info.angle.y);
-
-
-
+        ROS_INFO("angle_x = %f , angle_y = %f", msg_armor_info.angle.x, msg_armor_info.angle.y);
 
         // draw result
-        if (setting.show_image > 0) {
+        if (setting.show_image > 0)
+        {
             circle(src_csm, image_center, 3, CV_RGB(0, 255, 0), 2);
 
             circle(src_csm, armor_target.ld, 2, CV_RGB(255, 255, 0), 2);
@@ -253,17 +252,18 @@ image_transport::ImageTransport it(nh);
             circle(src_csm, armor_target.ru, 2, CV_RGB(255, 255, 0), 2);
             circle(src_csm, armor_target.rd, 2, CV_RGB(255, 255, 0), 2);
             line(src_csm, armor_target.ld, armor_target.lu, CV_RGB(0, 255, 0),
-                 2);
+                 1);
             line(src_csm, armor_target.lu, armor_target.ru, CV_RGB(0, 255, 0),
-                 2);
+                 1);
             line(src_csm, armor_target.ru, armor_target.rd, CV_RGB(0, 255, 0),
-                 2);
+                 1);
             line(src_csm, armor_target.rd, armor_target.ld, CV_RGB(0, 255, 0),
-                 2);
+                 1);
 
             Mat xyz = angle_solver.position_in_camera;
 
-            if (!xyz.empty()) {
+            if (!xyz.empty())
+            {
                 char str[30];
                 sprintf(str, "%.1f, %.1f", msg_armor_info.angle.x,
                         msg_armor_info.angle.y);

@@ -90,8 +90,53 @@ def DetectInit():
     sess = tf.Session(config=config)
     saver.restore(sess, checkpoint)
 
+def judge_blue_red_hsv(img):
+    # robo_image -> bgr
+    # https://blog.csdn.net/wanggsx918/article/details/23272669
+    image_hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    
+    H, S, V = cv2.split(image_hsv)
+    LowerBlue = np.array([100, 43, 46])
+    UpperBlue = np.array([124, 255, 255])
+    
+    LowerRed1 = np.array([0, 43, 46])
+    UpperRed1 = np.array([10, 255, 255])
+    
+    LowerRed2 = np.array([156, 43, 46])
+    UpperRed2 = np.array([180, 255, 255])
+    
+    blue_mask = cv2.inRange(image_hsv, LowerBlue, UpperBlue)
+    red_mask1 = cv2.inRange(image_hsv, LowerRed1, UpperRed1)
+    red_mask2 = cv2.inRange(image_hsv, LowerRed2, UpperRed2)
+    blue_num = np.sum(blue_mask)
+    red_num = np.sum(red_mask1) + np.sum(red_mask2)
+    if red_num >= blue_num:
+        result = 1      # enemy
+    else:
+        result = 0      # self
+    return result
+
+def judge_blue_red_sum(robo_image):
+    h_, w_, c_ = robo_image.shape
+    # print(robo_image)
+    b_channel = np.sum(robo_image[int(h_/2):-1,:,0])
+    g_channel = np.sum(robo_image[int(h_/2):-1,:,1])
+    r_channel = np.sum(robo_image[int(h_/2):-1,:,2])
+    if b_channel < r_channel:
+        result = 1       # enemy
+    else:
+        result = 0       # self
+    return result
+
+def in_range(num, low, up):
+    if num < low:
+        num = low
+    if num > up:
+        num = up
+    return num
+
 # TODO: 检测结果不稳定, 1. 通过装甲板的颜色识别. 2. 通过车身整体颜色识别
-def enemy_self_identify(rgb_image, robo_bboxes, armor_bboxes, show_image=True):
+def enemy_self_identify(rgb_image, robo_bboxes, show_image=False, save_image = False):
     enemy = []
     for robo_bbox in robo_bboxes:
         cx, cy, w, h = robo_bbox
@@ -102,27 +147,28 @@ def enemy_self_identify(rgb_image, robo_bboxes, armor_bboxes, show_image=True):
         alinged_cy = (cy - 240) * (848.0 / resize_const) + 240.0
 
         aligned_robo_bbox = [aligned_cx, alinged_cy, aligned_w, aligned_h]
+
         x_min = int(aligned_robo_bbox[0] - aligned_robo_bbox[2]/2)
         x_max = int(aligned_robo_bbox[0] + aligned_robo_bbox[2]/2)
         y_min = int(aligned_robo_bbox[1] - aligned_robo_bbox[3]/2)
         y_max = int(aligned_robo_bbox[1] + aligned_robo_bbox[3]/2)
+
+        x_min = in_range(x_min, 0, 848)
+        x_max = in_range(x_max, 0, 848)
+        y_min = in_range(y_min, 0, 424)
+        y_max = in_range(y_max, 0, 424)
+        
         # rgb -> bgr
         robo_image = rgb_image[y_min:y_max, x_min:x_max, ::-1]
-        h_, w_, c_ = robo_image.shape
-        # print(robo_image)
-        b_channel = np.sum(robo_image[int(h_/2):-1,:,0])
-        g_channel = np.sum(robo_image[int(h_/2):-1,:,1])
-        r_channel = np.sum(robo_image[int(h_/2):-1,:,2])
-        if b_channel < r_channel:
-            judge = 1       # enemy
-        else:
-            judge = 0       # self
+        result = judge_blue_red_hsv(robo_image)
+        result = enemy.append(result)
+        if save_image:
+            cv2.imwrite("/home/ubuntu/robot/src/robo_perception/scripts/visual/red_blue.jpg", rgb_image[:,:,::-1])
         if show_image:
             cv2.rectangle(rgb_image, (int(x_min), int(y_min)), (int(x_max), int(y_max)), (255,0,0), 2)
             # cv2.rectangle(im, (int(x_min), int(y_min)), (int(x_max), int(y_max)), (255,0,0), 2)
             cv2.imshow('rgb', rgb_image)
-            cv2.imshow('robo_image', robo_image)
-        enemy.append(judge)
+            # cv2.imshow('robo_image', robo_image)     
     return enemy
 
 def filter_distance(distance):
@@ -268,28 +314,6 @@ def TsDet_callback(infrared_image, pointcloud):
             avgX = np.mean(positionX)
             avgY = np.mean(positionY)
             avgZ = np.mean(positionZ)
-            # sorted_avgX = np.sort(positionX)
-            # sorted_avgY = np.sort(positionY)
-            # sorted_avgZ = np.sort(positionZ)
-            
-            # print("sorted_avgX:", sorted_avgX)
-            # print("sorted_avgY:", sorted_avgY)
-            # print("sorted_avgZ:", sorted_avgZ)
-            # print("sorted_avgZ min to max:", np.min(sorted_avgZ), np.max(sorted_avgZ), np.max(sorted_avgZ) - np.min(sorted_avgZ))
-            
-            
-
-            # filter_avgX = filter_distance(positionX)
-            # filter_avgY = filter_distance(positionY)
-            # filter_avgZ = filter_distance(positionZ)
-
-            # avgX = filter_avgX
-            # avgY = filter_avgY
-            # avgZ = filter_avgZ
-
-            # print("filter_avgX, avgX", filter_avgX, avgX)
-            # print("filter_avgY, avgY", filter_avgY, avgY)
-            # print("filter_avgZ, avgZ", filter_avgZ, avgZ)
             
             if np.isnan(avgX) or np.isnan(avgY) or np.isnan(avgZ):
                 print("continue")
@@ -298,8 +322,7 @@ def TsDet_callback(infrared_image, pointcloud):
                 robo_position.append([avgX, avgY, avgZ])
             if mc.DEBUG:
                 print('enemy position:', avgX, avgY, avgZ)
-
-        enemy_self_list = enemy_self_identify(align_image, robo_bboxes, armor_bboxes)
+        enemy_self_list = enemy_self_identify(align_image, robo_bboxes)
         # 检测完敌人, 对得到的距离信息进行处理
         # tf 包转换
         br = tf2_ros.TransformBroadcaster()
@@ -337,7 +360,7 @@ def TsDet_callback(infrared_image, pointcloud):
                 t.child_frame_id = str_enemy_self + str(blue_idx)
                 enemy.team.data = str_enemy_self + str(blue_idx)
                 blue_idx = blue_idx + 1
-            print(str_enemy_self)
+            print("enemy or self: ", str_enemy_self)
             t.transform.translation.x = robo_position[object_idx, 2]
             t.transform.translation.y = -robo_position[object_idx, 0]
             t.transform.translation.z = robo_position[object_idx, 1]
