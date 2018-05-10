@@ -11,7 +11,8 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   std_msgs
   visualization_msgs
-#   message_generation
+  message_generation
+  robo_perception
 )
 
 add_definitions(-std=c++11) 
@@ -62,7 +63,8 @@ catkin_package(
     sensor_msgs
     std_msgs
     visualization_msgs
-    # message_runtime
+    message_runtime
+    robo_perception
 )
 
 include_directories(

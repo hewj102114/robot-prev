@@ -15,11 +15,11 @@
   <cols>3</cols>
   <dt>d</dt>
   <data>
-  516.254236 0.000000 336.443126 0.000000 516.290051 234.713875 0.000000 0.000000 1.000000</data></Camera_Matrix>
+  498.5121 0.000000 341.0656 0.000000 499.7970 232.3922 0.000000 0.000000 1.000000</data></Camera_Matrix>
 <Distortion_Coefficients type_id="opencv-matrix">
   <rows>5</rows>
   <cols>1</cols>
   <dt>d</dt>
   <data>
-  0.034687 -0.010392 0.003716 -0.003891 0.000000</data></Distortion_Coefficients>
+  0.038318 -0.097820 -0.001353 0.002234 0.000000</data></Distortion_Coefficients>
 </opencv_storage>

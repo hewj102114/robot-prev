@@ -27,12 +27,16 @@ geometry_msgs::Pose enemy_pose;
 geometry_msgs::Vector3 pre_enemy_pose;
 geometry_msgs::Vector3 pre_angle;
 
-void image_callback(const sensor_msgs::ImageConstPtr &msg) {
+void image_callback(const sensor_msgs::ImageConstPtr &msg)
+{
     Mat img_temp = cv_bridge::toCvShare(msg, "bgr8")->image;
     // ROS_INFO("recv");
-    if (img_temp.empty()) {
+    if (img_temp.empty())
+    {
         ROS_ERROR("Could't not get image");
-    } else {
+    }
+    else
+    {
         // cv::imshow("view", img_temp);
         img_recv = img_temp.clone();
         cur_seq = msg->header.seq;
@@ -40,7 +44,8 @@ void image_callback(const sensor_msgs::ImageConstPtr &msg) {
 }
 
 void cb_enemy(const nav_msgs::Odometry &msg) { enemy_pose = msg.pose.pose; }
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
     // ros init
     ros::init(argc, argv, "robo_vision");
     ros::NodeHandle nh;
@@ -72,7 +77,8 @@ int main(int argc, char *argv[]) {
     private_nh.getParam("intrinsic_file", intrinsic_file);
     cout << intrinsic_file << endl;
     FileStorage fs(intrinsic_file, FileStorage::READ);
-    if (!fs.isOpened()) {
+    if (!fs.isOpened())
+    {
         ROS_ERROR("Could not open the configuration file: %s", intrinsic_file);
         return 0;
     }
@@ -86,12 +92,12 @@ int main(int argc, char *argv[]) {
     double r_data[] = {1, 0, 0, 0, 1, 0, 0, 0, 1};
     double t_data[] = {
         0, ptz_camera_y,
-        ptz_camera_z};  // ptz org position in camera coodinate system
+        ptz_camera_z}; // ptz org position in camera coodinate system
     Mat t_camera_ptz(3, 1, CV_64FC1, t_data);
     Mat r_camera_ptz(3, 3, CV_64FC1, r_data);
 
     AngleSolver angle_solver(cam_matrix_480, distortion_coeff_480, t_camera_ptz,
-                             r_camera_ptz, 13.5, 5.8);
+                             r_camera_ptz, 14.5, 6.2);
     Point2f image_center = Point2f(cam_matrix_480.at<double>(0, 2),
                                    cam_matrix_480.at<double>(1, 2));
 
@@ -111,12 +117,15 @@ int main(int argc, char *argv[]) {
 
     ros::Rate rate(150);
     ROS_INFO("Image Consumer Start!");
+    tf::TransformListener* tf_ = new tf::TransformListener();
 
     // armor_detector_flag
     int armor_detector_flag = 0;
-    while (ros::ok()) {
+    while (ros::ok())
+    {
         // ROS_INFO("loop");
-        if (img_recv.empty() || pre_seq == cur_seq) {
+        if (img_recv.empty() || pre_seq == cur_seq)
+        {
             ros::spinOnce();
             rate.sleep();
             continue;
@@ -132,57 +141,80 @@ int main(int argc, char *argv[]) {
 
         vector<ArmorTarget> armor_target;
         double angle_x = 0.0, angle_y = 0.0;
-
+        ros::Time start = ros::Time::now();
         armor_detector.getAllTargetAera(src, armor_target);
         msg_armor_info.armor_count = armor_target.size();
-        tf::TransformListener tf_;
-        if (armor_target.size() != 0) {
+
+        if (armor_target.size() != 0)
+        {
             miss_detection_cnt = 0;
             float distance = 10000, idx = -1;
-            for (int i = 0; i < armor_target.size(); i++) {
+            for (int i = 0; i < armor_target.size(); i++)
+            {
                 robo_vision::Armor armor_msg;
                 angle_solver.getAngle(armor_target[i], angle_x, angle_y);
                 armor_msg.pose.x =
-                    angle_solver.position_in_camera.at<double>(0, 0);
+                    angle_solver.position_in_camera.at<double>(0, 0)/100.0;
                 armor_msg.pose.y =
-                    angle_solver.position_in_camera.at<double>(1, 0);
+                    angle_solver.position_in_camera.at<double>(1, 0)/100.0;
                 armor_msg.pose.z =
-                    angle_solver.position_in_camera.at<double>(2, 0);
+                    angle_solver.position_in_camera.at<double>(2, 0)/100.0;
                 armor_msg.angle.x = (angle_x + offset_anlge_x) * 100.0;
                 armor_msg.angle.y = (angle_y + offset_anlge_y) * 100.0;
-                tf::Stamped<tf::Pose> ident(
-                    tf::Transform(
-                        tf::createIdentityQuaternion(),
-                        tf::Vector3(armor_msg.pose.x, armor_msg.pose.y,
-                                    armor_msg.pose.z)),
-                    ros::Time(0), "camera_link");
-                tf::Stamped<tf::Pose> odom_pose;
-                try {
-                    tf_.transformPose("odom", ident, odom_pose);
-                } catch (tf::TransformException e) {
-                    ROS_WARN("Failed to compute odom pose, skipping scan (%s)",
-                             e.what());
+
+                // tf::StampedTransform transform;
+                // try
+                // {
+                //     tf_listener.lookupTransform("usb_camera_link", "odom",
+                //                              ros::Time(0), transform);
+                // }
+                // catch (tf::TransformException &ex)
+                // {
+                //     ROS_ERROR("%s", ex.what());
+                //     break;
+                // }
+
+                tf::Stamped<tf::Pose> ident(tf::Transform(tf::createIdentityQuaternion(),
+                                                          tf::Vector3(armor_msg.pose.x, armor_msg.pose.y, armor_msg.pose.z)),
+                                            ros::Time(), "usb_camera_link");
+                tf::Stamped<tf::Pose> pose;
+
+                try
+                {
+
+                    tf_->transformPose("odom", ident, pose);
+                }
+                catch (tf::TransformException &e)
+                {
+                    ROS_ERROR("Couldn't transform "
+                              "even though the message notifier is in use");
                     break;
                 }
-                armor_msg.pose_odom.x = odom_pose.getOrigin().x();
-                armor_msg.pose_odom.y = odom_pose.getOrigin().y();
+                ROS_INFO("%f %f", pose.getOrigin().x(), pose.getOrigin().y());
+                armor_msg.pose_odom.x = pose.getOrigin().x();
+                armor_msg.pose_odom.y = pose.getOrigin().y();
                 armor_msg.distance =
                     sqrt(pow(enemy_pose.position.x - armor_msg.pose_odom.x, 2) +
                          pow(enemy_pose.position.y - armor_msg.pose_odom.y, 2));
                 msg_armor_info.armor_list.push_back(armor_msg);
 
-                if (armor_msg.distance < distance) {
+                if (armor_msg.distance < distance)
+                {
                     idx = i;
                     distance = armor_msg.distance;
                 }
             }
-            if (idx == -1) continue;
+            if (idx == -1)
+                continue;
 
             // the Fittest Armor
             float pre_cur_dis;
-            if (pre_enemy_pose.x == 0) {
+            if (pre_enemy_pose.x == 0)
+            {
                 pre_cur_dis = 0;
-            } else {
+            }
+            else
+            {
                 pre_cur_dis = sqrt(pow(msg_armor_info.armor_list[idx].pose.x -
                                            pre_enemy_pose.x,
                                        2) +
@@ -190,7 +222,8 @@ int main(int argc, char *argv[]) {
                                            pre_enemy_pose.y,
                                        2));
             }
-            if (distance < 0.5 && pre_cur_dis < 0.5) {
+            if (1)//distance < 0.5 && pre_cur_dis < 0.5
+            {
                 msg_armor_info.pose_camera =
                     msg_armor_info.armor_list[idx].pose;
                 msg_armor_info.pose_odom =
@@ -199,39 +232,50 @@ int main(int argc, char *argv[]) {
                 msg_armor_info.pose_image.x = armor_target[idx].center.x;
                 msg_armor_info.pose_image.y = armor_target[idx].center.y;
                 if (abs(msg_armor_info.angle.x) < 10 &&
-                    abs(msg_armor_info.angle.y) < 10) {
-                    msg_armor_info.mode = 3;  //对准
-                } else {
-                    msg_armor_info.mode = 2;  //没有对准
+                    abs(msg_armor_info.angle.y) < 10)
+                {
+                    msg_armor_info.mode = 3; //对准
                 }
-                if (msg_armor_info.angle.x > 2000) {
+                else
+                {
+                    msg_armor_info.mode = 2; //没有对准
+                }
+                if (msg_armor_info.angle.x > 2000)
+                {
                     msg_armor_info.angle.x = 2000;
                 }
-                if (msg_armor_info.angle.x < -2000) {
+                if (msg_armor_info.angle.x < -2000)
+                {
                     msg_armor_info.angle.x = -2000;
                 }
             }
 
             pub_armor_info.publish(msg_armor_info);
-
-        } else {
+        }
+        else
+        {
             // lost
             miss_detection_cnt++;
-            if (miss_detection_cnt < 5) {
+            if (miss_detection_cnt < 5)
+            {
                 // msg_armor_info.angle.x = (pre_angle_x + offset_anlge_x) *
                 // 100;  // yaw
                 msg_armor_info.angle.y = pre_angle.y;
-            } else {
+            }
+            else
+            {
                 pre_enemy_pose.x = 0;
                 pre_enemy_pose.y = 0;
             }
-            msg_armor_info.mode = 1;  //没检测到目标
+            msg_armor_info.mode = 1; //没检测到目标
             pub_armor_info.publish(msg_armor_info);
         }
 
-        if (setting.show_image > 0) {
+        if (setting.show_image > 0)
+        {
             circle(src_csm, image_center, 3, CV_RGB(0, 255, 0), 2);
-            for (int i = 0; i < armor_target.size(); i++) {
+            for (int i = 0; i < armor_target.size(); i++)
+            {
                 circle(src_csm, armor_target[i].ld, 2, CV_RGB(255, 255, 0), 2);
                 circle(src_csm, armor_target[i].lu, 2, CV_RGB(255, 255, 0), 2);
                 circle(src_csm, armor_target[i].ru, 2, CV_RGB(255, 255, 0), 2);
@@ -256,22 +300,23 @@ int main(int argc, char *argv[]) {
             putText(src_csm, str, Point(10, 40), CV_FONT_HERSHEY_COMPLEX_SMALL,
                     1.3, CV_RGB(128, 255, 0), 1);
             char str2[30];
-            sprintf(str2, "pose in cam %.1f, %.1f, %.1f", msg_armor_info.pose_camera.x,
-                     msg_armor_info.pose_camera.y,  msg_armor_info.pose_camera.z);
+            sprintf(str2, "pose in cam %.3f, %.3f, %.3f", msg_armor_info.pose_camera.x,
+                    msg_armor_info.pose_camera.y, msg_armor_info.pose_camera.z);
             putText(src_csm, str2, Point(10, 80), CV_FONT_HERSHEY_COMPLEX_SMALL,
                     1, CV_RGB(128, 255, 0), 1);
             Mat s = angle_solver.position_in_ptz;
-            sprintf(str2, "pose in odom %.1f, %.1f, %.1f", msg_armor_info.pose_odom.x,
+            sprintf(str2, "pose in odom %.3f, %.3f, %.3f", msg_armor_info.pose_odom.x,
                     msg_armor_info.pose_odom.y, msg_armor_info.pose_odom.z);
             putText(src_csm, str2, Point(10, 120),
                     CV_FONT_HERSHEY_COMPLEX_SMALL, 1, CV_RGB(128, 255, 0), 1);
-                    writer << src_csm;
-        imshow("result", src_csm);
-        waitKey(1);
+            writer << src_csm;
+            imshow("result", src_csm);
+            waitKey(1);
         }
+        ros::Time end = ros::Time::now();
+        ROS_INFO("Time %f", (end - start).toSec());
     }
 
     ros::spinOnce();
     rate.sleep();
 }
-

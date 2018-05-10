@@ -14,6 +14,7 @@
 #include <opencv2/opencv.hpp>
 #include "sensor_msgs/LaserScan.h"
 #include "robo_navigation/PID.h"
+#include "robo_perception/ObjectList.h"
 using namespace std;
 #define OFFSET 0 //rplidar front offset
 #define DEFFENCE 0.40
@@ -35,6 +36,7 @@ class RoboNav
     PIDctrl pid_yaw;
     tf::TransformListener *tf_;
     std_msgs::Bool state;
+    robo_perception::ObjectList enemy_information;
     /*obs_point record the valid obs point in four directions
      * for rplidar (360 degree and 360 points), point steps by one degree
      *  obs_point[0][]  -----forward  [0][0]=20
@@ -53,6 +55,7 @@ class RoboNav
     void get_vel(geometry_msgs::Twist &msg_vel);
     void setFixAngle(const geometry_msgs::Quaternion &qua);
     void cb_scan(const sensor_msgs::LaserScan::ConstPtr &scan);
+    void cb_enemy_infor(const robo_perception::ObjectList &msg);
     geometry_msgs::Pose adjustlocalgoal(double yaw);
 };
 
@@ -135,6 +138,19 @@ void RoboNav::cb_tar_pose(const geometry_msgs::PoseConstPtr &msg)
 void RoboNav::cb_cur_pose(const nav_msgs::Odometry &msg)
 {
     cur_pose = msg.pose.pose;
+}
+
+void RoboNav::cb_enemy_infor(const robo_perception::ObjectList &msg)
+{
+    enemy_information = msg;
+
+    //update path
+    int i=0,j=0;
+    if (enemy_information.num > 0)
+    {
+        floyd.updateFloydGraph(i,j,100);
+    }
+        
 }
 
 int RoboNav::findClosestPt(double x, double y)
@@ -395,6 +411,7 @@ int main(int argc, char **argv)
     ros::Subscriber cb_tar_pose = nh.subscribe("base/goal", 1, &RoboNav::cb_tar_pose, &robo_nav);
     ros::Subscriber cb_cur_pose = nh.subscribe("odom", 1, &RoboNav::cb_cur_pose, &robo_nav);
     ros::Subscriber sub = nh.subscribe<sensor_msgs::LaserScan>("scan", 1, &RoboNav::cb_scan, &robo_nav);
+    ros::Subscriber sub_enemy_info = nh.subscribe("infrared_detection/enemy_position", 1, &RoboNav::cb_enemy_infor, &robo_nav);
 
     ros::Publisher pub_vel = nh.advertise<geometry_msgs::Twist>("cmd_vel", 1);
     ros::Publisher pub_state = nh.advertise<std_msgs::Bool>("nav_state", 1);

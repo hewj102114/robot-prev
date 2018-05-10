@@ -53,7 +53,7 @@ int main(int argc, char *argv[])
     image_transport::ImageTransport it(nh);
     image_transport::Subscriber image_sub = it.subscribe("usbcamera/image", 1, &image_callback);
     // load setting from fil
-    string config_file_name="/home/ubuntu/robot/src/robo_vision/param/param_config.xml";
+    string config_file_name = "/home/ubuntu/robot/src/robo_vision/param/param_config.xml";
     private_nh.getParam("config_file_name", config_file_name);
     Settings setting(config_file_name);
 
@@ -135,9 +135,10 @@ int main(int argc, char *argv[])
 
         ArmorTarget armor_target;
         double angle_x = 0.0, angle_y = 0.0;
-
+        ros::Time start = ros::Time::now();
         armor_target = armor_detector.getTargetAera(src);
-
+        ros::Time end = ros::Time::now();
+        ROS_INFO("Detect Time %f", (end - start).toSec());
         if (angle_solver.getAngle(armor_target, angle_x, angle_y) == true)
         {
             miss_detection_cnt = 0;
@@ -196,7 +197,7 @@ int main(int argc, char *argv[])
             enemy_trans.transform.translation.y = y * 1.0 / 100;
             enemy_trans.transform.translation.z = z * 1.0 / 100;
             enemy_trans.transform.rotation =
-            tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
+                tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
             enemy_pnp_tf.sendTransform(enemy_trans);
 
             pre_angle_x = angle_x;
@@ -240,7 +241,8 @@ int main(int argc, char *argv[])
             ROS_INFO(" Miss the detctor ");
             ++miss_detection_cnt;
         }
-
+        ros::Time end2=ros::Time::now();
+        ROS_INFO("PNP Time %f",(end2-end).toSec());
         ROS_INFO("angle_x = %f , angle_y = %f", msg_armor_info.angle.x, msg_armor_info.angle.y);
 
         // draw result

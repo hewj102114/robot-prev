@@ -20,6 +20,7 @@
 #include <iostream>
 #include <queue>
 #include <vector>
+#include <ros/ros.h>
 
 #ifndef SHOW_DEBUG_IMG
 //#define SHOW_DEBUG_IMG
@@ -36,7 +37,7 @@ void ArmorDetector::setImage(const cv::Mat &src)
 {
 	_size = src.size();
 	const cv::Point &last_result = _res_last.center;
-	if (1)
+	if (last_result.x == 0 || last_result.y == 0)
 	{
 		_src = src;
 		_dect_rect = Rect(0, 0, src.cols, src.rows);
@@ -528,16 +529,19 @@ struct ArmorTarget ArmorDetector::getTargetAera(const cv::Mat &src)
 
 
 void ArmorDetector::getAllTargetAera(const cv::Mat &src,vector<ArmorTarget>& armor_target){
+	ros::Time t0=ros::Time::now();
 	setImage(src);
 	vector<RotatedRect> contours_rect;
-
+ros::Time t1=ros::Time::now();
 	findContourInEnemyColor(contours_rect);
+	ros::Time t2=ros::Time::now();
+        
 	vector<RotatedRect> left_rects, right_rects;
 	findTargetInContours(contours_rect, left_rects, right_rects);
 	//cout<<"Size "<<contours_rect.size()<<"   "<<left_rects.size()<<"   "<<right_rects.size()<<endl;
-
+ros::Time t3=ros::Time::now();
 	chooseAllTarget(left_rects, right_rects, armor_target);
-	
+	ros::Time t4=ros::Time::now();
 		for(int i=0;i<armor_target.size();i++){
 		armor_target[i].center = armor_target[i].center + Point2f(_dect_rect.x, _dect_rect.y);
 		armor_target[i].lu = armor_target[i].lu + Point2f(_dect_rect.x, _dect_rect.y);
@@ -545,5 +549,6 @@ void ArmorDetector::getAllTargetAera(const cv::Mat &src,vector<ArmorTarget>& arm
 		armor_target[i].ru = armor_target[i].ru + Point2f(_dect_rect.x, _dect_rect.y);
 		armor_target[i].rd = armor_target[i].rd + Point2f(_dect_rect.x, _dect_rect.y);
 		}
+		ROS_INFO("Time %f  %f %f %f",(t1-t0).toSec(),(t2-t1).toSec(),(t3-t2).toSec(),(t4-t3).toSec());
 	
 }
