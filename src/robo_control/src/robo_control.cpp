@@ -324,6 +324,9 @@ int RoboControl::find_enemy_self_closest_point(double enemy_x, double enemy_y, d
 geometry_msgs::Pose RoboControl::sendEnemyTarget(const robo_perception::ObjectList &msg, geometry_msgs::Pose &last_enemy_target_msg)
 {
     geometry_msgs::Pose result_enemy_target;
+    int enemy_index1 = 0;
+    int enemy_index2 = 0;
+
     nav_msgs::Odometry enemy_odom_target_msg;
     enemy_odom_target_msg.header.stamp = ros::Time::now();
     enemy_odom_target_msg.header.frame_id = "odom";
@@ -341,34 +344,52 @@ geometry_msgs::Pose RoboControl::sendEnemyTarget(const robo_perception::ObjectLi
     if (msg.red_num == 1)
     {
         // 没有选择, 只打当前的敌人
+        for (int i = 0; i < msg.num; i++)
+        {
+            if(msg.object[i].team.data == "red0")
+            {
+                enemy_index1 = i;
+            }
+        }
 
-        enemy_odom_target_msg.pose.pose.position.x = msg.object[0].globalpose.position.x;
-        enemy_odom_target_msg.pose.pose.position.y = msg.object[0].globalpose.position.y;
-        enemy_odom_target_msg.pose.pose.orientation = msg.object[0].globalpose.orientation;
+        enemy_odom_target_msg.pose.pose.position.x = msg.object[enemy_index1].globalpose.position.x;
+        enemy_odom_target_msg.pose.pose.position.y = msg.object[enemy_index1].globalpose.position.y;
+        enemy_odom_target_msg.pose.pose.orientation = msg.object[enemy_index1].globalpose.orientation;
         enemy_odom_target_msg.pose.pose.orientation.w = 1;
         result_enemy_target = enemy_odom_target_msg.pose.pose;
     }
     if (msg.red_num == 2)
     {
         // 判断之前有没有打击过敌人, 如果之前没有打击过敌人, 选择距离近的敌人, 否则选择之前打击过的
+        for (int i = 0; i < msg.num; i++)
+        {
+            if (msg.object[i].team.data == "red0")
+            {
+                enemy_index1 = i;
+            }
+            if (msg.object[i].team.data == "red1")
+            {
+                enemy_index2 = i;
+            }
+        }
         if (last_enemy_target_msg.position.x == 0 && last_enemy_target_msg.position.y == 0 && last_enemy_target_msg.position.z == 0)
         {
             // 没有打击过敌人, 选择相对距离近的敌人
-            if (msg.object[0].pose.position.x < msg.object[1].pose.position.x)
+            if (msg.object[enemy_index1].pose.position.x < msg.object[enemy_index2].pose.position.x)
             {
                 // 选择第一个敌人
-                enemy_odom_target_msg.pose.pose.position.x = msg.object[0].globalpose.position.x;
-                enemy_odom_target_msg.pose.pose.position.y = msg.object[0].globalpose.position.y;
-                enemy_odom_target_msg.pose.pose.orientation = msg.object[0].globalpose.orientation;
+                enemy_odom_target_msg.pose.pose.position.x = msg.object[enemy_index1].globalpose.position.x;
+                enemy_odom_target_msg.pose.pose.position.y = msg.object[enemy_index1].globalpose.position.y;
+                enemy_odom_target_msg.pose.pose.orientation = msg.object[enemy_index1].globalpose.orientation;
                 enemy_odom_target_msg.pose.pose.orientation.w = 1;
                 result_enemy_target = enemy_odom_target_msg.pose.pose;
             }
             else
             {
                 // 选择第二个敌人
-                enemy_odom_target_msg.pose.pose.position.x = msg.object[1].globalpose.position.x;
-                enemy_odom_target_msg.pose.pose.position.y = msg.object[1].globalpose.position.y;
-                enemy_odom_target_msg.pose.pose.orientation = msg.object[1].globalpose.orientation;
+                enemy_odom_target_msg.pose.pose.position.x = msg.object[enemy_index2].globalpose.position.x;
+                enemy_odom_target_msg.pose.pose.position.y = msg.object[enemy_index2].globalpose.position.y;
+                enemy_odom_target_msg.pose.pose.orientation = msg.object[enemy_index2].globalpose.orientation;
                 enemy_odom_target_msg.pose.pose.orientation.w = 1;
                 result_enemy_target = enemy_odom_target_msg.pose.pose;
             }
@@ -378,21 +399,21 @@ geometry_msgs::Pose RoboControl::sendEnemyTarget(const robo_perception::ObjectLi
             // 之前打击过敌人, 选择离之前的选择近的敌人
             for (int i = 0; i < 2; i++)
             {
-                float dis1 = pow(msg.object[0].globalpose.position.x - last_enemy_target_msg.position.x, 2) + pow(msg.object[0].globalpose.position.y - last_enemy_target_msg.position.y, 2);
-                float dis2 = pow(msg.object[1].globalpose.position.x - last_enemy_target_msg.position.x, 2) + pow(msg.object[1].globalpose.position.y - last_enemy_target_msg.position.y, 2);
+                float dis1 = pow(msg.object[enemy_index1].globalpose.position.x - last_enemy_target_msg.position.x, 2) + pow(msg.object[enemy_index1].globalpose.position.y - last_enemy_target_msg.position.y, 2);
+                float dis2 = pow(msg.object[enemy_index2].globalpose.position.x - last_enemy_target_msg.position.x, 2) + pow(msg.object[enemy_index2].globalpose.position.y - last_enemy_target_msg.position.y, 2);
                 if (dis1 <= dis2)
                 {
-                    enemy_odom_target_msg.pose.pose.position.x = msg.object[0].globalpose.position.x;
-                    enemy_odom_target_msg.pose.pose.position.y = msg.object[0].globalpose.position.y;
-                    enemy_odom_target_msg.pose.pose.orientation = msg.object[0].globalpose.orientation;
+                    enemy_odom_target_msg.pose.pose.position.x = msg.object[enemy_index1].globalpose.position.x;
+                    enemy_odom_target_msg.pose.pose.position.y = msg.object[enemy_index1].globalpose.position.y;
+                    enemy_odom_target_msg.pose.pose.orientation = msg.object[enemy_index1].globalpose.orientation;
                     enemy_odom_target_msg.pose.pose.orientation.w = 1;
                     result_enemy_target = enemy_odom_target_msg.pose.pose;
                 }
                 else
                 {
-                    enemy_odom_target_msg.pose.pose.position.x = msg.object[1].globalpose.position.x;
-                    enemy_odom_target_msg.pose.pose.position.y = msg.object[1].globalpose.position.y;
-                    enemy_odom_target_msg.pose.pose.orientation = msg.object[1].globalpose.orientation;
+                    enemy_odom_target_msg.pose.pose.position.x = msg.object[enemy_index2].globalpose.position.x;
+                    enemy_odom_target_msg.pose.pose.position.y = msg.object[enemy_index2].globalpose.position.y;
+                    enemy_odom_target_msg.pose.pose.orientation = msg.object[enemy_index2].globalpose.orientation;
                     enemy_odom_target_msg.pose.pose.orientation.w = 1;
                     result_enemy_target = enemy_odom_target_msg.pose.pose;
                 }

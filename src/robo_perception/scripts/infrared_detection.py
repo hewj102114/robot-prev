@@ -115,10 +115,13 @@ def judge_blue_red_hsv(img):
     red_mask2 = cv2.inRange(image_hsv, LowerRed2, UpperRed2)
     blue_num = np.sum(blue_mask)
     red_num = np.sum(red_mask1) + np.sum(red_mask2)
-    if red_num >= blue_num:
+    print("blue_num, red_num", blue_num, red_num)
+    if red_num > blue_num:
         result = 1      # enemy
-    else:
+    if red_num < blue_num:    
         result = 0      # self
+    if red_num < 100 and blue_num < 100:    
+        result = 2      # death
     return result
 
 def judge_blue_red_sum(robo_image):
@@ -365,6 +368,7 @@ def TsDet_callback(infrared_image, pointcloud):
 
         red_idx = 0
         blue_idx = 0
+        death_idx = 0
         for object_idx in range(robo_position.shape[0]):
             # ROS 中发送数据
             rs_x = robo_position[object_idx, 2]
@@ -397,15 +401,21 @@ def TsDet_callback(infrared_image, pointcloud):
                 t.child_frame_id = str_enemy_self + str(red_idx)
                 enemy.team.data = str_enemy_self + str(red_idx)
                 red_idx = red_idx + 1
-            else:
+            if enemy_self_list[object_idx] == 0:
                 str_enemy_self = 'blue'
                 t.child_frame_id = str_enemy_self + str(blue_idx)
                 enemy.team.data = str_enemy_self + str(blue_idx)
                 blue_idx = blue_idx + 1
+            if enemy_self_list[object_idx] == 2:
+                str_enemy_self = 'death'
+                t.child_frame_id = str_enemy_self + str(death_idx)
+                enemy.team.data = str_enemy_self + str(death_idx)
+                death_idx = death_idx + 1
             print("enemy or self: ", str_enemy_self)
 
             red_num = red_idx
             blue_num = blue_idx
+            death_num = death_idx
 
 
             t.transform.translation.x = robo_position[object_idx, 2]
@@ -419,6 +429,7 @@ def TsDet_callback(infrared_image, pointcloud):
             br.sendTransform(t)
         enemy_position.red_num = red_idx
         enemy_position.blue_num = blue_idx
+        enemy_position.death_num = death_idx
     else:
         # 如果没有发现敌人
         if mc.DEBUG:
@@ -428,7 +439,8 @@ def TsDet_callback(infrared_image, pointcloud):
         enemy_position.header.frame_id = 'enemy'
         enemy_position.num = 0
         enemy_position.red_num = 0  
-        enemy_position.blue_num = 0        
+        enemy_position.blue_num = 0
+        enemy_position.death_num = 0
         enemy_position.object = []
     
     pub.publish(enemy_position)

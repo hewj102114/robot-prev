@@ -101,7 +101,7 @@ int main(int argc, char **argv)
 	chassis 1:velcity 2:angle pose 3:init
 	*/
 	geometry_msgs::Pose target_pose;
-	int work_state = 5;
+	int work_state = 3;
 	int center_state = 0;
 	ros::Rate loop_rate(150);
 	bool realsense_first_in = true;
@@ -135,7 +135,6 @@ int main(int argc, char **argv)
 		case 0:
 		{
 			ROS_INFO("Stage 0: Go to center!!!!!!");
-
 			switch (center_state)
 			{
 				case 0:
@@ -170,7 +169,6 @@ int main(int argc, char **argv)
 					robo_ctl.sendMCUMsg(1, 1, robo_ctl.cmd_vel_msg.v_x, robo_ctl.cmd_vel_msg.v_y, robo_ctl.cmd_vel_msg.v_yaw, 0, 0, 0);
 					break;
 				}
-
 				// realsense
 				case 1:
 				{
@@ -208,7 +206,6 @@ int main(int argc, char **argv)
 						first_in_armor_flag = true;
 						detected_armor_flag = false;
 					}
-					
 					break;
 				}
 				// armor
@@ -260,7 +257,6 @@ int main(int argc, char **argv)
 										yaw_value_sent, pitch_value_sent, global_z_value_sent);
 					break;
 				}
-				
 				default:
 					break;
 			}
@@ -382,7 +378,7 @@ int main(int argc, char **argv)
 		{
 			ROS_INFO("Stage 3: Close to enemy, stacking enemy!!!!!!");
     		robo_ctl.enemy_odom_pose.orientation.w = 1;
-			robo_ctl.sendEnemyTarget(robo_ctl.enemy_information, robo_ctl.last_enemy_target);
+			robo_ctl.last_enemy_target = robo_ctl.sendEnemyTarget(robo_ctl.enemy_information, robo_ctl.last_enemy_target);
 			float enemy_self_angle = 0;
 			if (robo_ctl.robo_ukf_enemy_information.orientation.z != 999)
 			{
@@ -391,7 +387,7 @@ int main(int argc, char **argv)
 			
 			ROS_INFO("predicted angle: %f", enemy_self_angle);
 			count ++;
-			if (robo_ctl.enemy_information.num > 0 && realsense_first_in == true && count % 1 == 0 && robo_ctl.robo_ukf_enemy_information.orientation.z != 999)
+			if (robo_ctl.enemy_information.num > 0 && realsense_first_in == true && count % 4000 == 0 && robo_ctl.robo_ukf_enemy_information.orientation.z != 999)
 			{
 				ROS_INFO("sent angle information!!!!!!!!!!");
 				realsense_first_in = false;
@@ -404,15 +400,26 @@ int main(int argc, char **argv)
 									0, 
 									0, 
 									enemy_self_angle * 100, 
-									0, 
+									0,
 									0);
+			}
+			else
+			{
+				robo_ctl.sendMCUMsg(1, 
+									5, 
+									0, 
+									0, 
+									0, 
+									32760, 
+									32760, 
+									32760);
 			}
 			// 云台转动完成, 跳转到装甲板识别
 			current_gimbal_angle = robo_ctl.game_msg.gimbalAngleYaw;
 			ROS_INFO("first_in_gimbal_angle: %f, target_gimbal_angle: %f, current_gimbal_angle: %f", first_in_gimbal_angle, target_gimbal_angle, current_gimbal_angle);
 			if (abs(abs(current_gimbal_angle - first_in_gimbal_angle) - abs(target_gimbal_angle)) < 5)
 			{
-				work_state = 4;
+				work_state = 3;
 				first_in_armor_flag = true;
 				detected_armor_flag = false;
 				first_in_armor_timer = ros::Time::now();
@@ -537,8 +544,7 @@ int main(int argc, char **argv)
 		case 5:
 			robo_ctl.readMCUData();
 			ROS_INFO("Stage 5: Testing!!!!!!");
-    		robo_ctl.enemy_odom_pose.orientation.w = 1;
-			robo_ctl.sendEnemyTarget(robo_ctl.enemy_information, robo_ctl.last_enemy_target);
+			robo_ctl.last_enemy_target = robo_ctl.sendEnemyTarget(robo_ctl.enemy_information, robo_ctl.last_enemy_target);
 			robo_ctl.sendMCUMsg(1, 2, 0, 0, 0, 0, 0, 0);
 			break;
 
