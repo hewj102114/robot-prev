@@ -233,9 +233,9 @@ def callback_enemy(enemy):
                 # #print rs_global_x,rs_global_y,'odom_yaw',odom_yaw,'theta',theta,'odom_pos_x',odom_pos_x,'odom_pos_y',odom_pos_y
                 rs_global_x = enemy.object[i].globalpose.position.x
                 rs_global_y = enemy.object[i].globalpose.position.y
-                rs_rel_x = 
-                rs_rel_y
-                enemy_object_trans.append([rs_global_x,rs_global_y])
+                rs_rel_x = enemy.object[i].pose.position.x
+                rs_rel_y = enemy.object[i].pose.position.y
+                enemy_object_trans.append([rs_global_x,rs_global_y, rs_rel_x, rs_rel_y])
 
             elif object_name == 'blue0':
                 team_num = team_num + 1
