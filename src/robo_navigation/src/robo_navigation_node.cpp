@@ -17,7 +17,7 @@
 using namespace std;
 #define OFFSET 0 //rplidar front offset
 #define DEFFENCE 0.40
-#define DEFF_CORNER 0.55
+#define DEFF_CORNER 0.50
 
 class RoboNav
 {
@@ -277,8 +277,8 @@ void RoboNav::cb_scan(const sensor_msgs::LaserScan::ConstPtr &scan)
         obs_min[i][0] = Filter_ScanData(index, scan);
         obs_min[i][1] = Filter_ScanData(indexC, scan);
     }
-    //ROS_INFO("min Front: %f, Left: %f  Behind: %f, Right: %f ", obs_min[0][0],obs_min[1][0],obs_min[2][0],obs_min[3][0]);
-    //ROS_INFO("min corner Front: %f, Left: %f  Behind: %f, Right: %f ", obs_min[0][1],obs_min[1][1],obs_min[2][1],obs_min[3][1]);
+     ROS_INFO("min Front: %f, Left: %f  Behind: %f, Right: %f ", obs_min[0][0],obs_min[1][0],obs_min[2][0],obs_min[3][0]);
+     ROS_INFO("min corner Front: %f, Left: %f  Behind: %f, Right: %f ", obs_min[0][1],obs_min[1][1],obs_min[2][1],obs_min[3][1]);
 }
 
 geometry_msgs::Pose RoboNav::adjustlocalgoal(double yaw)
@@ -293,20 +293,17 @@ geometry_msgs::Pose RoboNav::adjustlocalgoal(double yaw)
     double dis_x = abs(local_goal_x - cur_pose.position.x);
     double dis_y = abs(local_goal_y - cur_pose.position.y);
 
-    if (obs_min[0][0] < 0.34)
-        pid_y.stop = true;
-    else if (obs_min[0][0] < DEFFENCE) //front
-    {
         pid_x.stop = false;
         pid_y.stop = false;
+
+    if (obs_min[0][0] < 0.34)  //front
+        pid_y.stop = true;
+    else if (obs_min[0][0] < DEFFENCE) 
+    {
         local_goal.position.x = local_goal_x - 0.1*cos(yaw);
         local_goal.position.y = local_goal_y - 0.1*sin(yaw);
     }
-    else
-    {
-        pid_x.stop = false;
-        pid_y.stop = false;
-    }
+
 
     if (obs_min[0][1] < 0.45) //front-left
     {
@@ -317,30 +314,16 @@ geometry_msgs::Pose RoboNav::adjustlocalgoal(double yaw)
     }
     else if (obs_min[0][1] < DEFF_CORNER)
     {
-        pid_x.stop = false;
-        pid_y.stop = false;
         local_goal.position.x = local_goal_x + 0.1*(sin(yaw)-cos(yaw));
         local_goal.position.y = local_goal_y - 0.1*(cos(yaw)+sin(yaw));
-    }
-    else
-    {
-        pid_x.stop = false;
-        pid_y.stop = false;
     }
 
     if (obs_min[1][0] < 0.28)
         pid_x.stop = true;
     else if (obs_min[1][0] < DEFFENCE) //left
     {
-        pid_x.stop = false;
-        pid_y.stop = false;
         local_goal.position.x = local_goal_x + 0.1*sin(yaw);
         local_goal.position.y = local_goal_y - 0.1*cos(yaw);
-    }
-    else
-    {
-        pid_x.stop = false;
-        pid_y.stop = false;
     }
 
     if (obs_min[1][1] < 0.45) //left-back
@@ -352,30 +335,16 @@ geometry_msgs::Pose RoboNav::adjustlocalgoal(double yaw)
     }
     else if (obs_min[1][1] < DEFF_CORNER)
     {
-        pid_x.stop = false;
-        pid_y.stop = false;
         local_goal.position.x = local_goal_x + 0.1*(cos(yaw)+sin(yaw));
         local_goal.position.y = local_goal_y + 0.1*(sin(yaw)-cos(yaw));
-    }
-    else
-    {
-        pid_x.stop = false;
-        pid_y.stop = false;
     }
 
     if (obs_min[2][0] < 0.34)
         pid_y.stop = true;
     else if (obs_min[2][0] < DEFFENCE) //back
     {
-        pid_x.stop = false;
-        pid_y.stop = true;
         local_goal.position.x = local_goal_x + 0.1*cos(yaw);
         local_goal.position.y = local_goal_y + 0.1*sin(yaw);
-    }
-    else
-    {
-        pid_x.stop = false;
-        pid_y.stop = false;
     }
 
     if (obs_min[2][1] < 0.45) //back-right
@@ -387,30 +356,16 @@ geometry_msgs::Pose RoboNav::adjustlocalgoal(double yaw)
     }
     else if (obs_min[2][1] < DEFF_CORNER)
     {
-        pid_x.stop = false;
-        pid_y.stop = false;
         local_goal.position.x = local_goal_x + 0.1*(cos(yaw)-sin(yaw));
         local_goal.position.y = local_goal_y + 0.1*(sin(yaw)+cos(yaw));
-    }
-    else
-    {
-        pid_x.stop = false;
-        pid_y.stop = false;
     }
 
     if (obs_min[3][0] < 0.28)
         pid_x.stop = true;
     else if (obs_min[3][0] < DEFFENCE)
     {
-        pid_x.stop = false;
-        pid_y.stop = false;
         local_goal.position.x = local_goal_x - 0.1*sin(yaw);
         local_goal.position.y = local_goal_y + 0.1*cos(yaw);
-    }
-    else
-    {
-        pid_x.stop = false;
-        pid_y.stop = false;
     }
 
     if (obs_min[3][1] < 0.45) //right-front
@@ -422,16 +377,10 @@ geometry_msgs::Pose RoboNav::adjustlocalgoal(double yaw)
     }
     else if (obs_min[3][1] < DEFF_CORNER)
     {
-        pid_x.stop = false;
-        pid_y.stop = false;
         local_goal.position.x = local_goal_x - 0.1*(cos(yaw)+sin(yaw));
         local_goal.position.y = local_goal_y + 0.1*(cos(yaw)-sin(yaw));
     }
-    else
-    {
-        pid_x.stop = false;
-        pid_y.stop = false;
-    }
+
     ROS_INFO("stop x: %d, y: %d", pid_x.stop, pid_y.stop);
     return local_goal;
 }
