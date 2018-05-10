@@ -346,6 +346,7 @@ def TsDet_callback(infrared_image, pointcloud):
                 robo_position.append([avgX, avgY, avgZ])
             if mc.DEBUG:
                 print('enemy position:', avgX, avgY, avgZ)
+                
         enemy_self_list = enemy_self_identify(align_image, robo_bboxes)
         # 检测完敌人, 对得到的距离信息进行处理
         # tf 包转换

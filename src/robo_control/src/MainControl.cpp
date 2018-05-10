@@ -119,6 +119,7 @@ int main(int argc, char **argv)
 	ros::Time center_start_time = ros::Time::now();
 	bool center_first_in = true;
 	bool arrived_center_flag = false;
+	int yaw_value_sent=0, pitch_value_sent=0, global_z_value_sent=0;
 	while (ros::ok())
 	{
 		// 读取 MCU 数据
@@ -146,12 +147,13 @@ int main(int argc, char **argv)
 					robo_ctl.sendNavGoal(target_pose);
 					if (robo_ctl.finish_navigation.data)	// arrive center
 					{
+						ROS_INFO("Arrived center, start to clock");
 						center_start_time = ros::Time::now();
 						arrived_center_flag = true;
 					}
 					else
 					{
-						ROS_INFO("Going to goal!!!!");
+						ROS_INFO("Going to center!!!!");
 					}
 					if (robo_ctl.armor_info_msg.mode == 2 || robo_ctl.armor_info_msg.mode == 3)		// armor
 					{
@@ -172,6 +174,7 @@ int main(int argc, char **argv)
 				// realsense
 				case 1:
 				{
+					ROS_INFO("Find enemy by realsense detection");
 					robo_ctl.enemy_odom_pose.orientation.w = 1;
 					robo_ctl.sendEnemyTarget(robo_ctl.enemy_odom_pose);
 					float enemy_self_angle = 0;
@@ -196,12 +199,15 @@ int main(int argc, char **argv)
 						first_in_armor_flag = true;
 						detected_armor_flag = false;
 					}
+					robo_ctl.sendMCUMsg(1, 5, 
+											robo_ctl.cmd_vel_msg.v_x, robo_ctl.cmd_vel_msg.v_y, robo_ctl.cmd_vel_msg.v_yaw,  
+											32760, 32760, 32760);
 					break;
 				}
 				// armor
 				case 2:
 				{
-					ROS_INFO("Stage 4: Detect armor, stacking enemy!!!!!!");
+					ROS_INFO("Find enemy by armor detection");					
 					if(robo_ctl.armor_info_msg.mode == 2 || robo_ctl.armor_info_msg.mode == 3)
 					{
 						float ukf_predicted_yaw = robo_ctl.robo_ukf_enemy_information.orientation.w;
@@ -209,33 +215,29 @@ int main(int argc, char **argv)
 						lose_gimbal_count = 0;
 						detected_armor_flag = true;
 						first_in_armor_flag = false;
-						robo_ctl.sendMCUMsg(1,
-											2,
-											robo_ctl.cmd_vel_msg.v_x, robo_ctl.cmd_vel_msg.v_y, robo_ctl.cmd_vel_msg.v_yaw,
-											robo_ctl.armor_info_msg.yaw + ukf_predicted_yaw * 100,
-											robo_ctl.armor_info_msg.pitch,
-											robo_ctl.armor_info_msg.global_z * 100);
+
+						yaw_value_sent = robo_ctl.armor_info_msg.yaw + ukf_predicted_yaw * 100;
+						pitch_value_sent = robo_ctl.armor_info_msg.pitch;
+						global_z_value_sent = robo_ctl.armor_info_msg.global_z * 100;
 					}
 					if (robo_ctl.armor_info_msg.mode == 1)			
 					{
-						ROS_INFO("No detected armor!!!!!");
+						ROS_INFO("No detected armor");
 						lose_frame_count++;
 						lose_gimbal_count++;
 						// realsense 切换过来
 						if (first_in_armor_flag == true)
 						{
-							robo_ctl.sendMCUMsg(1,
-												2,
-												robo_ctl.cmd_vel_msg.v_x, robo_ctl.cmd_vel_msg.v_y, robo_ctl.cmd_vel_msg.v_yaw, 
-												0, 32760, 0);
+							yaw_value_sent = 0;
+							pitch_value_sent = 32760;
+							global_z_value_sent = 0;
 						}
 						// 装甲板检测丢帧
 						if (detected_armor_flag == true)
 						{
-							robo_ctl.sendMCUMsg(1,
-												2,
-												robo_ctl.cmd_vel_msg.v_x, robo_ctl.cmd_vel_msg.v_y, robo_ctl.cmd_vel_msg.v_yaw, 
-												0, 5, 0);
+							yaw_value_sent = 0;
+							pitch_value_sent = 5;
+							global_z_value_sent = 0;
 						}
 					}
 					if (lose_gimbal_count > 400)
@@ -245,6 +247,10 @@ int main(int argc, char **argv)
 						target_gimbal_angle = 1000;
 						center_first_in = true;
 					}
+					robo_ctl.sendMCUMsg(1,
+										2,
+										robo_ctl.cmd_vel_msg.v_x, robo_ctl.cmd_vel_msg.v_y, robo_ctl.cmd_vel_msg.v_yaw, 
+										yaw_value_sent, pitch_value_sent, global_z_value_sent);
 					break;
 				}
 				
@@ -257,7 +263,7 @@ int main(int argc, char **argv)
 					ros::Duration timeout(5);
 					if(ros::Time::now() - center_start_time >= timeout)	// 完成 5S 计时
 					{
-						ROS_INFO("Arrived goal!!!!");
+						ROS_INFO("Arrived center, end clock");
 						robo_ctl.finish_goto_center = true;
 					}
 					if (robo_ctl.armor_info_msg.mode == 2 || robo_ctl.armor_info_msg.mode == 3)		// armor
