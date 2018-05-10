@@ -70,6 +70,7 @@ ukf_result = []
 qn_ukf = [0, 0, 0, 0]
 wheel_last_time = 0
 acc_imu_x = acc_imu_y = 0
+uwb_yaw = 0
 
 # S（i+1） = S（i） + V*dt + 0.5*a*dt*dt
 
@@ -174,13 +175,17 @@ def callback_imu(imu):
 
 
 def callback_uwb(uwb):
-    global pos_uwb_x, pos_uwb_y, uwb_seq, uwb_time
+    global pos_uwb_x, pos_uwb_y, uwb_seq, uwb_time, uwb_yaw
 
     uwb_seq = uwb.header.seq
     uwb_time = uwb.header.stamp.secs + uwb.header.stamp.nsecs * 10**-9
 
     pos_uwb_x = uwb.pose.pose.position.x
     pos_uwb_y = uwb.pose.pose.position.y
+
+    qn_uwb = [uwb.pose.pose.orientation.x, uwb.pose.pose.orientation.y,
+        uwb.pose.pose.orientation.z, uwb.pose.pose.orientation.w]
+    (uwb_roll, uwb_pitch, uwb_yaw) = euler_from_quaternion(qn_uwb)
     
 
 
@@ -252,7 +257,7 @@ while not rospy.is_shutdown():
     print 'FUSE x', pos_fuse_x, 'FUSE y', pos_fuse_y
     print 'KALMAN x', ukf_out_pos_x, 'KALMAN y', ukf_out_pos_y
     print 'KV x', ukf_vel_x, 'KV y', ukf_vel_y
-    print 'yaw',ukf_yaw
+    print 'ukf_yaw',ukf_yaw, 'uwb_yaw',uwb_yaw
 
     # send ukf/pos      
     ukf_pos = Odometry()

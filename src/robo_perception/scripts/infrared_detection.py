@@ -19,6 +19,7 @@ import os
 import glob
 import tf
 import tf2_ros
+from tf.transformations import quaternion_from_euler, euler_from_quaternion
 
 from geometry_msgs.msg import TransformStamped
 from geometry_msgs.msg import PoseStamped
@@ -48,6 +49,8 @@ flag = True
 qn_odom = [0, 0, 0, 0]
 team_x = team_y = team_relative_x = team_relative_y = 0
 odom_pos_x = odom_pos_y = 0
+odom_yaw = odom_pos_x = odom_pos_y = odom_vel_x = odom_vel_y = 0
+
 
 video = cv2.VideoWriter('/home/ubuntu/robot/src/robo_perception/scripts/visual/demo.avi',
                         cv2.VideoWriter_fourcc(*"MJPG"),
@@ -220,7 +223,7 @@ def judge_armor(robo_bbox, final_boxes, armor_idx):
 def TsDet_callback(infrared_image, pointcloud):
     #print("====================================new image======================================")
     #print("===================================================================================")
-    global count, sess, model, mc, video, frame_rate_list, frame_rate_idx, frame_rate, align_image
+    global count, sess, model, mc, video, frame_rate_list, frame_rate_idx, frame_rate, align_image, odom_yaw, odom_pos_x, odom_pos_y, odom_vel_x, odom_vel_y
     #print('I here rgb and pointcloud !', count)
     count = count + 1
 
@@ -363,10 +366,26 @@ def TsDet_callback(infrared_image, pointcloud):
         blue_idx = 0
         for object_idx in range(robo_position.shape[0]):
             # ROS 中发送数据
+            rs_x = robo_position[object_idx, 2]
+            rs_y = -robo_position[object_idx, 0]
+            #theta in rs axis
+            theta = np.arctan2(rs_y,rs_x)
+            #global = cos(theta+yaw) * target_distance + rs_relative_distance_to_base_link + base_link_global_axis
+            #0.22 means rs_relative_distance_to_base_link = 22CM
+            global_x = np.cos(theta + odom_yaw)*np.sqrt(rs_x**2 +rs_y**2) + 0.22*np.cos(odom_yaw) + odom_pos_x
+            global_y = np.sin(theta + odom_yaw)*np.sqrt(rs_x**2 +rs_y**2) + 0.22*np.sin(odom_yaw) + odom_pos_y                
+            #print rs_global_x,rs_global_y,'odom_yaw',odom_yaw,'theta',theta,'odom_pos_x',odom_pos_x,'odom_pos_y',odom_pos_y
+
             enemy = Object()
             enemy.pose.position.x = robo_position[object_idx, 2]
             enemy.pose.position.y = -robo_position[object_idx, 0]
             enemy.pose.position.z = robo_position[object_idx, 1]
+
+            enemy.globalpose.position.x = global_x
+            enemy.globalpose.position.y = global_y
+            enemy.globalpose.position.z = 0
+
+            enemy.globalpose.orientation.w = theta
             enemy_position.object.append(enemy)
 
             t.header.stamp = rospy.Time.now()
@@ -382,6 +401,10 @@ def TsDet_callback(infrared_image, pointcloud):
                 enemy.team.data = str_enemy_self + str(blue_idx)
                 blue_idx = blue_idx + 1
             print("enemy or self: ", str_enemy_self)
+
+
+
+
             t.transform.translation.x = robo_position[object_idx, 2]
             t.transform.translation.y = -robo_position[object_idx, 0]
             t.transform.translation.z = robo_position[object_idx, 1]
@@ -482,13 +505,27 @@ def callback_rgb(rgb):
     except CvBridgeError as error:
         print(error)
 
+
+def callback_odom(odom):
+    global odom_yaw, odom_pos_x, odom_pos_y, odom_vel_x, odom_vel_y
+    #only yaw are available
+    odom_pos_x = odom.pose.pose.position.x
+    odom_pos_y = odom.pose.pose.position.y
+
+    odom_vel_x = odom.twist.twist.linear.x
+    odom_vel_y = odom.twist.twist.linear.y
+
+    qn_odom = [odom.pose.pose.orientation.x, odom.pose.pose.orientation.y, odom.pose.pose.orientation.z, odom.pose.pose.orientation.w]
+    (odom_roll,odom_pitch,odom_yaw) = euler_from_quaternion(qn_odom)
+
+
 rospy.init_node('rgb_detection')
 TFinit()
 DetectInit()
 rgb_sub = message_filters.Subscriber('camera/infra1/image_rect_raw', Image)
 #subodom = rospy.Subscriber('odom', Odometry, callback_odom)
 subrgb = rospy.Subscriber('/camera/color/image_raw', Image, callback_rgb)
-
+subodom = rospy.Subscriber('odom', Odometry, callback_odom)
 pc_sub = message_filters.Subscriber('camera/points', PointCloud2)
 pub = rospy.Publisher('infrared_detection/enemy_position', ObjectList, queue_size=1)
 
