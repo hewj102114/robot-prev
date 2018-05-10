@@ -221,17 +221,18 @@ def callback_enemy(enemy):
             #decoding the enemy position
             if object_name == 'red0' or object_name == 'red1':
                 enemy_num = enemy_num + 1
-                rs_x = enemy.object[i].pose.position.x
-                rs_y = enemy.object[i].pose.position.y
-                #theta in rs axis
-                theta = np.arctan2(rs_y,rs_x)
-                #global = cos(theta+yaw) * target_distance + rs_relative_distance_to_base_link + base_link_global_axis
-                #0.22 means rs_relative_distance_to_base_link = 22CM
-                rs_global_x = np.cos(theta + odom_yaw)*np.sqrt(rs_x**2 +rs_y**2) + 0.22*np.cos(odom_yaw) + odom_pos_x
-                rs_global_y = np.sin(theta + odom_yaw)*np.sqrt(rs_x**2 +rs_y**2) + 0.22*np.sin(odom_yaw) + odom_pos_y                
+                # rs_x = enemy.object[i].pose.position.x
+                # rs_y = enemy.object[i].pose.position.y
+                # #theta in rs axis
+                # theta = np.arctan2(rs_y,rs_x)
+                # #global = cos(theta+yaw) * target_distance + rs_relative_distance_to_base_link + base_link_global_axis
+                # #0.22 means rs_relative_distance_to_base_link = 22CM
+                # rs_global_x = np.cos(theta + odom_yaw)*np.sqrt(rs_x**2 +rs_y**2) + 0.22*np.cos(odom_yaw) + odom_pos_x
+                # rs_global_y = np.sin(theta + odom_yaw)*np.sqrt(rs_x**2 +rs_y**2) + 0.22*np.sin(odom_yaw) + odom_pos_y                
 
-                #print rs_global_x,rs_global_y,'odom_yaw',odom_yaw,'theta',theta,'odom_pos_x',odom_pos_x,'odom_pos_y',odom_pos_y
-
+                # #print rs_global_x,rs_global_y,'odom_yaw',odom_yaw,'theta',theta,'odom_pos_x',odom_pos_x,'odom_pos_y',odom_pos_y
+                rs_global_x = enemy.object[i].globalpose.position.x
+                rs_global_y = enemy.object[i].globalpose.position.y
                 enemy_object_trans.append([rs_global_x,rs_global_y])
 
             elif object_name == 'blue0':
