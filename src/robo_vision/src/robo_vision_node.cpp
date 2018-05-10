@@ -53,8 +53,8 @@ int main(int argc, char *argv[])
     image_transport::ImageTransport it(nh);
     image_transport::Subscriber image_sub = it.subscribe("usbcamera/image", 1, &image_callback);
     // load setting from fil
-    char *config_file_name =
-        "/home/ubuntu/robot/src/robo_vision/param/param_config.xml";
+    string config_file_name="/home/ubuntu/robot/src/robo_vision/param/param_config.xml";
+    private_nh.getParam("config_file_name", config_file_name);
     Settings setting(config_file_name);
 
     // angle offset
@@ -159,9 +159,9 @@ int main(int argc, char *argv[])
             }
             msg_armor_info.pose_image.x = armor_target.center.x;
             msg_armor_info.pose_image.y = armor_target.center.y;
-            msg_armor_info.pose_global.position.x = x * 1.0 / 100;
-            msg_armor_info.pose_global.position.y = y * 1.0 / 100;
-            msg_armor_info.pose_global.position.z = z * 1.0 / 100;
+            msg_armor_info.pose_camera.x = x * 1.0 / 100;
+            msg_armor_info.pose_camera.y = y * 1.0 / 100;
+            msg_armor_info.pose_camera.z = z * 1.0 / 100;
 
             int const_max = 2000;
 
@@ -183,7 +183,8 @@ int main(int argc, char *argv[])
             geometry_msgs::PoseStamped armor_pose_msg;
             armor_pose_msg.header.stamp = ros::Time::now();
             armor_pose_msg.header.frame_id = "usb_camera_link";
-            armor_pose_msg.pose = msg_armor_info.pose_global;
+            armor_pose_msg.pose.position.x = msg_armor_info.pose_camera.x;
+            armor_pose_msg.pose.position.y = msg_armor_info.pose_camera.y;
             pub_armor_pose.publish(armor_pose_msg);
 
             // publish enemy tf transform

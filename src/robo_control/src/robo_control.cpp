@@ -4,7 +4,7 @@ void RoboControl::cb_armorInfo(const robo_vision::ArmorInfo &msg)
     armor_info_msg.mode = msg.mode;
     armor_info_msg.image_dx = msg.pose_image.x;
     armor_info_msg.image_dy = msg.pose_image.y;
-    armor_info_msg.global_z = msg.pose_global.position.z;
+    armor_info_msg.global_z = msg.pose_camera.z;
     armor_info_msg.pitch = msg.angle.y;
     armor_info_msg.yaw = msg.angle.x;
     armor_ready_flag = 1;
