@@ -182,7 +182,7 @@ int main(int argc, char *argv[])
                 try
                 {
 
-                    tf_->transformPose("odom", ident, pose);
+                    tf_->transformPose("base_link", ident, pose);
                 }
                 catch (tf::TransformException &e)
                 {
