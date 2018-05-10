@@ -113,7 +113,7 @@ class RoboControl
     void cb_enemy_information(const robo_perception::ObjectList &msg);
     void read_xml_file();
     int find_enemy_self_closest_point(double enemy_x, double enemy_y, double self_x, double self_y);
-    void sendEnemyTarget(const geometry_msgs::Pose &msg);
+    geometry_msgs::Pose sendEnemyTarget(const robo_perception::ObjectList &msg, geometry_msgs::Pose &last_enemy_target_msg);
     float calculator_enemy_angle(double enemy_x, double enemy_y, double self_x, double self_y);
     void cb_ukf_enemy_information(const nav_msgs::Odometry &msg);
     ros::NodeHandle *pnh;

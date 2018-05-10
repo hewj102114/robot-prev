@@ -321,49 +321,86 @@ int RoboControl::find_enemy_self_closest_point(double enemy_x, double enemy_y, d
     return n;
 }
 
-void RoboControl::sendEnemyTarget(const robo_perception::ObjectList &msg, const geometry_msgs::Pose &last_enemy_target)
+geometry_msgs::Pose RoboControl::sendEnemyTarget(const robo_perception::ObjectList &msg, geometry_msgs::Pose &last_enemy_target_msg)
 {
-    // 计算打击哪个车, 给定 infrared detection 的检测结果和上一帧的打击目标
-    if (msg.num == 1)
-    {
-        // 如果只检测到了一辆车
-        if ()   // 检测到红车
-        {
-
-        }
-        if ()   // 检测到蓝车
-        {
-
-        }
-
-    }
-    if (msg.num == 2)
-    {
-        if ()   // 一红一篮
-        {
-
-        }
-        if ()   // 两红
-        {
-
-        }
-
-    }
-
-    for(int i = 0; i < msg.num; i++)
-    {
-        
-    }
-
+    geometry_msgs::Pose result_enemy_target;
     nav_msgs::Odometry enemy_odom_target_msg;
-    enemy_odom_target_msg.header.stamp = ros::Time::now();;
+    enemy_odom_target_msg.header.stamp = ros::Time::now();
     enemy_odom_target_msg.header.frame_id = "odom";
     enemy_odom_target_msg.child_frame_id = "target";
 
-    enemy_odom_target_msg.pose.pose.position.x = msg.position.x;
-    enemy_odom_target_msg.pose.pose.position.y = msg.position.y;
-    enemy_odom_target_msg.pose.pose.orientation = msg.orientation;
+    // 计算打击哪个车, 给定 infrared detection 的检测结果和上一帧的打击目标
+    if (msg.red_num == 0)
+    {
+        // 丢失敌人
+        result_enemy_target.position.x = 0;
+        result_enemy_target.position.y = 0;
+        result_enemy_target.position.z = 0;
+        return result_enemy_target; 
+    }
+    if (msg.red_num == 1)
+    {
+        // 没有选择, 只打当前的敌人
+
+        enemy_odom_target_msg.pose.pose.position.x = msg.object[0].globalpose.position.x;
+        enemy_odom_target_msg.pose.pose.position.y = msg.object[0].globalpose.position.y;
+        enemy_odom_target_msg.pose.pose.orientation = msg.object[0].globalpose.orientation;
+        enemy_odom_target_msg.pose.pose.orientation.w = 1;
+        result_enemy_target = enemy_odom_target_msg.pose.pose;
+    }
+    if (msg.red_num == 2)
+    {
+        // 判断之前有没有打击过敌人, 如果之前没有打击过敌人, 选择距离近的敌人, 否则选择之前打击过的
+        if (last_enemy_target_msg.position.x == 0 && last_enemy_target_msg.position.y == 0 && last_enemy_target_msg.position.z == 0)
+        {
+            // 没有打击过敌人, 选择相对距离近的敌人
+            if (msg.object[0].pose.position.x < msg.object[1].pose.position.x)
+            {
+                // 选择第一个敌人
+                enemy_odom_target_msg.pose.pose.position.x = msg.object[0].globalpose.position.x;
+                enemy_odom_target_msg.pose.pose.position.y = msg.object[0].globalpose.position.y;
+                enemy_odom_target_msg.pose.pose.orientation = msg.object[0].globalpose.orientation;
+                enemy_odom_target_msg.pose.pose.orientation.w = 1;
+                result_enemy_target = enemy_odom_target_msg.pose.pose;
+            }
+            else
+            {
+                // 选择第二个敌人
+                enemy_odom_target_msg.pose.pose.position.x = msg.object[1].globalpose.position.x;
+                enemy_odom_target_msg.pose.pose.position.y = msg.object[1].globalpose.position.y;
+                enemy_odom_target_msg.pose.pose.orientation = msg.object[1].globalpose.orientation;
+                enemy_odom_target_msg.pose.pose.orientation.w = 1;
+                result_enemy_target = enemy_odom_target_msg.pose.pose;
+            }
+        }   
+        else
+        {
+            // 之前打击过敌人, 选择离之前的选择近的敌人
+            for (int i = 0; i < 2; i++)
+            {
+                float dis1 = pow(msg.object[0].globalpose.position.x - last_enemy_target_msg.position.x, 2) + pow(msg.object[0].globalpose.position.y - last_enemy_target_msg.position.y, 2);
+                float dis2 = pow(msg.object[1].globalpose.position.x - last_enemy_target_msg.position.x, 2) + pow(msg.object[1].globalpose.position.y - last_enemy_target_msg.position.y, 2);
+                if (dis1 <= dis2)
+                {
+                    enemy_odom_target_msg.pose.pose.position.x = msg.object[0].globalpose.position.x;
+                    enemy_odom_target_msg.pose.pose.position.y = msg.object[0].globalpose.position.y;
+                    enemy_odom_target_msg.pose.pose.orientation = msg.object[0].globalpose.orientation;
+                    enemy_odom_target_msg.pose.pose.orientation.w = 1;
+                    result_enemy_target = enemy_odom_target_msg.pose.pose;
+                }
+                else
+                {
+                    enemy_odom_target_msg.pose.pose.position.x = msg.object[1].globalpose.position.x;
+                    enemy_odom_target_msg.pose.pose.position.y = msg.object[1].globalpose.position.y;
+                    enemy_odom_target_msg.pose.pose.orientation = msg.object[1].globalpose.orientation;
+                    enemy_odom_target_msg.pose.pose.orientation.w = 1;
+                    result_enemy_target = enemy_odom_target_msg.pose.pose;
+                }
+            }
+        }
+    }
     pub_enemy_target.publish(enemy_odom_target_msg);
+    return result_enemy_target;
 }
 
 float RoboControl::calculator_enemy_angle(double enemy_x, double enemy_y, double self_x, double self_y)

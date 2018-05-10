@@ -382,7 +382,7 @@ int main(int argc, char **argv)
 		{
 			ROS_INFO("Stage 3: Close to enemy, stacking enemy!!!!!!");
     		robo_ctl.enemy_odom_pose.orientation.w = 1;
-			robo_ctl.sendEnemyTarget(robo_ctl.enemy_odom_pose);
+			robo_ctl.sendEnemyTarget(robo_ctl.enemy_information, robo_ctl.last_enemy_target);
 			float enemy_self_angle = 0;
 			if (robo_ctl.robo_ukf_enemy_information.orientation.z != 999)
 			{
@@ -538,7 +538,7 @@ int main(int argc, char **argv)
 			robo_ctl.readMCUData();
 			ROS_INFO("Stage 5: Testing!!!!!!");
     		robo_ctl.enemy_odom_pose.orientation.w = 1;
-			robo_ctl.sendEnemyTarget(robo_ctl.enemy_odom_pose);
+			robo_ctl.sendEnemyTarget(robo_ctl.enemy_information, robo_ctl.last_enemy_target);
 			robo_ctl.sendMCUMsg(1, 2, 0, 0, 0, 0, 0, 0);
 			break;
 
