@@ -119,7 +119,7 @@ int main(int argc, char **argv)
 	ros::Time center_start_time = ros::Time::now();
 	bool center_first_in = true;
 	bool arrived_center_flag = false;
-	int yaw_value_sent=0, pitch_value_sent=0, global_z_value_sent=0;
+	float yaw_value_sent=0, pitch_value_sent=0, global_z_value_sent=0;
 	while (ros::ok())
 	{
 		// 读取 MCU 数据
@@ -191,6 +191,12 @@ int main(int argc, char **argv)
 											robo_ctl.cmd_vel_msg.v_x, robo_ctl.cmd_vel_msg.v_y, robo_ctl.cmd_vel_msg.v_yaw,  
 											enemy_self_angle * 100, 0, 0);
 					}
+					else
+					{
+						robo_ctl.sendMCUMsg(1, 5, 
+											robo_ctl.cmd_vel_msg.v_x, robo_ctl.cmd_vel_msg.v_y, robo_ctl.cmd_vel_msg.v_yaw,  
+											32760, 32760, 32760);
+					}
 					// 云台转动完成, 跳转到装甲板识别
 					current_gimbal_angle = robo_ctl.game_msg.gimbalAngleYaw;
 					if (abs(abs(current_gimbal_angle - first_in_gimbal_angle) - abs(target_gimbal_angle)) < 5)
@@ -199,9 +205,7 @@ int main(int argc, char **argv)
 						first_in_armor_flag = true;
 						detected_armor_flag = false;
 					}
-					robo_ctl.sendMCUMsg(1, 5, 
-											robo_ctl.cmd_vel_msg.v_x, robo_ctl.cmd_vel_msg.v_y, robo_ctl.cmd_vel_msg.v_yaw,  
-											32760, 32760, 32760);
+					
 					break;
 				}
 				// armor
@@ -258,31 +262,31 @@ int main(int argc, char **argv)
 					break;
 			}
 			if (robo_ctl.finish_navigation.data)
-				{
+			{
 
-					ros::Duration timeout(5);
-					if(ros::Time::now() - center_start_time >= timeout)	// 完成 5S 计时
-					{
-						ROS_INFO("Arrived center, end clock");
-						robo_ctl.finish_goto_center = true;
-					}
-					if (robo_ctl.armor_info_msg.mode == 2 || robo_ctl.armor_info_msg.mode == 3)		// armor
-					{
-						center_state = 2;
-						first_in_armor_flag = true;
-						detected_armor_flag = false;
-					}
-					if (robo_ctl.enemy_information.num > 0)		// realsense
-					{
-						center_state = 1;
-						target_gimbal_angle = 1000;
-						center_first_in = true;						
-					}
-					if (robo_ctl.armor_info_msg.mode == 1 && robo_ctl.enemy_information.num == 0)
-					{
-						work_state = 1;
-					}
+				ros::Duration timeout(5);
+				if (ros::Time::now() - center_start_time >= timeout) // 完成 5S 计时
+				{
+					ROS_INFO("Arrived center, end clock");
+					robo_ctl.finish_goto_center = true;
 				}
+				if (robo_ctl.armor_info_msg.mode == 2 || robo_ctl.armor_info_msg.mode == 3) // armor
+				{
+					center_state = 2;
+					first_in_armor_flag = true;
+					detected_armor_flag = false;
+				}
+				if (robo_ctl.enemy_information.num > 0) // realsense
+				{
+					center_state = 1;
+					target_gimbal_angle = 1000;
+					center_first_in = true;
+				}
+				if (robo_ctl.armor_info_msg.mode == 1 && robo_ctl.enemy_information.num == 0)
+				{
+					work_state = 1;
+				}
+			}
 			break;
 		}
 
