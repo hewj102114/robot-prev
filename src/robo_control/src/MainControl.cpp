@@ -10,7 +10,7 @@ int main(int argc, char **argv)
 	ros::Subscriber sub_armor_info = nh.subscribe("base/armor_info", 1, &RoboControl::cb_armorInfo, &robo_ctl);
 	ros::Subscriber sub_cmd_vel = nh.subscribe("cmd_vel", 1, &RoboControl::cb_cmd_vel, &robo_ctl);
 	ros::Subscriber sub_move_base = nh.subscribe("move_base/feedback", 1, &RoboControl::cb_move_base, &robo_ctl);
-	ros::Subscriber sub_enemy_pose = nh.subscribe("enemy/odom_pose", 1, &RoboControl::cb_enemy_pose, &robo_ctl);
+	// ros::Subscriber sub_enemy_pose = nh.subscribe("enemy/odom_pose", 1, &RoboControl::cb_enemy_pose, &robo_ctl);
 	ros::Subscriber sub_enemy_pnp_pose = nh.subscribe("enemy/pnp_pose", 1, &RoboControl::cb_enemy_pnp_pose, &robo_ctl);
 	ros::Subscriber sub_robo_pose = nh.subscribe("odom", 1, &RoboControl::cb_ukf_pose, &robo_ctl);
 	ros::Subscriber sub_nav_cur_goal = nh.subscribe("move_base/current_goal", 1, &RoboControl::cb_cur_goal, &robo_ctl);
@@ -101,7 +101,7 @@ int main(int argc, char **argv)
 	chassis 1:velcity 2:angle pose 3:init
 	*/
 	geometry_msgs::Pose target_pose;
-	int work_state = 3;
+	int work_state = 2;
 	int center_state = 0;
 	ros::Rate loop_rate(150);
 	bool realsense_first_in = true;
@@ -172,10 +172,7 @@ int main(int argc, char **argv)
 				// realsense
 				case 1:
 				{
-					ROS_INFO("Find enemy by realsense detection");
-					// robo_ctl.enemy_odom_pose.orientation.w = 1;
-					// robo_ctl.sendEnemyTarget(robo_ctl.enemy_odom_pose);
-					
+					ROS_INFO("Find enemy by realsense detection");					
 					robo_ctl.last_enemy_target = robo_ctl.sendEnemyTarget(robo_ctl.enemy_information, robo_ctl.last_enemy_target);
 					
 					float enemy_self_angle = 0;
@@ -340,18 +337,21 @@ int main(int argc, char **argv)
 		case 2:
 		{
 			ROS_INFO("Stage 2: Find enemy, close to and stack enemy!!!!!!");
-
-			int target_num = robo_ctl.find_enemy_self_closest_point(robo_ctl.enemy_odom_pose.position.x, 
-																	robo_ctl.enemy_odom_pose.position.y, 
+			robo_ctl.last_enemy_target = robo_ctl.sendEnemyTarget(robo_ctl.enemy_information, robo_ctl.last_enemy_target);
+			int target_num = robo_ctl.find_enemy_self_closest_point(robo_ctl.last_enemy_target.position.x, 
+																	robo_ctl.last_enemy_target.position.y, 
 																	robo_ctl.robo_ukf_pose.position.x, 
 																	robo_ctl.robo_ukf_pose.position.y);
 			geometry_msgs::Pose target_pose;
-			target_pose.position.x = robo_ctl.point_list.at<double>(target_num, 0);
-			target_pose.position.y = robo_ctl.point_list.at<double>(target_num, 1);
+			target_pose.position.x = robo_ctl.point_list.at<double>(target_num, 0) / 100.0;
+			target_pose.position.y = robo_ctl.point_list.at<double>(target_num, 1) / 100.0;
 			target_pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
+			ROS_INFO("Target enemy X, Y: %f, %f", robo_ctl.last_enemy_target.position.x, robo_ctl.last_enemy_target.position.y);					
+			ROS_INFO("Current X, Y: %f, %f", robo_ctl.robo_ukf_pose.position.x, robo_ctl.robo_ukf_pose.position.y);		
+			ROS_INFO("Goal X, Y: %f, %f", target_pose.position.x, target_pose.position.y);
 			robo_ctl.sendNavGoal(target_pose);
 			ros::Time start_time = ros::Time::now();
-			ros::Duration timeout(0.1); // Timeout of 2 seconds
+			ros::Duration timeout(0.02); // Timeout of 2 seconds
 			while (ros::Time::now() - start_time < timeout)
 			{
 				robo_ctl.readMCUData();
@@ -361,7 +361,7 @@ int main(int argc, char **argv)
 			if (robo_ctl.finish_navigation.data == true)
 			{
 				robo_ctl.sendMCUMsg(1, 1, 0, 0, 0, 0, 0, 0);
-				work_state = 3;
+				work_state = 2;
 			}
 			else
 			{
@@ -377,7 +377,6 @@ int main(int argc, char **argv)
 		case 3:
 		{
 			ROS_INFO("Stage 3: Close to enemy, stacking enemy!!!!!!");
-    		robo_ctl.enemy_odom_pose.orientation.w = 1;
 			robo_ctl.last_enemy_target = robo_ctl.sendEnemyTarget(robo_ctl.enemy_information, robo_ctl.last_enemy_target);
 			float enemy_self_angle = 0;
 			if (robo_ctl.robo_ukf_enemy_information.orientation.z != 999)
@@ -387,7 +386,7 @@ int main(int argc, char **argv)
 			
 			ROS_INFO("predicted angle: %f", enemy_self_angle);
 			count ++;
-			if (robo_ctl.enemy_information.num > 0 && realsense_first_in == true && count % 4000 == 0 && robo_ctl.robo_ukf_enemy_information.orientation.z != 999)
+			if (robo_ctl.enemy_information.num > 0 && realsense_first_in == true && count % 1 == 0 && robo_ctl.robo_ukf_enemy_information.orientation.z != 999)
 			{
 				ROS_INFO("sent angle information!!!!!!!!!!");
 				realsense_first_in = false;

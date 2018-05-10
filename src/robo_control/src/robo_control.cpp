@@ -312,7 +312,7 @@ int RoboControl::find_enemy_self_closest_point(double enemy_x, double enemy_y, d
             distance_enemy = 1000.0;
         }
 
-        dis_list.push_back(distance_self + distance_enemy);
+        dis_list.push_back(0.3*distance_self + 0.7*distance_enemy);
     }
 
     vector<float>::iterator smallest = min_element(dis_list.begin(), dis_list.end());

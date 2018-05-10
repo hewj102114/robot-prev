@@ -115,7 +115,7 @@ def judge_blue_red_hsv(img):
     red_mask2 = cv2.inRange(image_hsv, LowerRed2, UpperRed2)
     blue_num = np.sum(blue_mask)
     red_num = np.sum(red_mask1) + np.sum(red_mask2)
-    print("blue_num, red_num", blue_num, red_num)
+    # print("blue_num, red_num", blue_num, red_num)
     if red_num > blue_num:
         result = 1      # enemy
     if red_num < blue_num:    
