@@ -49,9 +49,9 @@ LIST(APPEND CPP_FILES
 src/AngleSolver.cpp
 src/RMVideoCapture.cpp
 src/ArmorDetector.cpp
-src/Predictor.cpp 
-src/ImageConsProd.cpp
-src/RuneResFilter.cpp
+# src/Predictor.cpp 
+# src/ImageConsProd.cpp
+# src/RuneResFilter.cpp
 )
 
 add_executable(armor_detect
