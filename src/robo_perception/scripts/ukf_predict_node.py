@@ -209,6 +209,7 @@ def callback_enemy(enemy):
         enemy_num = 0
         team_num = 0
         global_enemy_0_x = global_enemy_0_y = global_enemy_1_x = global_enemy_1_y = 999
+        rel_enemy_0_x = rel_enemy_0_y = rel_enemy_1_x = rel_enemy_1_y = 0
         FIND_RS = False
         rs_time = enemy.header.stamp.secs + enemy.header.stamp.nsecs * 10**-9
         dt = rs_time - rs_last_time
@@ -245,27 +246,43 @@ def callback_enemy(enemy):
         if enemy_num == 1:
             global_enemy_0_x = enemy_object_trans[0][0]
             global_enemy_0_y = enemy_object_trans[0][1]
+            rel_enemy_0_x = enemy_object_trans[0][2]
+            rel_enemy_0_y = enemy_object_trans[0][3]
+
             global_enemy_1_x = 999
             global_enemy_1_y = 999
-            rel_enemy_0_x = 
+            rel_enemy_1_x = 0
+            rel_enemy_1_y = 0
+
         elif enemy_num == 2:
             global_enemy_0_x = enemy_object_trans[0][0]
             global_enemy_0_y = enemy_object_trans[0][1]
+            rel_enemy_0_x = enemy_object_trans[0][2]
+            rel_enemy_0_y = enemy_object_trans[0][3]
+
             global_enemy_1_x = enemy_object_trans[1][0]
             global_enemy_1_y = enemy_object_trans[1][1]
+            rel_enemy_1_x = enemy_object_trans[1][2]
+            rel_enemy_1_y = enemy_object_trans[1][3]
+
         else:
             global_enemy_0_x = 999
             global_enemy_0_y = 999
+            rel_enemy_0_x = 0
+            rel_enemy_0_y = 0
+
             global_enemy_1_x = 999
             global_enemy_1_y = 999
+            rel_enemy_1_x = 0
+            rel_enemy_1_y = 0
 
         if np.sqrt((aim_target_x - global_enemy_0_x) ** 2 + (aim_target_y - global_enemy_0_y) ** 2) < RS_CLOSE_THRESH:
-            rs_pos_x = 
-            rs_pos_y = 
+            rs_pos_x = rel_enemy_0_x
+            rs_pos_y = rel_enemy_0_x
             FIND_RS = True
         elif np.sqrt((aim_target_x - global_enemy_1_x) ** 2 + (aim_target_y - global_enemy_1_y) ** 2) < RS_CLOSE_THRESH:
-            rs_pos_x = enemy_1_x
-            rs_pos_y = enemy_1_y
+            rs_pos_x = rel_enemy_1_x
+            rs_pos_y = rel_enemy_1_x
             FIND_RS = True
         else:
             # no available data, then not last data.
@@ -541,19 +558,19 @@ while not rospy.is_shutdown():
 
     if RS_UKF_AVAILABLE:
         #计算相对速度
-        relative_speed_x = ukf_out_vel_x - odom_vel_x
-        relative_speed_y = ukf_out_vel_y - odom_vel_y
+        relative_speed_x = ukf_out_vel_x
+        relative_speed_y = ukf_out_vel_y
         #print 'relative_speed_x',relative_speed_x,'relative_speed_y',relative_speed_y
         #计算水平于枪口方向的速度,trans to ploe axis then calculate verticle speed
         # target_speed = np.sqrt(relative_speed_x**2 + relative_speed_y**2)
         # target_theta = np.arctan2(relative_speed_y , relative_speed_x)
         # V_verticle = target_speed * np.sin(2 * np.pi - (global_gimbal_yaw + target_theta + 90))
         # print 'target_speed',target_speed, 'target_theta',target_theta,'V_verticle',V_verticle
-        V_verticle = relative_speed_x * np.sin(global_gimbal_yaw) + relative_speed_y * np.cos(global_gimbal_yaw)
+        V_verticle = relative_speed_x * np.sin(gimbal_yaw) + relative_speed_y * np.cos(gimbal_yaw)
         #print 'V_verticle',V_verticle,'global_gimbal_yaw',global_gimbal_yaw,'relative_speed_x',relative_speed_x,'relative_speed_y',relative_speed_y
         #print V_verticle, odom_yaw
         #计算检测到的目标和我自身的距离
-        distance_to_enemy = np.sqrt((ukf_out_pos_x - (odom_pos_x + 0.22*np.cos(odom_yaw)))**2 +(ukf_out_pos_y - (odom_pos_y+ 0.22*np.cos(odom_yaw)))**2)
+        distance_to_enemy = np.sqrt(ukf_out_pos_x**2 +ukf_out_pos_y**2)
         #计算子弹飞行时间
         T_FLY = distance_to_enemy / BULLET_SPEED
         #反解算出需要的预瞄角度

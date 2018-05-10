@@ -101,7 +101,7 @@ int main(int argc, char **argv)
 	chassis 1:velcity 2:angle pose 3:init
 	*/
 	geometry_msgs::Pose target_pose;
-	int work_state = 0;
+	int work_state = 5;
 	int center_state = 0;
 	ros::Rate loop_rate(150);
 	bool realsense_first_in = true;
@@ -175,8 +175,11 @@ int main(int argc, char **argv)
 				case 1:
 				{
 					ROS_INFO("Find enemy by realsense detection");
-					robo_ctl.enemy_odom_pose.orientation.w = 1;
-					robo_ctl.sendEnemyTarget(robo_ctl.enemy_odom_pose);
+					// robo_ctl.enemy_odom_pose.orientation.w = 1;
+					// robo_ctl.sendEnemyTarget(robo_ctl.enemy_odom_pose);
+					
+					robo_ctl.last_enemy_target = robo_ctl.sendEnemyTarget(robo_ctl.enemy_information, robo_ctl.last_enemy_target);
+					
 					float enemy_self_angle = 0;
 					if (robo_ctl.robo_ukf_enemy_information.orientation.z != 999)
 					{

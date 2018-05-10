@@ -377,6 +377,7 @@ def TsDet_callback(infrared_image, pointcloud):
             global_y = np.sin(theta + odom_yaw)*np.sqrt(rs_x**2 +rs_y**2) + 0.22*np.sin(odom_yaw) + odom_pos_y                
             #print rs_global_x,rs_global_y,'odom_yaw',odom_yaw,'theta',theta,'odom_pos_x',odom_pos_x,'odom_pos_y',odom_pos_y
 
+            #append target relative and global position
             enemy = Object()
             enemy.pose.position.x = robo_position[object_idx, 2]
             enemy.pose.position.y = -robo_position[object_idx, 0]
@@ -403,7 +404,8 @@ def TsDet_callback(infrared_image, pointcloud):
                 blue_idx = blue_idx + 1
             print("enemy or self: ", str_enemy_self)
 
-
+            red_num = red_idx
+            blue_num = blue_idx
 
 
             t.transform.translation.x = robo_position[object_idx, 2]
@@ -415,6 +417,8 @@ def TsDet_callback(infrared_image, pointcloud):
             t.transform.rotation.z = 0
             t.transform.rotation.w = 1
             br.sendTransform(t)
+        enemy_position.red_num = red_idx
+        enemy_position.blue_num = blue_idx
     else:
         # 如果没有发现敌人
         if mc.DEBUG:
@@ -423,7 +427,10 @@ def TsDet_callback(infrared_image, pointcloud):
         enemy_position.header.stamp = rospy.Time.now()
         enemy_position.header.frame_id = 'enemy'
         enemy_position.num = 0
+        enemy_position.red_num = 0  
+        enemy_position.blue_num = 0        
         enemy_position.object = []
+    
     pub.publish(enemy_position)
 
 

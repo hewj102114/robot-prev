@@ -321,12 +321,45 @@ int RoboControl::find_enemy_self_closest_point(double enemy_x, double enemy_y, d
     return n;
 }
 
-void RoboControl::sendEnemyTarget(const geometry_msgs::Pose &msg)
+void RoboControl::sendEnemyTarget(const robo_perception::ObjectList &msg, const geometry_msgs::Pose &last_enemy_target)
 {
+    // 计算打击哪个车, 给定 infrared detection 的检测结果和上一帧的打击目标
+    if (msg.num == 1)
+    {
+        // 如果只检测到了一辆车
+        if ()   // 检测到红车
+        {
+
+        }
+        if ()   // 检测到蓝车
+        {
+
+        }
+
+    }
+    if (msg.num == 2)
+    {
+        if ()   // 一红一篮
+        {
+
+        }
+        if ()   // 两红
+        {
+
+        }
+
+    }
+
+    for(int i = 0; i < msg.num; i++)
+    {
+        
+    }
+
     nav_msgs::Odometry enemy_odom_target_msg;
     enemy_odom_target_msg.header.stamp = ros::Time::now();;
     enemy_odom_target_msg.header.frame_id = "odom";
     enemy_odom_target_msg.child_frame_id = "target";
+
     enemy_odom_target_msg.pose.pose.position.x = msg.position.x;
     enemy_odom_target_msg.pose.pose.position.y = msg.position.y;
     enemy_odom_target_msg.pose.pose.orientation = msg.orientation;
