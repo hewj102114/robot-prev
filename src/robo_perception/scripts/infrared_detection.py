@@ -381,6 +381,9 @@ def TsDet_callback(infrared_image, pointcloud):
             global_y = np.sin(theta + odom_yaw)*np.sqrt(rs_x**2 +rs_y**2) + 0.22*np.sin(odom_yaw) + odom_pos_y                
             #print rs_global_x,rs_global_y,'odom_yaw',odom_yaw,'theta',theta,'odom_pos_x',odom_pos_x,'odom_pos_y',odom_pos_y
 
+            rel_baselink_x = 
+            rel_baselink_y = 
+
             #append target relative and global position
             enemy = Object()
             enemy.pose.position.x = robo_position[object_idx, 2]
@@ -390,6 +393,7 @@ def TsDet_callback(infrared_image, pointcloud):
             enemy.globalpose.position.x = global_x
             enemy.globalpose.position.y = global_y
             enemy.globalpose.position.z = 0
+
 
             enemy.globalpose.orientation.w = theta
             enemy_position.object.append(enemy)

@@ -55,7 +55,7 @@ class RoboNav
     void get_vel(geometry_msgs::Twist &msg_vel);
     void setFixAngle(const geometry_msgs::Quaternion &qua);
     void cb_scan(const sensor_msgs::LaserScan::ConstPtr &scan);
-    void cb_enemy_infor(const robo_perception::ObjectList &msg);
+    // void cb_enemy_infor(const robo_perception::ObjectList &msg);
     geometry_msgs::Pose adjustlocalgoal(double yaw);
 };
 
@@ -447,7 +447,7 @@ int main(int argc, char **argv)
     ros::Subscriber cb_tar_pose = nh.subscribe("base/goal", 1, &RoboNav::cb_tar_pose, &robo_nav);
     ros::Subscriber cb_cur_pose = nh.subscribe("odom", 1, &RoboNav::cb_cur_pose, &robo_nav);
     ros::Subscriber sub = nh.subscribe<sensor_msgs::LaserScan>("scan", 1, &RoboNav::cb_scan, &robo_nav);
-    ros::Subscriber sub_enemy_info = nh.subscribe("infrared_detection/enemy_position", 1, &RoboNav::cb_enemy_infor, &robo_nav);
+    // ros::Subscriber sub_enemy_info = nh.subscribe("infrared_detection/enemy_position", 1, &RoboNav::cb_enemy_infor, &robo_nav);
 
     ros::Publisher pub_vel = nh.advertise<geometry_msgs::Twist>("cmd_vel", 1);
     ros::Publisher pub_state = nh.advertise<std_msgs::Bool>("nav_state", 1);

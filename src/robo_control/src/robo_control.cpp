@@ -317,21 +317,41 @@ int RoboControl::find_enemy_self_closest_point(double enemy_x, double enemy_y, d
     return n;
 }
 
-geometry_msgs::Pose RoboControl::sendEnemyTarget(const robo_perception::ObjectList &msg, robo_perception::Object &last_enemy_target_msg)
+robo_perception::ObjectList RoboControl::sendEnemyTarget(const robo_perception::ObjectList &msg, robo_perception::ObjectList &last_enemy_target_msg)
 {
-    robo_perception::Object result_enemy_target;
+    robo_perception::ObjectList result_enemy_target;        // return
+    result_enemy_target.header = msg.header;
+    result_enemy_target.num = 0;
+    result_enemy_target.red_num = 0;
+    result_enemy_target.death_num = 0;
+    result_enemy_target.blue_num = 0;
     int enemy_index1 = 0;
     int enemy_index2 = 0;
 
-    robo_perception::Object enemy_odom_target_msg;
+    robo_perception::ObjectList enemy_odom_target_msg;      // publish
+    enemy_odom_target_msg.header = msg.header;
+    enemy_odom_target_msg.num = 0;
+    enemy_odom_target_msg.red_num = 0;
+    enemy_odom_target_msg.death_num = 0;
+    enemy_odom_target_msg.blue_num = 0;
+
+    robo_perception::Object temp_object;
 
     // 计算打击哪个车, 给定 infrared detection 的检测结果和上一帧的打击目标
     if (msg.red_num == 0)
     {
         // 丢失敌人
-        result_enemy_target.position.x = 0;
-        result_enemy_target.position.y = 0;
-        result_enemy_target.position.z = 0;
+        temp_object.team.data = "Nothing";
+        temp_object.pose.position.x = 0;
+        temp_object.pose.position.y = 0;
+        temp_object.pose.position.z = 0;
+
+        temp_object.globalpose.position.x = 0;
+        temp_object.globalpose.position.y = 0;
+        temp_object.globalpose.position.z = 0;
+        
+        result_enemy_target.object.push_back(temp_object);
+        
         return result_enemy_target;
     }
     if (msg.red_num == 1)
@@ -344,10 +364,11 @@ geometry_msgs::Pose RoboControl::sendEnemyTarget(const robo_perception::ObjectLi
                 enemy_index1 = i;
             }
         }
-
-        enemy_odom_target_msg = msg.object[enemy_index1];
-        enemy_odom_target_msg.pose.orientation.w = 1;
-        enemy_odom_target_msg.globalpose.orientation.w = 1;
+        enemy_odom_target_msg.num = 1;
+        enemy_odom_target_msg.red_num = 1;
+        enemy_odom_target_msg.object.push_back(msg.object[enemy_index1]);
+        enemy_odom_target_msg.object[0].pose.orientation.w = 1;
+        enemy_odom_target_msg.object[0].globalpose.orientation.w = 1;
         result_enemy_target = enemy_odom_target_msg;
     }
     if (msg.red_num == 2)
@@ -364,23 +385,27 @@ geometry_msgs::Pose RoboControl::sendEnemyTarget(const robo_perception::ObjectLi
                 enemy_index2 = i;
             }
         }
-        if (last_enemy_target_msg.position.x == 0 && last_enemy_target_msg.position.y == 0 && last_enemy_target_msg.position.z == 0)
+        if (last_enemy_target_msg.num == 0)
         {
             // 没有打击过敌人, 选择相对距离近的敌人
             if (msg.object[enemy_index1].pose.position.x < msg.object[enemy_index2].pose.position.x)
             {
                 // 选择第一个敌人
-                enemy_odom_target_msg = msg.object[enemy_index1];
-                enemy_odom_target_msg.pose.orientation.w = 1;
-                enemy_odom_target_msg.globalpose.orientation.w = 1;
+                        enemy_odom_target_msg.num = 1;
+        enemy_odom_target_msg.red_num = 1;
+                enemy_odom_target_msg.object.push_back(msg.object[enemy_index1]);
+                enemy_odom_target_msg.object[0].pose.orientation.w = 1;
+                enemy_odom_target_msg.object[0].globalpose.orientation.w = 1;
                 result_enemy_target = enemy_odom_target_msg;
             }
             else
             {
                 // 选择第二个敌人
-                enemy_odom_target_msg = msg.object[enemy_index2];
-                enemy_odom_target_msg.pose.orientation.w = 1;
-                enemy_odom_target_msg.globalpose.orientation.w = 1;
+                        enemy_odom_target_msg.num = 1;
+        enemy_odom_target_msg.red_num = 1;
+                enemy_odom_target_msg.object.push_back(msg.object[enemy_index2]);
+                enemy_odom_target_msg.object[0].pose.orientation.w = 1;
+                enemy_odom_target_msg.object[0].globalpose.orientation.w = 1;
                 result_enemy_target = enemy_odom_target_msg;
             }
         }
@@ -389,20 +414,24 @@ geometry_msgs::Pose RoboControl::sendEnemyTarget(const robo_perception::ObjectLi
             // 之前打击过敌人, 选择离之前的选择近的敌人
             for (int i = 0; i < 2; i++)
             {
-                float dis1 = pow(msg.object[enemy_index1].globalpose.position.x - last_enemy_target_msg.position.x, 2) + pow(msg.object[enemy_index1].globalpose.position.y - last_enemy_target_msg.position.y, 2);
-                float dis2 = pow(msg.object[enemy_index2].globalpose.position.x - last_enemy_target_msg.position.x, 2) + pow(msg.object[enemy_index2].globalpose.position.y - last_enemy_target_msg.position.y, 2);
+                float dis1 = pow(msg.object[enemy_index1].globalpose.position.x - last_enemy_target_msg.object[0].globalpose.position.x, 2) + pow(msg.object[enemy_index1].globalpose.position.y - last_enemy_target_msg.object[0].globalpose.position.y, 2);
+                float dis2 = pow(msg.object[enemy_index2].globalpose.position.x - last_enemy_target_msg.object[0].globalpose.position.x, 2) + pow(msg.object[enemy_index2].globalpose.position.y - last_enemy_target_msg.object[0].globalpose.position.y, 2);
                 if (dis1 <= dis2)
                 {
-                    enemy_odom_target_msg = msg.object[enemy_index1];
-                    enemy_odom_target_msg.pose.orientation.w = 1;
-                    enemy_odom_target_msg.globalpose.orientation.w = 1;
+                            enemy_odom_target_msg.num = 1;
+        enemy_odom_target_msg.red_num = 1;
+                    enemy_odom_target_msg.object.push_back(msg.object[enemy_index1]);
+                    enemy_odom_target_msg.object[0].pose.orientation.w = 1;
+                    enemy_odom_target_msg.object[0].globalpose.orientation.w = 1;
                     result_enemy_target = enemy_odom_target_msg;
                 }
                 else
                 {
-                    enemy_odom_target_msg = msg.object[enemy_index2];
-                    enemy_odom_target_msg.pose.orientation.w = 1;
-                    enemy_odom_target_msg.globalpose.orientation.w = 1;
+                            enemy_odom_target_msg.num = 1;
+        enemy_odom_target_msg.red_num = 1;
+                    enemy_odom_target_msg.object.push_back(msg.object[enemy_index2]);
+                    enemy_odom_target_msg.object[0].pose.orientation.w = 1;
+                    enemy_odom_target_msg.object[0].globalpose.orientation.w = 1;
                     result_enemy_target = enemy_odom_target_msg;
                 }
             }
