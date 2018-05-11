@@ -28,7 +28,7 @@ int main(int argc, char **argv) {
     image_transport::ImageTransport it(nh);
     image_transport::Publisher pub_image = it.advertise(image_topic, 1);
 
-    RMVideoCapture cap(dev_name.c_str(),2);
+    RMVideoCapture cap(dev_name.c_str(),3);
     cap.info();
     cap.setVideoFormat(image_width, image_height, 1);
     cap.getCurrentSetting();

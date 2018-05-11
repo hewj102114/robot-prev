@@ -75,7 +75,6 @@ int main(int argc, char *argv[])
     // get robot id & choose the calibration file
     string intrinsic_file;
     private_nh.getParam("intrinsic_file", intrinsic_file);
-    cout << intrinsic_file << endl;
     FileStorage fs(intrinsic_file, FileStorage::READ);
     if (!fs.isOpened())
     {
@@ -123,17 +122,15 @@ int main(int argc, char *argv[])
     int armor_detector_flag = 0;
     while (ros::ok())
     {
-        // ROS_INFO("loop");
         if (img_recv.empty() || pre_seq == cur_seq)
         {
             ros::spinOnce();
-            rate.sleep();
             continue;
         }
         pre_seq = cur_seq;
         img_recv.copyTo(src);
         src.copyTo(src_csm);
-
+        ros::Time start = ros::Time::now();
         // msg init
         robo_vision::ArmorInfo msg_armor_info;
         msg_armor_info.header.stamp = ros::Time::now();
@@ -141,7 +138,7 @@ int main(int argc, char *argv[])
 
         vector<ArmorTarget> armor_target;
         double angle_x = 0.0, angle_y = 0.0;
-        ros::Time start = ros::Time::now();
+
         armor_detector.getAllTargetAera(src, armor_target);
         msg_armor_info.armor_count = armor_target.size();
 
@@ -162,26 +159,14 @@ int main(int argc, char *argv[])
                 armor_msg.angle.x = (angle_x + offset_anlge_x) * 100.0;
                 armor_msg.angle.y = (angle_y + offset_anlge_y) * 100.0;
 
-                // tf::StampedTransform transform;
-                // try
-                // {
-                //     tf_listener.lookupTransform("usb_camera_link", "odom",
-                //                              ros::Time(0), transform);
-                // }
-                // catch (tf::TransformException &ex)
-                // {
-                //     ROS_ERROR("%s", ex.what());
-                //     break;
-                // }
-
                 tf::Stamped<tf::Pose> ident(tf::Transform(tf::createIdentityQuaternion(),
                                                           tf::Vector3(armor_msg.pose.x, armor_msg.pose.y, armor_msg.pose.z)),
                                             ros::Time(), "usb_camera_link");
-                tf::Stamped<tf::Pose> pose;
-
+                tf::Stamped<tf::Pose> pose,pose_odom;
                 try
                 {
 
+                    tf_->transformPose("odom", ident, pose_odom);
                     tf_->transformPose("base_link", ident, pose);
                 }
                 catch (tf::TransformException &e)
@@ -190,14 +175,14 @@ int main(int argc, char *argv[])
                               "even though the message notifier is in use");
                     break;
                 }
-                ROS_INFO("%f %f", pose.getOrigin().x(), pose.getOrigin().y());
-                armor_msg.pose_odom.x = pose.getOrigin().x();
-                armor_msg.pose_odom.y = pose.getOrigin().y();
-                armor_msg.distance =
-                    sqrt(pow(enemy_pose.position.x - armor_msg.pose_odom.x, 2) +
-                         pow(enemy_pose.position.y - armor_msg.pose_odom.y, 2));
-                msg_armor_info.armor_list.push_back(armor_msg);
 
+                armor_msg.pose_odom.x = pose_odom.getOrigin().x();
+                armor_msg.pose_odom.y = pose_odom.getOrigin().y();
+                armor_msg.distance =
+                    sqrt(pow(enemy_pose.position.x - pose.getOrigin().x(), 2) +
+                         pow(enemy_pose.position.y - pose.getOrigin().y(), 2));
+                msg_armor_info.armor_list.push_back(armor_msg);
+                ROS_INFO("DDD: %f",armor_msg.distance);
                 if (armor_msg.distance < distance)
                 {
                     idx = i;
@@ -314,7 +299,7 @@ int main(int argc, char *argv[])
             waitKey(1);
         }
         ros::Time end = ros::Time::now();
-        ROS_INFO("Time %f", (end - start).toSec());
+        ROS_INFO("Time %f  %f", (end - start).toSec(),1.0/ (end - start).toSec());
     }
 
     ros::spinOnce();
