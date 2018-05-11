@@ -549,6 +549,6 @@ ros::Time t3=ros::Time::now();
 		armor_target[i].ru = armor_target[i].ru + Point2f(_dect_rect.x, _dect_rect.y);
 		armor_target[i].rd = armor_target[i].rd + Point2f(_dect_rect.x, _dect_rect.y);
 		}
-		ROS_INFO("Time %f  %f %f %f",(t1-t0).toSec(),(t2-t1).toSec(),(t3-t2).toSec(),(t4-t3).toSec());
+		//ROS_INFO("Time %f  %f %f %f",(t1-t0).toSec(),(t2-t1).toSec(),(t3-t2).toSec(),(t4-t3).toSec());
 	
 }

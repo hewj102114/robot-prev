@@ -18,6 +18,7 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   tf
   message_generation
+  robo_perception
 )
 
 add_message_files(
@@ -36,7 +37,7 @@ generate_messages(
 catkin_package( 
 #  INCLUDE_DIRS include
 #  LIBRARIES vision 
-  CATKIN_DEPENDS geometry_msgs roscpp rospy sensor_msgs std_msgs tf image_transport  cv_bridge  message_runtime
+  CATKIN_DEPENDS geometry_msgs roscpp rospy sensor_msgs std_msgs tf image_transport  cv_bridge  message_runtime robo_perception
 #  DEPENDS system_lib
 )
 
@@ -52,7 +53,7 @@ src/ArmorDetector.cpp
 # src/Predictor.cpp 
 # src/ImageConsProd.cpp
 # src/RuneResFilter.cpp
-)
+) 
 
 add_executable(armor_detect
 src/robo_vision_node1.cpp
@@ -74,3 +75,11 @@ ${CPP_FILES}
 )
 target_link_libraries(read_camera ${OpenCV_LIBS} pthread ${catkin_LIBRARIES})
 add_dependencies(read_camera read_camera_generate_messages_cpp)
+
+
+add_executable(test_cam
+src/test_cam.cpp
+${CPP_FILES}
+)
+target_link_libraries(test_cam ${OpenCV_LIBS} pthread ${catkin_LIBRARIES})
+add_dependencies(test_cam read_camera_generate_messages_cpp)
