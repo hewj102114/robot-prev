@@ -56,7 +56,7 @@ class RoboNav
     void get_vel(geometry_msgs::Twist &msg_vel);
     void setFixAngle(const geometry_msgs::Quaternion &qua);
     void cb_scan(const sensor_msgs::LaserScan::ConstPtr &scan);
-    void cb_enemy_infor(const robo_perception::ObjectList &msg);
+    //void cb_enemy_infor(const robo_perception::ObjectList &msg);
     geometry_msgs::Pose adjustlocalgoal(double yaw);
 };
 
@@ -124,18 +124,24 @@ void RoboNav::cb_tar_pose(const geometry_msgs::Pose &msg)
     // ROS_INFO("pre-tar %f  %f",pre_goal.position.x - msg->position.x ,pre_goal.position.y - msg->position.y);
     if (cur_pose.position.y == 0 & cur_pose.position.x == 0)
         return;
-    double dis = sqrt(pow(cur_pose.position.x - msg.position.x, 2) + pow(cur_pose.position.y - msg.position.y, 2));
-    double dyaw = abs(tf::getYaw(cur_pose.orientation) - tf::getYaw(msg.orientation));
-    if (dis < 0.5 && dyaw < 0.05)
-        state.data = true;
-    else
-        state.data = false;
     //ROS_INFO("dis: %f", dis);
-    if ((abs(pre_goal.position.x - msg.position.x) > 0.1) || (abs(pre_goal.position.y - msg.position.y) > 0.1)||path.size()==0)
+    //if ((abs(pre_goal.position.x - msg.position.x) > 0.1) || (abs(pre_goal.position.y - msg.position.y) > 0.1))
     {
         path_plan(cur_goal);
         pre_goal.position.x = msg.position.x;
         pre_goal.position.y = msg.position.y;
+        if (path.size() > 1)
+        {
+            int first_index = path[0], second_index = path[1];
+            double first_dis = sqrt(pow(point_list.at<double>(first_index, 0) * 1.0 / 100 - cur_pose.position.y, 2) + pow(point_list.at<double>(first_index, 1) * 1.0 / 100 - cur_pose.position.x, 2));
+            double second_dis = sqrt(pow(point_list.at<double>(second_index, 0) * 1.0 / 100 - cur_pose.position.y, 2) + pow(point_list.at<double>(second_index, 1) * 1.0 / 100 - cur_pose.position.x, 2));
+            double pairwise_dis = sqrt(pow(point_list.at<double>(second_index, 0) - point_list.at<double>(first_index, 0), 2) + pow(point_list.at<double>(second_index, 1) - point_list.at<double>(first_index, 1), 2)) * 1.0 / 100;
+            if (first_dis + second_dis < 1.2 * pairwise_dis)
+            {
+                path.erase(path.begin());
+                ROS_INFO("First point erased!!!!!!!!!!!!!!!!");
+            }
+        }
     }
     //isolated rotation control
     //setFixAngle(cur_pose.orientation);
@@ -145,8 +151,14 @@ void RoboNav::cb_tar_pose(const geometry_msgs::Pose &msg)
 void RoboNav::cb_cur_pose(const nav_msgs::Odometry &msg)
 {
     cur_pose = msg.pose.pose;
+    double dis = sqrt(pow(cur_pose.position.x - cur_goal.position.x, 2) + pow(cur_pose.position.y - cur_goal.position.y, 2));
+    double dyaw = abs(tf::getYaw(cur_pose.orientation) - tf::getYaw(cur_goal.orientation));
+    if (dis < 0.5 && dyaw < 0.05)
+        state.data = true;
+    else
+        state.data = false;
 }
-
+/*
 // obstable avoidance
 void RoboNav::cb_enemy_infor(const robo_perception::ObjectList &msg)
 {
@@ -202,7 +214,7 @@ void RoboNav::cb_enemy_infor(const robo_perception::ObjectList &msg)
         }
     }
 }
-
+*/
 int RoboNav::findClosestPt(double x, double y)
 {
     vector<float> dis_list;
@@ -254,21 +266,21 @@ void RoboNav::get_vel(geometry_msgs::Twist &msg_vel)
         double dx = (cur_local_goal_x - cur_pose.position.x) * cos(cur_yaw) + (cur_local_goal_y - cur_pose.position.y) * sin(cur_yaw);
         double dy = -(cur_local_goal_x - cur_pose.position.x) * sin(cur_yaw) + (cur_local_goal_y - cur_pose.position.y) * cos(cur_yaw);
 
-        geometry_msgs::PoseStamped pose_local;
-        pose_local.header.stamp = ros::Time::now();
-        pose_local.header.frame_id = "base_link";
-        pose_local.pose.position.x = dx;
-        pose_local.pose.position.y = dy;
-        pose_local.pose.position.y = 0;
-        pose_local.pose.orientation.x = 0;
-        pose_local.pose.orientation.y = 0;
-        pose_local.pose.orientation.z = 0;
-        pose_local.pose.orientation.w = 1;
-        pub_local_goal_pose.publish(pose_local);
+        // geometry_msgs::PoseStamped pose_local;
+        // pose_local.header.stamp = ros::Time::now();
+        // pose_local.header.frame_id = "base_link";
+        // pose_local.pose.position.x = dx;
+        // pose_local.pose.position.y = dy;
+        // pose_local.pose.position.y = 0;
+        // pose_local.pose.orientation.x = 0;
+        // pose_local.pose.orientation.y = 0;
+        // pose_local.pose.orientation.z = 0;
+        // pose_local.pose.orientation.w = 1;
+        // pub_local_goal_pose.publish(pose_local);
 
         //ROS_INFO("angle: %f  fix angle : %f   dyaw %f",cur_yaw,fix_angle,dyaw);
-        ROS_INFO(" tar_x %f, tar_y %f,cur_x %f , cur_y %f, diff_x %f, diff_y %f", cur_local_goal_x, cur_local_goal_y,
-                 cur_pose.position.x, cur_pose.position.y, dx, dy);
+        //ROS_INFO(" tar_x %f, tar_y %f,cur_x %f , cur_y %f, diff_x %f, diff_y %f", cur_local_goal_x, cur_local_goal_y,
+        //         cur_pose.position.x, cur_pose.position.y, dx, dy);
         if (abs(dx) < 0.05 && abs(dy) < 0.05)
         {
             path.erase(path.begin());
@@ -299,7 +311,7 @@ void RoboNav::get_vel(geometry_msgs::Twist &msg_vel)
     {
         dyaw = fix_angle - cur_yaw;
     }
-    ROS_INFO("cur_yaw: %f, dyaw %f ", cur_yaw, dyaw);
+    //ROS_INFO("cur_yaw: %f, dyaw %f ", cur_yaw, dyaw);
     vel_yaw = pid_yaw.calc(dyaw);
     if (abs(dyaw) < 0.05)
         vel_yaw = 0;
@@ -346,8 +358,8 @@ void RoboNav::cb_scan(const sensor_msgs::LaserScan::ConstPtr &scan)
         obs_min[i][0] = Filter_ScanData(index, scan);
         obs_min[i][1] = Filter_ScanData(indexC, scan);
     }
-    ROS_INFO("min Front: %f, Left: %f  Behind: %f, Right: %f ", obs_min[0][0], obs_min[1][0], obs_min[2][0], obs_min[3][0]);
-    ROS_INFO("min corner Front: %f, Left: %f  Behind: %f, Right: %f ", obs_min[0][1], obs_min[1][1], obs_min[2][1], obs_min[3][1]);
+    //ROS_INFO("min Front: %f, Left: %f  Behind: %f, Right: %f ", obs_min[0][0], obs_min[1][0], obs_min[2][0], obs_min[3][0]);
+    //ROS_INFO("min corner Front: %f, Left: %f  Behind: %f, Right: %f ", obs_min[0][1], obs_min[1][1], obs_min[2][1], obs_min[3][1]);
 }
 
 geometry_msgs::Pose RoboNav::adjustlocalgoal(double yaw)
@@ -449,7 +461,7 @@ geometry_msgs::Pose RoboNav::adjustlocalgoal(double yaw)
         local_goal.position.y = local_goal_y + 0.1 * (cos(yaw) - sin(yaw));
     }
 
-    ROS_INFO("stop x: %d, y: %d", pid_x.stop, pid_y.stop);
+    //ROS_INFO("stop x: %d, y: %d", pid_x.stop, pid_y.stop);
     return local_goal;
 }
 
@@ -476,7 +488,8 @@ int main(int argc, char **argv)
         geometry_msgs::Twist msg_vel;
         robo_nav.get_vel(msg_vel);
         //ROS_INFO("vel x: %f y:%f", msg_vel.linear.x, msg_vel.linear.y);
-        //ROS_INFO("NUM: %d, SIZE: %ld", robo_nav.path[0], robo_nav.path.size());
+        if (robo_nav.path.size() > 0)
+            robo_nav.floyd.printPath();
         pub_vel.publish(msg_vel);
         pub_state.publish(robo_nav.state);
         ros::spinOnce();

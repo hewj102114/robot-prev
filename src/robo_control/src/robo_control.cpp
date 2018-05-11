@@ -293,11 +293,11 @@ int RoboControl::find_enemy_self_closest_point(double enemy_x, double enemy_y, d
     for (int i = 0; i < point_list.rows; i++)
     {
         ROS_INFO("find_enemy_self_closest_point: %d", i);        
-        float d_enemy_x = enemy_x - point_list.at<double>(i, 0) * 1.0 / 100;
-        float d_enemy_y = enemy_y - point_list.at<double>(i, 1) * 1.0 / 100;
+        float d_enemy_y = enemy_y - point_list.at<double>(i, 0) * 1.0 / 100;
+        float d_enemy_x = enemy_x - point_list.at<double>(i, 1) * 1.0 / 100;
 
-        float d_self_x = self_x - point_list.at<double>(i, 0) * 1.0 / 100;
-        float d_self_y = self_y - point_list.at<double>(i, 1) * 1.0 / 100;
+        float d_self_y = self_y - point_list.at<double>(i, 0) * 1.0 / 100;
+        float d_self_x = self_x - point_list.at<double>(i, 1) * 1.0 / 100;
 
         float distance_enemy = sqrt(d_enemy_x * d_enemy_x + d_enemy_y * d_enemy_y);
         float distance_self = sqrt(d_self_x * d_self_x + d_self_y * d_self_y);
