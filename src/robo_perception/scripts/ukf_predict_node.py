@@ -453,8 +453,8 @@ def callback_odom(odom):
 
 def callback_target(target):
     global aim_target_x, aim_target_y, ENABLE_PREDICT, aimtheta,tfBuffer,gimbal_yaw,odom_yaw,gimbal_dtheta,TARGET_RECETIVED
-    aim_target_x = target.pose.pose.position.x
-    aim_target_y = target.pose.pose.position.y
+    aim_target_x = target.object[0].globalpose.position.x
+    aim_target_y = target.object[0].globalpose.position.y
     TARGET_RECETIVED = False
     if aim_target_x and aim_target_y != 0:
         TARGET_RECETIVED = True
@@ -493,7 +493,7 @@ subenemy = rospy.Subscriber('infrared_detection/enemy_position', ObjectList, cal
 subpnp = rospy.Subscriber('base/armor_pose', PoseStamped, callback_pnp)
 subodom = rospy.Subscriber('odom', Odometry, callback_odom)
 subgimbal = rospy.Subscriber('base/game_info', GameInfo, callback_gimbal)
-subtarget = rospy.Subscriber('enemy/target', Odometry, callback_target)
+subtarget = rospy.Subscriber('enemy/target', ObjectList, callback_target)
 
 pub_ukf_vel = rospy.Publisher('ukf/enemy', Odometry, queue_size=1)
 

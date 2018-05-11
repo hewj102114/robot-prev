@@ -391,6 +391,7 @@ def TsDet_callback(infrared_image, pointcloud):
             enemy.globalpose.position.y = global_y
             enemy.globalpose.position.z = 0
 
+
             enemy.globalpose.orientation.w = theta
             enemy_position.object.append(enemy)
 

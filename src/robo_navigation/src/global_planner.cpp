@@ -50,7 +50,7 @@ void Floyd::updateFloydGraph(int i,int j,int value){
     weight_graph.at<int>(i,j)=value;
     weight_graph.at<int>(j,i)=value;
     memcpy(arrDis,weight_graph.data,sizeof(arrDis));
-    initFloydGraph();
+    //initFloydGraph();
 }
 void Floyd::printPath(){
     for (int i=0;i<path.size() -1;i++){

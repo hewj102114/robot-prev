@@ -101,7 +101,7 @@ int main(int argc, char **argv)
 	chassis 1:velcity 2:angle pose 3:init
 	*/
 	geometry_msgs::Pose target_pose;
-	int work_state = 2;
+	int work_state = 5;
 	int center_state = 0;
 	ros::Rate loop_rate(150);
 	bool realsense_first_in = true;
@@ -338,15 +338,15 @@ int main(int argc, char **argv)
 		{
 			ROS_INFO("Stage 2: Find enemy, close to and stack enemy!!!!!!");
 			robo_ctl.last_enemy_target = robo_ctl.sendEnemyTarget(robo_ctl.enemy_information, robo_ctl.last_enemy_target);
-			int target_num = robo_ctl.find_enemy_self_closest_point(robo_ctl.last_enemy_target.position.x, 
-																	robo_ctl.last_enemy_target.position.y, 
+			int target_num = robo_ctl.find_enemy_self_closest_point(robo_ctl.last_enemy_target.object[0].globalpose.position.x, 
+																	robo_ctl.last_enemy_target.object[0].globalpose.position.y, 
 																	robo_ctl.robo_ukf_pose.position.x, 
 																	robo_ctl.robo_ukf_pose.position.y);
 			geometry_msgs::Pose target_pose;
 			target_pose.position.x = robo_ctl.point_list.at<double>(target_num, 0) / 100.0;
 			target_pose.position.y = robo_ctl.point_list.at<double>(target_num, 1) / 100.0;
 			target_pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
-			ROS_INFO("Target enemy X, Y: %f, %f", robo_ctl.last_enemy_target.position.x, robo_ctl.last_enemy_target.position.y);					
+			ROS_INFO("Target enemy X, Y: %f, %f", robo_ctl.last_enemy_target.object[0].globalpose.position.x, robo_ctl.last_enemy_target.object[0].globalpose.position.y);					
 			ROS_INFO("Current X, Y: %f, %f", robo_ctl.robo_ukf_pose.position.x, robo_ctl.robo_ukf_pose.position.y);		
 			ROS_INFO("Goal X, Y: %f, %f", target_pose.position.x, target_pose.position.y);
 			robo_ctl.sendNavGoal(target_pose);
@@ -541,6 +541,7 @@ int main(int argc, char **argv)
 			break;
 		}
 		case 5:
+			ROS_INFO("Stage 5: Testing!!!!!!");
 			robo_ctl.readMCUData();
 			ROS_INFO("Stage 5: Testing!!!!!!");
 			robo_ctl.last_enemy_target = robo_ctl.sendEnemyTarget(robo_ctl.enemy_information, robo_ctl.last_enemy_target);
