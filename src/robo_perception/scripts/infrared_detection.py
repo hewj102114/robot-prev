@@ -302,6 +302,9 @@ def TsDet_callback(infrared_image, pointcloud):
     # 检测到车并且检测到轮子, 进入此 if, 目的是为了减少误检率
     robo_bboxes = []
     armor_bboxes = []
+    enemy_position = ObjectList()
+    enemy_position.header.stamp = rospy.Time.now()
+    enemy_position.header.frame_id = 'enemy'
     if len(final_boxes) > 0 and np.any(final_class == 0) and (np.any(final_class == 1) or np.any(final_class == 2)):
         #judge detect how much robots
         robot_final_idx = np.array(np.where(final_class == 0))
@@ -370,9 +373,7 @@ def TsDet_callback(infrared_image, pointcloud):
         t = TransformStamped()
 
         robo_position = np.array(robo_position)
-        enemy_position = ObjectList()
-        enemy_position.header.stamp = rospy.Time.now()
-        enemy_position.header.frame_id = 'enemy'
+        
         enemy_position.num = robo_position.shape[0]
 
         # 判断有几个敌人, 1个的时候要特殊处理
@@ -454,9 +455,6 @@ def TsDet_callback(infrared_image, pointcloud):
             lose_frame_count = 0
             enemy_position = last_enemy_position
         else:
-            enemy_position = ObjectList()
-            enemy_position.header.stamp = rospy.Time.now()
-            enemy_position.header.frame_id = 'enemy'
             enemy_position.num = 0
             enemy_position.red_num = 0  
             enemy_position.blue_num = 0

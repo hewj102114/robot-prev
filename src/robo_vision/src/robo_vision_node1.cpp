@@ -81,6 +81,8 @@ int main(int argc, char *argv[])
         nh.advertise<robo_vision::ArmorInfo>("base/armor_info", 1);
     ros::Publisher pub_armor_pose =
         nh.advertise<geometry_msgs::PoseStamped>("base/armor_pose", 1);
+    ros::Publisher pub_armor_pose_odom =
+        nh.advertise<geometry_msgs::PoseStamped>("base/armor_pose_odom", 1);    
     tf2_ros::TransformBroadcaster enemy_pnp_tf;
     image_transport::ImageTransport it(nh);
     image_transport::Subscriber image_sub =
@@ -167,6 +169,7 @@ int main(int argc, char *argv[])
         armor_detector.getAllTargetAera(src, armor_target);
         msg_armor_info.armor_count = armor_target.size();
         geometry_msgs::PoseStamped armor_pose_msg;
+        geometry_msgs::PoseStamped armor_pose_odom_msg;
         int idx = -1;
         if (armor_target.size() != 0)
         {
@@ -262,12 +265,17 @@ int main(int argc, char *argv[])
                 pre_angle.x = msg_armor_info.angle.x;
                 pre_angle.y = msg_armor_info.angle.y;
 
-                // publish global pose data
-
+                // publish pose data
                 armor_pose_msg.header.stamp = ros::Time::now();
                 armor_pose_msg.header.frame_id = "usb_camera_link";
                 armor_pose_msg.pose.position.x = msg_armor_info.target.pose_base.x;
                 armor_pose_msg.pose.position.y = msg_armor_info.target.pose_base.y;
+                armor_pose_odom_msg.header.stamp = ros::Time::now();
+                armor_pose_odom_msg.header.frame_id = "usb_camera_link";
+                armor_pose_odom_msg.pose.position.x = msg_armor_info.target.pose_odom.x;
+                armor_pose_odom_msg.pose.position.y = msg_armor_info.target.pose_odom.y;
+
+                
 
                 // publish enemy tf transform
                 geometry_msgs::TransformStamped enemy_trans;
@@ -304,8 +312,10 @@ int main(int argc, char *argv[])
             pre_enemy_pose.x = 0;
             pre_enemy_pose.y = 0;
         }
+
         pub_armor_info.publish(msg_armor_info);
         pub_armor_pose.publish(armor_pose_msg);
+        pub_armor_pose_odom.publish(armor_pose_odom_msg);
 
         if (setting.show_image > 0)
         {
@@ -354,8 +364,9 @@ int main(int argc, char *argv[])
         }
         ros::Time end = ros::Time::now();
         //ROS_INFO("Time %f  %f", (end - start).toSec(), 1.0 / (end - start).toSec());
+           ros::spinOnce();
+        rate.sleep();
     }
 
-    ros::spinOnce();
-    rate.sleep();
+ 
 }

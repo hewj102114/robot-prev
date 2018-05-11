@@ -109,7 +109,7 @@ void RoboNav::path_plan(geometry_msgs::Pose &target)
     if (start_pt != end_pt)
     {
         floyd.calcPath(start_pt, end_pt);
-        ROS_INFO("start %f  %f  end   %f  %f ", cur_pose.position.x, cur_pose.position.y, target.position.x, target.position.y);
+        //ROS_INFO("start %f  %f  end   %f  %f ", cur_pose.position.x, cur_pose.position.y, target.position.x, target.position.y);
         ROS_INFO("GET GOAL start: %d  end: %d", start_pt, end_pt);
         floyd.printPath();
         path.assign(floyd.path.begin(), floyd.path.end());
@@ -131,7 +131,7 @@ void RoboNav::cb_tar_pose(const geometry_msgs::Pose &msg)
     else
         state.data = false;
     //ROS_INFO("dis: %f", dis);
-    if ((abs(pre_goal.position.x - msg.position.x) > 0.1) || (abs(pre_goal.position.y - msg.position.y) > 0.1))
+    if ((abs(pre_goal.position.x - msg.position.x) > 0.1) || (abs(pre_goal.position.y - msg.position.y) > 0.1)||path.size()==0)
     {
         path_plan(cur_goal);
         pre_goal.position.x = msg.position.x;

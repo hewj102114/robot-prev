@@ -29,8 +29,11 @@ pt_self=[(80,80),
 (310,260),
 (200,260),
 (80,260),
-(420,360),
-(320,360)]
+(420,330),
+(320,330),
+(450,160),
+(420,400),
+(320,400)]
 
 pt_enemy=[]
 for i in range(len(pt_self)):
@@ -71,7 +74,7 @@ add_edge(0,2)
 add_edge(2,3)
 add_edge(3,4)
 add_edge(4,5)
-add_edge(5,6)
+#add_edge(5,6)
 add_edge(6,7)
 add_edge(3,7)
 add_edge(7,8)
@@ -80,8 +83,16 @@ add_edge(1,9)
 add_edge(6,10)
 add_edge(10,11)
 add_edge(7,11)
-add_edge(11,24)
-add_edge(7,24)
+add_edge(11,30)
+add_edge(7,30)
+add_edge(5,12)
+add_edge(6,12)
+add_edge(13,14)
+add_edge(13,10)
+add_edge(14,11)
+add_edge(14,30)
+
+
 
 cv2.imshow("map",map_pt)
 cv2.waitKey(0)
