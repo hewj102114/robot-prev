@@ -368,13 +368,15 @@ def callback_pnp(pnp):
         if pnp.pose.position.x != 0 and pnp.pose.position.y != 0:
             FIND_PNP = True
 
-            try:
-                pnp_trans = tfBuffer.lookup_transform('odom', 'enemy_pnp_link', rospy.Time(0))
-            except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
-                print('PNP TF TRANS TRANS FAIL! check your code')
-            #print pnp_trans
-            pnp_pos_x = pnp_trans.transform.translation.x
-            pnp_pos_y = pnp_trans.transform.translation.y
+            # try:
+            #     pnp_trans = tfBuffer.lookup_transform('odom', 'enemy_pnp_link', rospy.Time(0))
+            # except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+            #     print('PNP TF TRANS TRANS FAIL! check your code')
+            # #print pnp_trans
+            # pnp_pos_x = pnp_trans.transform.translation.x
+            # pnp_pos_y = pnp_trans.transform.translation.y
+            pnp_pos_x = pnp.pose.position.x
+            pnp_pos_y = pnp.pose.position.y
         else:
             FIND_PNP = False
 
@@ -413,7 +415,7 @@ def callback_pnp(pnp):
 
         PNP_UKF_AVAILABLE = False
         if PNP_PREDICT_INIT and PNP_DATA_AVAILABLE:
-            UKFPnpInit(0.01, np.array([pnp_pos_x, pnp_vel_x, pnp_pos_y, pnp_vel_y]))
+            UKFPnpInit(0.0125, np.array([pnp_pos_x, pnp_vel_x, pnp_pos_y, pnp_vel_y]))
             ukf_pnp_pos_x = ukf_pnp.x[0]
             ukf_pnp_vel_x = ukf_pnp.x[1]
             ukf_pnp_pos_y = ukf_pnp.x[2]
@@ -487,7 +489,7 @@ def callback_gimbal(gimbal):
 
 rospy.init_node('ukf_predict_node')
 UKFRsInit(0.033,np.array([0., 0., 0., 0.]))
-UKFPnpInit(0.01,np.array([0., 0., 0., 0.,0.,0.]))
+UKFPnpInit(0.0125,np.array([0., 0., 0., 0.,0.,0.]))
 TFinit()
 subenemy = rospy.Subscriber('infrared_detection/enemy_position', ObjectList, callback_enemy)
 subpnp = rospy.Subscriber('base/armor_pose', PoseStamped, callback_pnp)
@@ -497,7 +499,7 @@ subtarget = rospy.Subscriber('enemy/target', ObjectList, callback_target)
 
 pub_ukf_vel = rospy.Publisher('ukf/enemy', Odometry, queue_size=1)
 
-rate = rospy.Rate(30) # 40hz
+rate = rospy.Rate(30) # 30hz
 while not rospy.is_shutdown():
     global BULLET_SPEED, pnp_pos_x, pnp_pos_y, pnp_vel_y, pnp_vel_x, gimbal_yaw, odom_vel_x, odom_vel_y,odom_yaw
     global UNABLE_PREDICT, aimtheta, predict_angle, ukf_out_pos_x, ukf_out_pos_y, ukf_out_vel_x, ukf_out_vel_y
@@ -508,14 +510,14 @@ while not rospy.is_shutdown():
 
 
     # 选择传感器预测优先级
-    if RS_UKF_AVAILABLE:
+    if RS_UKF_AVAILABLE and 0:
         ukf_out_pos_x = ukf_rs_pos_x  
         ukf_out_vel_x = ukf_rs_vel_x
         ukf_out_pos_y = ukf_rs_pos_y 
         ukf_out_vel_y = ukf_rs_vel_y
         UNABLE_PREDICT = 0
         TEMPERAL_LOST = 0
-    elif PNP_UKF_AVAILABLE and 0:  
+    elif PNP_UKF_AVAILABLE:  
         ukf_out_pos_x = ukf_pnp_pos_x  
         ukf_out_vel_x = ukf_pnp_vel_x
         ukf_out_pos_y = ukf_pnp_pos_y 
@@ -582,19 +584,19 @@ while not rospy.is_shutdown():
 
     elif PNP_UKF_AVAILABLE:
         #计算相对速度
-        relative_speed_x = ukf_out_vel_x - odom_vel_x
-        relative_speed_y = ukf_out_vel_y - odom_vel_y
+        relative_speed_x = ukf_out_vel_x
+        relative_speed_y = ukf_out_vel_y
         #print 'relative_speed_x',relative_speed_x,'relative_speed_y',relative_speed_y
         #计算水平于枪口方向的速度,trans to ploe axis then calculate verticle speed
         # target_speed = np.sqrt(relative_speed_x**2 + relative_speed_y**2)
         # target_theta = np.arctan2(relative_speed_y , relative_speed_x)
         # V_verticle = target_speed * np.sin(2 * np.pi - (global_gimbal_yaw + target_theta + 90))
         # print 'target_speed',target_speed, 'target_theta',target_theta,'V_verticle',V_verticle
-        V_verticle = relative_speed_x * np.sin(global_gimbal_yaw) + relative_speed_y * np.cos(global_gimbal_yaw)
+        V_verticle = relative_speed_x * np.sin(gimbal_yaw) + relative_speed_y * np.cos(gimbal_yaw)
         #print 'V_verticle',V_verticle,'global_gimbal_yaw',global_gimbal_yaw,'relative_speed_x',relative_speed_x,'relative_speed_y',relative_speed_y
         #print V_verticle, odom_yaw
         #计算检测到的目标和我自身的距离
-        distance_to_enemy = np.sqrt((ukf_out_pos_x - (odom_pos_x + 0.22*np.cos(odom_yaw)))**2 +(ukf_out_pos_y - (odom_pos_y+ 0.22*np.cos(odom_yaw)))**2)
+        distance_to_enemy = np.sqrt(ukf_out_pos_x **2 + ukf_out_pos_y**2)
         #计算子弹飞行时间
         T_FLY = distance_to_enemy / BULLET_SPEED
         #反解算出需要的预瞄角度
