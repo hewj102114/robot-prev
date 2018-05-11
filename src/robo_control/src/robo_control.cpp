@@ -28,7 +28,6 @@ void RoboControl::cb_move_base(const move_base_msgs::MoveBaseActionFeedback &msg
     }
 }
 
-
 void RoboControl::cb_enemy_pose(const geometry_msgs::TransformStamped &msg)
 {
     enemy_odom_pose.position.x = msg.transform.translation.x;
@@ -66,9 +65,6 @@ void RoboControl::cb_cur_goal(const geometry_msgs::PoseStamped &msg)
     nav_current_goal.position.y += 1;
 }
 
-
-
-
 void RoboControl::readMCUData()
 {
     ros::Time time = ros::Time::now();
@@ -77,7 +73,7 @@ void RoboControl::readMCUData()
         return;
 
     init_flag = msg_frommcu.init_flag;
-    
+
     game_msg.header.stamp = time;
     game_msg.header.frame_id = "base_link";
     game_msg.remainingHP = msg_frommcu.remaining_HP;
@@ -86,7 +82,7 @@ void RoboControl::readMCUData()
     game_msg.bulletCount = msg_frommcu.uwb_yaw;
     game_msg.gimbalAngleYaw = msg_frommcu.gimbal_chassis_angle * 1.0 / 100;
     game_msg.gimbalAnglePitch = -msg_frommcu.gimbal_pitch_angle * 1.0 / 100;
-    game_msg.bulletSpeed = msg_frommcu.bullet_speed*1.0/1000;
+    game_msg.bulletSpeed = msg_frommcu.bullet_speed * 1.0 / 1000;
     pub_game_info.publish(game_msg);
 
     nav_msgs::Odometry uwb_odom_msg;
@@ -269,29 +265,29 @@ void RoboControl::go_on_patrol(int flag, int key_point_count, float current_posi
     *               enemy_position: 敌人最后一次出现的位置
     *  函数返回：返回下次去的位置
     *************************************************************************/
-   geometry_msgs::Pose target_pose;
-   if(flag == 1)
-   {
-       // 从中点开始的巡图
-       float x_go_on_patrol[4] = {1.30, 6.70, 6.70, 1.30};
-       float y_go_on_patrol[4] = {0.80, 0.80, 4.20, 4.20};
-       
-       target_pose.position.x = x_go_on_patrol[key_point_count];
-       target_pose.position.y = y_go_on_patrol[key_point_count];
-       target_pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
-       sendNavGoal(target_pose);
-   }
-   if(flag == 2)
-   {
-       // 丢失敌人之后的巡图
-   }
+    geometry_msgs::Pose target_pose;
+    if (flag == 1)
+    {
+        // 从中点开始的巡图
+        float x_go_on_patrol[4] = {1.30, 6.70, 6.70, 1.30};
+        float y_go_on_patrol[4] = {0.80, 0.80, 4.20, 4.20};
+
+        target_pose.position.x = x_go_on_patrol[key_point_count];
+        target_pose.position.y = y_go_on_patrol[key_point_count];
+        target_pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
+        sendNavGoal(target_pose);
+    }
+    if (flag == 2)
+    {
+        // 丢失敌人之后的巡图
+    }
 }
 
 void RoboControl::read_xml_file()
 {
     cv::FileStorage fs("/home/ubuntu/robot/src/robo_navigation/launch/matrix.xml", cv::FileStorage::READ);
     fs["Point"] >> point_list;
-} 
+}
 
 int RoboControl::find_enemy_self_closest_point(double enemy_x, double enemy_y, double self_x, double self_y)
 {
@@ -303,16 +299,16 @@ int RoboControl::find_enemy_self_closest_point(double enemy_x, double enemy_y, d
 
         float d_self_x = self_x - point_list.at<double>(i, 0) * 1.0 / 100;
         float d_self_y = self_y - point_list.at<double>(i, 1) * 1.0 / 100;
-        
+
         float distance_enemy = sqrt(d_enemy_x * d_enemy_x + d_enemy_y * d_enemy_y);
         float distance_self = sqrt(d_self_x * d_self_x + d_self_y * d_self_y);
-        
+
         if (distance_enemy < 1.0 || distance_enemy > 2.0)
         {
             distance_enemy = 1000.0;
         }
 
-        dis_list.push_back(0.3*distance_self + 0.7*distance_enemy);
+        dis_list.push_back(0.3 * distance_self + 0.7 * distance_enemy);
     }
 
     vector<float>::iterator smallest = min_element(dis_list.begin(), dis_list.end());
@@ -321,16 +317,13 @@ int RoboControl::find_enemy_self_closest_point(double enemy_x, double enemy_y, d
     return n;
 }
 
-geometry_msgs::Pose RoboControl::sendEnemyTarget(const robo_perception::ObjectList &msg, geometry_msgs::Pose &last_enemy_target_msg)
+geometry_msgs::Pose RoboControl::sendEnemyTarget(const robo_perception::ObjectList &msg, robo_perception::Object &last_enemy_target_msg)
 {
-    geometry_msgs::Pose result_enemy_target;
+    robo_perception::Object result_enemy_target;
     int enemy_index1 = 0;
     int enemy_index2 = 0;
 
-    nav_msgs::Odometry enemy_odom_target_msg;
-    enemy_odom_target_msg.header.stamp = ros::Time::now();
-    enemy_odom_target_msg.header.frame_id = "odom";
-    enemy_odom_target_msg.child_frame_id = "target";
+    robo_perception::Object enemy_odom_target_msg;
 
     // 计算打击哪个车, 给定 infrared detection 的检测结果和上一帧的打击目标
     if (msg.red_num == 0)
@@ -339,24 +332,23 @@ geometry_msgs::Pose RoboControl::sendEnemyTarget(const robo_perception::ObjectLi
         result_enemy_target.position.x = 0;
         result_enemy_target.position.y = 0;
         result_enemy_target.position.z = 0;
-        return result_enemy_target; 
+        return result_enemy_target;
     }
     if (msg.red_num == 1)
     {
         // 没有选择, 只打当前的敌人
         for (int i = 0; i < msg.num; i++)
         {
-            if(msg.object[i].team.data == "red0")
+            if (msg.object[i].team.data == "red0")
             {
                 enemy_index1 = i;
             }
         }
 
-        enemy_odom_target_msg.pose.pose.position.x = msg.object[enemy_index1].globalpose.position.x;
-        enemy_odom_target_msg.pose.pose.position.y = msg.object[enemy_index1].globalpose.position.y;
-        enemy_odom_target_msg.pose.pose.orientation = msg.object[enemy_index1].globalpose.orientation;
-        enemy_odom_target_msg.pose.pose.orientation.w = 1;
-        result_enemy_target = enemy_odom_target_msg.pose.pose;
+        enemy_odom_target_msg = msg.object[enemy_index1];
+        enemy_odom_target_msg.pose.orientation.w = 1;
+        enemy_odom_target_msg.globalpose.orientation.w = 1;
+        result_enemy_target = enemy_odom_target_msg;
     }
     if (msg.red_num == 2)
     {
@@ -378,22 +370,20 @@ geometry_msgs::Pose RoboControl::sendEnemyTarget(const robo_perception::ObjectLi
             if (msg.object[enemy_index1].pose.position.x < msg.object[enemy_index2].pose.position.x)
             {
                 // 选择第一个敌人
-                enemy_odom_target_msg.pose.pose.position.x = msg.object[enemy_index1].globalpose.position.x;
-                enemy_odom_target_msg.pose.pose.position.y = msg.object[enemy_index1].globalpose.position.y;
-                enemy_odom_target_msg.pose.pose.orientation = msg.object[enemy_index1].globalpose.orientation;
-                enemy_odom_target_msg.pose.pose.orientation.w = 1;
-                result_enemy_target = enemy_odom_target_msg.pose.pose;
+                enemy_odom_target_msg = msg.object[enemy_index1];
+                enemy_odom_target_msg.pose.orientation.w = 1;
+                enemy_odom_target_msg.globalpose.orientation.w = 1;
+                result_enemy_target = enemy_odom_target_msg;
             }
             else
             {
                 // 选择第二个敌人
-                enemy_odom_target_msg.pose.pose.position.x = msg.object[enemy_index2].globalpose.position.x;
-                enemy_odom_target_msg.pose.pose.position.y = msg.object[enemy_index2].globalpose.position.y;
-                enemy_odom_target_msg.pose.pose.orientation = msg.object[enemy_index2].globalpose.orientation;
-                enemy_odom_target_msg.pose.pose.orientation.w = 1;
-                result_enemy_target = enemy_odom_target_msg.pose.pose;
+                enemy_odom_target_msg = msg.object[enemy_index2];
+                enemy_odom_target_msg.pose.orientation.w = 1;
+                enemy_odom_target_msg.globalpose.orientation.w = 1;
+                result_enemy_target = enemy_odom_target_msg;
             }
-        }   
+        }
         else
         {
             // 之前打击过敌人, 选择离之前的选择近的敌人
@@ -403,19 +393,17 @@ geometry_msgs::Pose RoboControl::sendEnemyTarget(const robo_perception::ObjectLi
                 float dis2 = pow(msg.object[enemy_index2].globalpose.position.x - last_enemy_target_msg.position.x, 2) + pow(msg.object[enemy_index2].globalpose.position.y - last_enemy_target_msg.position.y, 2);
                 if (dis1 <= dis2)
                 {
-                    enemy_odom_target_msg.pose.pose.position.x = msg.object[enemy_index1].globalpose.position.x;
-                    enemy_odom_target_msg.pose.pose.position.y = msg.object[enemy_index1].globalpose.position.y;
-                    enemy_odom_target_msg.pose.pose.orientation = msg.object[enemy_index1].globalpose.orientation;
-                    enemy_odom_target_msg.pose.pose.orientation.w = 1;
-                    result_enemy_target = enemy_odom_target_msg.pose.pose;
+                    enemy_odom_target_msg = msg.object[enemy_index1];
+                    enemy_odom_target_msg.pose.orientation.w = 1;
+                    enemy_odom_target_msg.globalpose.orientation.w = 1;
+                    result_enemy_target = enemy_odom_target_msg;
                 }
                 else
                 {
-                    enemy_odom_target_msg.pose.pose.position.x = msg.object[enemy_index2].globalpose.position.x;
-                    enemy_odom_target_msg.pose.pose.position.y = msg.object[enemy_index2].globalpose.position.y;
-                    enemy_odom_target_msg.pose.pose.orientation = msg.object[enemy_index2].globalpose.orientation;
-                    enemy_odom_target_msg.pose.pose.orientation.w = 1;
-                    result_enemy_target = enemy_odom_target_msg.pose.pose;
+                    enemy_odom_target_msg = msg.object[enemy_index2];
+                    enemy_odom_target_msg.pose.orientation.w = 1;
+                    enemy_odom_target_msg.globalpose.orientation.w = 1;
+                    result_enemy_target = enemy_odom_target_msg;
                 }
             }
         }

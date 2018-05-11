@@ -31,6 +31,7 @@
 #include "robo_vision/ArmorInfo.h"
 #include "robo_control/GameInfo.h"
 #include "robo_perception/ObjectList.h"
+#include "robo_perception/Object.h"
 
 using namespace std;
 #define PI 3.1415926535898
@@ -75,7 +76,7 @@ class RoboControl
         pub_wheel_vel = pnh->advertise<geometry_msgs::Vector3Stamped>("robo/wheel/data", 1);
         pub_imu_data = pnh->advertise<sensor_msgs::Imu>("gimbal/imu/data_raw", 1);
         pub_nav_goal = pnh->advertise<geometry_msgs::Pose>("base/goal", 1);
-        pub_enemy_target = pnh->advertise<nav_msgs::Odometry>("enemy/target", 1);
+        pub_enemy_target = pnh->advertise<robo_perception::Object>("enemy/target", 1);
 
         serial = new Serial("/dev/ttyUSBA1");
         serial->configurePort();
@@ -113,7 +114,7 @@ class RoboControl
     void cb_enemy_information(const robo_perception::ObjectList &msg);
     void read_xml_file();
     int find_enemy_self_closest_point(double enemy_x, double enemy_y, double self_x, double self_y);
-    geometry_msgs::Pose sendEnemyTarget(const robo_perception::ObjectList &msg, geometry_msgs::Pose &last_enemy_target_msg);
+    geometry_msgs::Pose sendEnemyTarget(const robo_perception::ObjectList &msg, robo_perception::Object &last_enemy_target_msg);
     float calculator_enemy_angle(double enemy_x, double enemy_y, double self_x, double self_y);
     void cb_ukf_enemy_information(const nav_msgs::Odometry &msg);
     ros::NodeHandle *pnh;
@@ -148,7 +149,7 @@ class RoboControl
     geometry_msgs::Pose another_robo_pose;
     geometry_msgs::Pose robo_ukf_enemy_information;
     robo_control::GameInfo game_msg;
-    geometry_msgs::Pose last_enemy_target;
+    robo_perception::Object last_enemy_target;
     /* uint8 PENDING=0
      *  uint8 ACTIVE=1
      *  uint8 PREEMPTED=2
