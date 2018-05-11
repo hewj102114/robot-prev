@@ -308,7 +308,7 @@ int RoboControl::find_enemy_self_closest_point(double enemy_x, double enemy_y, d
             distance_enemy = 1000.0;
         }
 
-        dis_list.push_back(0.3 * distance_self + 0.7 * distance_enemy);
+        dis_list.push_back(0.7 * distance_self + 0.3 * distance_enemy);
     }
 
     vector<float>::iterator smallest = min_element(dis_list.begin(), dis_list.end());
@@ -351,7 +351,8 @@ robo_perception::ObjectList RoboControl::sendEnemyTarget(const robo_perception::
         temp_object.globalpose.position.z = 0;
 
         result_enemy_target.object.push_back(temp_object);
-
+        enemy_odom_target_msg = result_enemy_target;
+        pub_enemy_target.publish(enemy_odom_target_msg);
         return result_enemy_target;
     }
     if (msg.red_num == 1)
