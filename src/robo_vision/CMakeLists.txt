@@ -55,7 +55,7 @@ src/ArmorDetector.cpp
 )
 
 add_executable(armor_detect
-src/robo_vision_node1.cpp
+src/robo_vision_node.cpp
 ${CPP_FILES}
 )
 add_dependencies(armor_detect ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})

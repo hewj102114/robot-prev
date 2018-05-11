@@ -294,6 +294,7 @@ int RoboControl::find_enemy_self_closest_point(double enemy_x, double enemy_y, d
     vector<float> dis_list;
     for (int i = 0; i < point_list.rows; i++)
     {
+        ROS_INFO("find_enemy_self_closest_point: %d", i);        
         float d_enemy_x = enemy_x - point_list.at<double>(i, 0) * 1.0 / 100;
         float d_enemy_y = enemy_y - point_list.at<double>(i, 1) * 1.0 / 100;
 
@@ -308,7 +309,7 @@ int RoboControl::find_enemy_self_closest_point(double enemy_x, double enemy_y, d
             distance_enemy = 1000.0;
         }
 
-        dis_list.push_back(0.7 * distance_self + 0.3 * distance_enemy);
+        dis_list.push_back(0.3 * distance_self + 0.7 * distance_enemy);
     }
 
     vector<float>::iterator smallest = min_element(dis_list.begin(), dis_list.end());
@@ -341,6 +342,7 @@ robo_perception::ObjectList RoboControl::sendEnemyTarget(const robo_perception::
     if (msg.red_num == 0)
     {
         // 丢失敌人
+        ROS_INFO("red_num = 0");
         temp_object.team.data = "Nothing";
         temp_object.pose.position.x = 0;
         temp_object.pose.position.y = 0;
@@ -357,6 +359,8 @@ robo_perception::ObjectList RoboControl::sendEnemyTarget(const robo_perception::
     }
     if (msg.red_num == 1)
     {
+        ROS_INFO("red_num = 1");
+        
         // 没有选择, 只打当前的敌人
         for (int i = 0; i < msg.num; i++)
         {
@@ -376,6 +380,8 @@ robo_perception::ObjectList RoboControl::sendEnemyTarget(const robo_perception::
     }
     if (msg.red_num == 2)
     {
+        ROS_INFO("red_num = 2");
+        
         // 判断之前有没有打击过敌人, 如果之前没有打击过敌人, 选择距离近的敌人, 否则选择之前打击过的
         for (int i = 0; i < msg.num; i++)
         {
@@ -390,6 +396,7 @@ robo_perception::ObjectList RoboControl::sendEnemyTarget(const robo_perception::
         }
         if (last_enemy_target_msg.num == 0)
         {
+            ROS_INFO("red_num = 2, num = 0");
             // 没有打击过敌人, 选择相对距离近的敌人
             if (msg.object[enemy_index1].pose.position.x < msg.object[enemy_index2].pose.position.x)
             {
@@ -416,6 +423,8 @@ robo_perception::ObjectList RoboControl::sendEnemyTarget(const robo_perception::
         }
         else
         {
+            ROS_INFO("red_num = 2, num != 0");
+            
             // 之前打击过敌人, 选择离之前的选择近的敌人
             // for (int i = 0; i < 2; i++)
             {

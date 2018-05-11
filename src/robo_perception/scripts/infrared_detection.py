@@ -50,7 +50,9 @@ qn_odom = [0, 0, 0, 0]
 team_x = team_y = team_relative_x = team_relative_y = 0
 odom_pos_x = odom_pos_y = 0
 odom_yaw = odom_pos_x = odom_pos_y = odom_vel_x = odom_vel_y = 0
+last_enemy_position = ObjectList()
 
+lose_frame_count = 0
 
 video = cv2.VideoWriter('/home/ubuntu/robot/src/robo_perception/scripts/visual/demo.avi',
                         cv2.VideoWriter_fourcc(*"MJPG"),
@@ -63,7 +65,15 @@ def TFinit():
     listener = tf2_ros.TransformListener(tfBuffer)
 
 def DetectInit():
-    global sess, model, mc
+    global sess, model, mc, last_enemy_position
+
+    last_enemy_position.header.stamp = rospy.Time.now()
+    last_enemy_position.header.frame_id = 'enemy'
+    last_enemy_position.num = 0
+    last_enemy_position.red_num = 0  
+    last_enemy_position.blue_num = 0
+    last_enemy_position.death_num = 0
+    last_enemy_position.object = []
 
     detect_net = 'squeezeDet'
     checkpoint = '/home/ubuntu/robot/src/robo_perception/scripts/weights/Infrared-Armor-988-Images/model.ckpt-99999'
@@ -115,13 +125,15 @@ def judge_blue_red_hsv(img):
     red_mask2 = cv2.inRange(image_hsv, LowerRed2, UpperRed2)
     blue_num = np.sum(blue_mask)
     red_num = np.sum(red_mask1) + np.sum(red_mask2)
-    # print("blue_num, red_num", blue_num, red_num)
+    print("blue_num, red_num", blue_num, red_num)
     if red_num > blue_num:
         result = 1      # enemy
-    if red_num < blue_num:    
+    elif red_num < blue_num:    
         result = 0      # self
-    if red_num < 100 and blue_num < 100:    
+    elif red_num < 500 and blue_num < 500:    
         result = 2      # death
+    else:
+        result = 2
     return result
 
 def judge_blue_red_sum(robo_image):
@@ -227,6 +239,7 @@ def TsDet_callback(infrared_image, pointcloud):
     #print("====================================new image======================================")
     #print("===================================================================================")
     global count, sess, model, mc, video, frame_rate_list, frame_rate_idx, frame_rate, align_image, odom_yaw, odom_pos_x, odom_pos_y, odom_vel_x, odom_vel_y
+    global last_enemy_position, lose_frame_count
     #print('I here rgb and pointcloud !', count)
     count = count + 1
 
@@ -431,18 +444,24 @@ def TsDet_callback(infrared_image, pointcloud):
         enemy_position.red_num = red_idx
         enemy_position.blue_num = blue_idx
         enemy_position.death_num = death_idx
+        last_enemy_position = enemy_position
     else:
         # 如果没有发现敌人
         if mc.DEBUG:
             print('No enemy!!!')
-        enemy_position = ObjectList()
-        enemy_position.header.stamp = rospy.Time.now()
-        enemy_position.header.frame_id = 'enemy'
-        enemy_position.num = 0
-        enemy_position.red_num = 0  
-        enemy_position.blue_num = 0
-        enemy_position.death_num = 0
-        enemy_position.object = []
+        lose_frame_count = lose_frame_count + 1
+        if lose_frame_count < 5:
+            lose_frame_count = 0
+            enemy_position = last_enemy_position
+        else:
+            enemy_position = ObjectList()
+            enemy_position.header.stamp = rospy.Time.now()
+            enemy_position.header.frame_id = 'enemy'
+            enemy_position.num = 0
+            enemy_position.red_num = 0  
+            enemy_position.blue_num = 0
+            enemy_position.death_num = 0
+            enemy_position.object = []
     
     pub.publish(enemy_position)
 
