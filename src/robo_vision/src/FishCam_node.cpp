@@ -9,7 +9,7 @@
 
 using namespace std;
 using namespace cv;
-#define SHOW_IMAGE
+//#define SHOW_IMAGE
 Mat img_recv_left, img_recv_right;
 
 void image_left_callback(const sensor_msgs::ImageConstPtr &msg)
@@ -22,8 +22,10 @@ void image_left_callback(const sensor_msgs::ImageConstPtr &msg)
     }
     else
     {
-        //cv::imshow("view_left", img_temp);
+#ifdef SHOW_IMAGE
+        cv::imshow("view_left", img_temp);
         waitKey(1);
+        #endif
         img_recv_left = img_temp.clone();
     }
 }
@@ -38,7 +40,9 @@ void image_right_callback(const sensor_msgs::ImageConstPtr &msg)
     }
     else
     {
-        //cv::imshow("view_right", img_temp);
+#ifdef SHOW_IMAGE
+        cv::imshow("view_right", img_temp);
+#endif
         img_recv_right = img_temp.clone();
     }
 }
@@ -104,8 +108,8 @@ void prosess(Mat &img, vector<Vec3f> &pt_center)
         }
     }
 #ifdef SHOW_IMAGE
-        imshow("con", img_contour);
-        imshow("rb", img_gray);
+        //imshow("con", img_contour);
+       // imshow("rb", img_gray);
 #endif
 
     const uchar *ptr_con_begin = img_contour.data;
@@ -124,7 +128,6 @@ void prosess(Mat &img, vector<Vec3f> &pt_center)
             img_rb(Rect(Point(pt_x - 10, pt_y - 10), Point(pt_x + 10, pt_y + 10))).copyTo(small_roi);
             if (countNonZero(img_rb) > 0)
             {
-                cout << countNonZero(img_rb) << endl;
                 pt.push_back(Point2f(pt_x, pt_y));
             }
         }

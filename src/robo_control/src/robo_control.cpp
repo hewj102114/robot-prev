@@ -120,7 +120,7 @@ void RoboControl::readMCUData()
     gimbal_trans.header.frame_id = "base_link";
     gimbal_trans.child_frame_id = "gimbal_link";
     gimbal_trans.transform.translation.x = 0.15;
-    gimbal_trans.transform.translation.y = 0;
+    gimbal_trans.transform.translation.y = 0.0;
     gimbal_trans.transform.translation.z = 0.0;
     gimbal_trans.transform.rotation = tf::createQuaternionMsgFromRollPitchYaw(
         0, -msg_frommcu.gimbal_pitch_angle * 1.0 / 100 * PI * 2 / 360,
