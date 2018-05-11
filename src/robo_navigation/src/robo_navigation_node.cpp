@@ -29,7 +29,7 @@ class RoboNav
     Mat arrArcs, point_list;
     vector<int> path;
     geometry_msgs::Pose cur_pose;
-    geometry_msgs::Pose pre_goal;
+    geometry_msgs::Pose pre_goal, cur_goal;
     double fix_angle;
     PIDctrl pid_x;
     PIDctrl pid_y;
@@ -49,13 +49,14 @@ class RoboNav
 
     RoboNav();
     void init();
-    void cb_tar_pose(const geometry_msgs::PoseConstPtr &msg);
+    void cb_tar_pose(const geometry_msgs::Pose &msg);
     void cb_cur_pose(const nav_msgs::Odometry &msg);
     int findClosestPt(double x, double y);
+    void path_plan(geometry_msgs::Pose &target);
     void get_vel(geometry_msgs::Twist &msg_vel);
     void setFixAngle(const geometry_msgs::Quaternion &qua);
     void cb_scan(const sensor_msgs::LaserScan::ConstPtr &scan);
-    // void cb_enemy_infor(const robo_perception::ObjectList &msg);
+    void cb_enemy_infor(const robo_perception::ObjectList &msg);
     geometry_msgs::Pose adjustlocalgoal(double yaw);
 };
 
@@ -100,38 +101,45 @@ void RoboNav::init()
     cur_pose.orientation.z = 0;
     cur_pose.orientation.w = 1;
 }
-void RoboNav::cb_tar_pose(const geometry_msgs::PoseConstPtr &msg)
+
+void RoboNav::path_plan(geometry_msgs::Pose &target)
 {
+    int start_pt = findClosestPt(cur_pose.position.y, cur_pose.position.x);
+    int end_pt = findClosestPt(target.position.y, target.position.x);
+    if (start_pt != end_pt)
+    {
+        floyd.calcPath(start_pt, end_pt);
+        ROS_INFO("start %f  %f  end   %f  %f ", cur_pose.position.x, cur_pose.position.y, target.position.x, target.position.y);
+        ROS_INFO("GET GOAL start: %d  end: %d", start_pt, end_pt);
+        floyd.printPath();
+        path.assign(floyd.path.begin(), floyd.path.end());
+    }
+    else
+        path.clear();
+}
+
+void RoboNav::cb_tar_pose(const geometry_msgs::Pose &msg)
+{
+    cur_goal = msg;
     // ROS_INFO("pre-tar %f  %f",pre_goal.position.x - msg->position.x ,pre_goal.position.y - msg->position.y);
     if (cur_pose.position.y == 0 & cur_pose.position.x == 0)
         return;
-    double dis = sqrt(pow(cur_pose.position.x - msg->position.x, 2) + pow(cur_pose.position.y - msg->position.y, 2));
-    double dyaw = abs(tf::getYaw(cur_pose.orientation) - tf::getYaw(msg->orientation));
+    double dis = sqrt(pow(cur_pose.position.x - msg.position.x, 2) + pow(cur_pose.position.y - msg.position.y, 2));
+    double dyaw = abs(tf::getYaw(cur_pose.orientation) - tf::getYaw(msg.orientation));
     if (dis < 0.5 && dyaw < 0.05)
         state.data = true;
     else
         state.data = false;
     //ROS_INFO("dis: %f", dis);
-    if ((abs(pre_goal.position.x - msg->position.x) > 0.1) || (abs(pre_goal.position.y - msg->position.y) > 0.1))
+    if ((abs(pre_goal.position.x - msg.position.x) > 0.1) || (abs(pre_goal.position.y - msg.position.y) > 0.1))
     {
-        int start_pt = findClosestPt(cur_pose.position.y, cur_pose.position.x);
-        int end_pt = findClosestPt(msg->position.y, msg->position.x);
-        if (start_pt != end_pt)
-        {
-            floyd.calcPath(start_pt, end_pt);
-            ROS_INFO("start %f  %f  end   %f  %f ", cur_pose.position.x, cur_pose.position.y, msg->position.x, msg->position.y);
-            ROS_INFO("GET GOAL start: %d  end: %d", start_pt, end_pt);
-            floyd.printPath();
-            path.assign(floyd.path.begin(), floyd.path.end());
-            pre_goal.position.x = msg->position.x;
-            pre_goal.position.y = msg->position.y;
-        }
-        else
-            path.clear();
+        path_plan(cur_goal);
+        pre_goal.position.x = msg.position.x;
+        pre_goal.position.y = msg.position.y;
     }
     //isolated rotation control
     //setFixAngle(cur_pose.orientation);
-    setFixAngle(msg->orientation); //orientation fixed all the time in every frame.
+    setFixAngle(msg.orientation); //orientation fixed all the time in every frame.
 }
 
 void RoboNav::cb_cur_pose(const nav_msgs::Odometry &msg)
@@ -139,53 +147,61 @@ void RoboNav::cb_cur_pose(const nav_msgs::Odometry &msg)
     cur_pose = msg.pose.pose;
 }
 
-/*  obstable avoidance 
+// obstable avoidance
 void RoboNav::cb_enemy_infor(const robo_perception::ObjectList &msg)
 {
     enemy_information = msg;
 
     //update path
-    int i = 0, j = 0;
-    if (enemy_information.death_num > 0)
+    int index = 0, i = 0, j = 0;
+    while (enemy_information.num > 0)
     {
-        double pt_x = 1.0;  //enemy_information.object.globalpose.position.x;
-        double pt_y = 1.0;  //enemy_information.object.globalpose.position.y;
-        vector<float> dis_list;
-        for (int i = 0; i < point_list.rows; i++)
+        string::size_type idx;
+        idx = enemy_information.object[index].team.data.find("death");
+        if (idx != string::npos)
         {
-            float dx = pt_y - point_list.at<double>(i, 0) * 1.0 / 100;
-            float dy = pt_x - point_list.at<double>(i, 1) * 1.0 / 100;
-            float distance = sqrt(dx * dx + dy * dy);
-            dis_list.push_back(distance);
-        }
-
-        vector<float>::iterator smallest = min_element(dis_list.begin(), dis_list.end());
-        int n = distance(dis_list.begin(), smallest);
-        double small_dis=*smallest;
-        //too close to a point, all the path related to this point should be invalid 
-        if(*smallest<0.25)
-        {
-            int i=0;
-            while(i!=n)
+            double pt_x = enemy_information.object[index].globalpose.position.x;
+            double pt_y = enemy_information.object[index].globalpose.position.y;
+            vector<float> dis_list;
+            for (int i = 0; i < point_list.rows; i++)
             {
-                floyd.updateFloydGraph(i, n, 100);
-                i++;
+                float dx = pt_y - point_list.at<double>(i, 0) * 1.0 / 100;
+                float dy = pt_x - point_list.at<double>(i, 1) * 1.0 / 100;
+                float distance = sqrt(dx * dx + dy * dy);
+                dis_list.push_back(distance);
+            }
+
+            vector<float>::iterator smallest = min_element(dis_list.begin(), dis_list.end());
+            int n = distance(dis_list.begin(), smallest);
+            double small_dis = *smallest;
+            //too close to a point, all the path related to this point should be invalid
+            if (*smallest < 0.25)
+            {
+                int i = 0;
+                while (i != n)
+                {
+                    floyd.updateFloydGraph(i, n, 100);
+                    i++;
+                }
+            }
+            else //not too close to a point, find the invalid path
+            {
+                dis_list.erase(smallest);
+                vector<float>::iterator smallestK = min_element(dis_list.begin(), dis_list.end());
+                int m = distance(dis_list.begin(), smallestK);
+                double pairwise_dis = sqrt(pow(point_list.at<double>(n, 0) - point_list.at<double>(m, 0), 2) + pow(point_list.at<double>(n, 1) - point_list.at<double>(m, 1), 2)) * 1.0 / 100;
+                if (small_dis + *smallestK < pairwise_dis * 1.2)
+                    floyd.updateFloydGraph(i, n, 100);
             }
         }
-        else  //not too close to a point, find the invalid path
+        index++;
+        if (index == enemy_information.num - 1)
         {
-            dis_list.erase(smallest);
-            vector<float>::iterator smallestK = min_element(dis_list.begin(), dis_list.end());
-            int m = distance(dis_list.begin(), smallestK);
-            double pairwise_dis=sqrt(pow(point_list.at<double>(n, 0)-point_list.at<double>(m, 0),2)+pow(point_list.at<double>(n, 1)-point_list.at<double>(m, 1),2))* 1.0 / 100;
-            if(small_dis+*smallestK<pairwise_dis*1.2)
-            floyd.updateFloydGraph(i, n, 100);
+            floyd.initFloydGraph();
+            path_plan(cur_goal);
         }
-
-        floyd.initFloydGraph();
     }
 }
-*/
 
 int RoboNav::findClosestPt(double x, double y)
 {

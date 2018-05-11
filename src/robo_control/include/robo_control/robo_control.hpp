@@ -41,8 +41,6 @@ using namespace std;
 struct ArmorInfo
 {
     int mode;
-    float image_dx;
-    float image_dy;
     float global_z;
     float pitch;
     float yaw;
