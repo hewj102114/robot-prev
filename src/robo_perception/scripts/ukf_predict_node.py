@@ -477,7 +477,7 @@ def callback_target(target):
 
 
 
-        ENABLE_PREDICT = target.pose.pose.orientation.w
+        ENABLE_PREDICT = target.object[0].globalpose.orientation.w
 
 def callback_gimbal(gimbal):
     global gimbal_yaw, BULLET_SPEED
