@@ -213,10 +213,11 @@ def callback_enemy(enemy):
         FIND_RS = False
         rs_time = enemy.header.stamp.secs + enemy.header.stamp.nsecs * 10**-9
         dt = rs_time - rs_last_time
-        if 1/dt<30:
-            print 'WARNING!!!,detection frequency to low! Graph card may need COOLING operation!'
+
         if enemy.num == 0:
             print 'NOTHING'
+        elif enemy.lost_frame_counter !=0:
+            print 'realsense lost', enemy.lost_frame_counter
         for i in range(int(enemy.num)):
             object_name =  enemy.object[i].team.data
             #decoding the enemy position
@@ -288,9 +289,16 @@ def callback_enemy(enemy):
             # no available data, then not last data.
             FIND_RS = False
             RS_LAST_AVAILABLE = False
-
+            
+        if enemy.lost_frame_counter !=0:
+            # realsense lost frame!!!!!!
+            FIND_RS = False
+            RS_LAST_AVAILABLE = False
             
         if FIND_RS == True:
+            print enemy_num
+            if 1/dt<28:
+                print 'WARNING!!!,detection frequency to low! Graph card may need COOLING operation!'
             #print 'USE RS PREDICTING'
             rs_lost_time = []
             rs_lost_counter = 0
@@ -375,6 +383,7 @@ def callback_pnp(pnp):
             # #print pnp_trans
             # pnp_pos_x = pnp_trans.transform.translation.x
             # pnp_pos_y = pnp_trans.transform.translation.y
+            
             pnp_pos_x = pnp.pose.position.x
             pnp_pos_y = pnp.pose.position.y
         else:
@@ -410,12 +419,12 @@ def callback_pnp(pnp):
             pnp_lost_time.append(dt)
             PNP_LAST_AVAILABLE = False
             PNP_DATA_AVAILABLE = False
-        #print 'PNP_DATA_AVAILABLE',PNP_DATA_AVAILABLE,'PNP_LAST_AVAILABLE',PNP_LAST_AVAILABLE
+        # print 'PNP_DATA_AVAILABLE',PNP_DATA_AVAILABLE,'PNP_LAST_AVAILABLE',PNP_LAST_AVAILABLE
         pnp_last_time = pnp_time
 
         PNP_UKF_AVAILABLE = False
         if PNP_PREDICT_INIT and PNP_DATA_AVAILABLE:
-            UKFPnpInit(0.0125, np.array([pnp_pos_x, pnp_vel_x, pnp_pos_y, pnp_vel_y]))
+            UKFPnpInit(0.01, np.array([pnp_pos_x, pnp_vel_x, pnp_pos_y, pnp_vel_y]))
             ukf_pnp_pos_x = ukf_pnp.x[0]
             ukf_pnp_vel_x = ukf_pnp.x[1]
             ukf_pnp_pos_y = ukf_pnp.x[2]
@@ -489,7 +498,7 @@ def callback_gimbal(gimbal):
 
 rospy.init_node('ukf_predict_node')
 UKFRsInit(0.033,np.array([0., 0., 0., 0.]))
-UKFPnpInit(0.0125,np.array([0., 0., 0., 0.,0.,0.]))
+UKFPnpInit(0.01,np.array([0., 0., 0., 0.,0.,0.]))
 TFinit()
 subenemy = rospy.Subscriber('infrared_detection/enemy_position', ObjectList, callback_enemy)
 subpnp = rospy.Subscriber('base/armor_pose', PoseStamped, callback_pnp)
@@ -601,6 +610,14 @@ while not rospy.is_shutdown():
         T_FLY = distance_to_enemy / BULLET_SPEED
         #反解算出需要的预瞄角度
         predict_angle = np.arctan(V_verticle * (T_PNP_DELAY + T_FLY) / distance_to_enemy)
+
+
+       #global
+        # relative_speed_x = ukf_out_vel_x - odom_vel_x
+        # relative_speed_y = ukf_out_vel_y - odom_vel_y
+        # V_verticle = relative_speed_x * np.sin(global_gimbal_yaw) + relative_speed_y * np.cos(global_gimbal_yaw)
+        # distance_to_enemy = np.sqrt((ukf_out_pos_x - (odom_pos_x + 0.22*np.cos(odom_yaw)))**2 +(ukf_out_pos_y - (odom_pos_y+ 0.22*np.cos(odom_yaw)))**2)
+
 
         lpf_input_list.append(predict_angle)
         lpf_out_list = butter_lowpass_filter(lpf_input_list, PNP_LPF_CUTOFF, PNP_LPS_SAMPLING_FREQ, LPF_ORDER)

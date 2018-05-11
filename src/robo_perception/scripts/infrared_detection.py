@@ -268,7 +268,7 @@ def TsDet_callback(infrared_image, pointcloud):
     # 获取检测时间
     t_detect = time.time()
     times['detect'] = t_detect - t_reshape
-
+    
     # 进行 NMS 运算
     final_boxes, final_probs, final_class = model.filter_prediction(det_boxes[0],
                                                                     det_probs[0],
@@ -305,15 +305,22 @@ def TsDet_callback(infrared_image, pointcloud):
     enemy_position = ObjectList()
     enemy_position.header.stamp = rospy.Time.now()
     enemy_position.header.frame_id = 'enemy'
+
     if len(final_boxes) > 0 and np.any(final_class == 0) and (np.any(final_class == 1) or np.any(final_class == 2)):
         #judge detect how much robots
         robot_final_idx = np.array(np.where(final_class == 0))
         armor_idx = np.array(np.where(final_class == 2))
+
+            
         for _ in range(robot_final_idx.shape[1]):
             robo_idx = robot_final_idx[0, _]
             robo_bbox = final_boxes[robo_idx, :]
             cx, cy, w, h = robo_bbox[0], robo_bbox[1], robo_bbox[2], robo_bbox[3]   # 获取车bbox的坐标, 宽度和高度
+
             armor_bbox = judge_armor(robo_bbox, final_boxes, armor_idx)
+
+            
+            t_some_start = time.time()
             # armor_bbox = robo_bbox
             armor_cx, armor_cy, armor_w, armor_h = armor_bbox[0], armor_bbox[1], armor_bbox[2], armor_bbox[3]
             robo_bboxes.append(robo_bbox)
@@ -321,6 +328,10 @@ def TsDet_callback(infrared_image, pointcloud):
             # 用于提取点云的范围大小
             pointcloud_w = int(3*armor_w/5)
             pointcloud_h = int(3*armor_h/5)
+            if pointcloud_w > 25:
+                pointcloud_w = 25
+            if pointcloud_h > 25:
+                pointcloud_h = 25
 
             # 对点云进行约束, 使用装甲板检测的结果
             if pointcloud_w > armor_bbox[2]:
@@ -333,17 +344,22 @@ def TsDet_callback(infrared_image, pointcloud):
             # y_ = np.arange(int(cy - pointcloud_h/2), int(cy + pointcloud_h/2), 1)
 
             # 使用bbox下方的点云计算距离, 大概是装甲板的位置
+
             x_ = np.arange(int(armor_cx - pointcloud_w / 2), int(armor_cx + pointcloud_w / 2), 1)
             y_ = np.arange(int(armor_cy + armor_h / 2 - armor_h / 6 - pointcloud_h), int(armor_cy + armor_h / 2 - armor_h / 6), 1)
             y_ = np.arange(int(armor_cy - pointcloud_h / 2), int(armor_cy + pointcloud_h / 2), 1)
             roi = [[x, y] for x in x_ for y in y_]
+
             rois.append(roi)
             # 提取特定位置的点云
+
             points = list(pc2.read_points(pointcloud, skip_nans=False, field_names=("x", "y", "z"), uvs=roi))
             robo_pointcloud = np.array(points)
 
+
             # 对提取到的点云进行 reshape
             # TODO: 应该不需要这一步
+            t_nan_tart = time.time()
             positionX = robo_pointcloud[:, 0].reshape(-1, pointcloud_w * pointcloud_h).squeeze()
             positionY = robo_pointcloud[:, 1].reshape(-1, pointcloud_w * pointcloud_h).squeeze()
             positionZ = robo_pointcloud[:, 2].reshape(-1, pointcloud_w * pointcloud_h).squeeze()
@@ -357,7 +373,7 @@ def TsDet_callback(infrared_image, pointcloud):
             avgX = np.mean(positionX)
             avgY = np.mean(positionY)
             avgZ = np.mean(positionZ)
-            
+
             if np.isnan(avgX) or np.isnan(avgY) or np.isnan(avgZ):
                 print("continue")
                 continue
@@ -365,7 +381,8 @@ def TsDet_callback(infrared_image, pointcloud):
                 robo_position.append([avgX, avgY, avgZ])
             if mc.DEBUG:
                 print('enemy position:', avgX, avgY, avgZ)
-                
+
+
         enemy_self_list = enemy_self_identify(align_image, robo_bboxes)
         # 检测完敌人, 对得到的距离信息进行处理
         # tf 包转换
@@ -383,6 +400,9 @@ def TsDet_callback(infrared_image, pointcloud):
         red_idx = 0
         blue_idx = 0
         death_idx = 0
+        
+
+        
         for object_idx in range(robo_position.shape[0]):
             # ROS 中发送数据
             rs_x = robo_position[object_idx, 2]
@@ -442,6 +462,8 @@ def TsDet_callback(infrared_image, pointcloud):
             t.transform.rotation.z = 0
             t.transform.rotation.w = 1
             br.sendTransform(t)
+
+
         enemy_position.red_num = red_idx
         enemy_position.blue_num = blue_idx
         enemy_position.death_num = death_idx
@@ -452,20 +474,24 @@ def TsDet_callback(infrared_image, pointcloud):
             print('No enemy!!!')
         lose_frame_count = lose_frame_count + 1
         if lose_frame_count < 5:
-            lose_frame_count = 0
             enemy_position = last_enemy_position
+            enemy_position.header.stamp = rospy.Time.now()
+            
         else:
             enemy_position.num = 0
             enemy_position.red_num = 0  
             enemy_position.blue_num = 0
             enemy_position.death_num = 0
             enemy_position.object = []
+            lose_frame_count = 0
+
+    enemy_position.lost_frame_counter = lose_frame_count
     
     pub.publish(enemy_position)
-
+    t_filter = time.time()
 
     
-    t_filter = time.time()
+    #t_filter = time.time()
     times['filter'] = t_filter - t_detect
     times['total'] = time.time() - t_start
 

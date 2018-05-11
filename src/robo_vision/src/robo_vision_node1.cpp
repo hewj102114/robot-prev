@@ -141,7 +141,7 @@ int main(int argc, char *argv[])
     VideoWriter writer("/home/ubuntu/VideoTest.avi",
                        CV_FOURCC('M', 'J', 'P', 'G'), 25, Size(640, 480));
 
-    ros::Rate rate(150);
+    ros::Rate rate(70);
     ROS_INFO("Image Consumer Start!");
     tf::TransformListener *tf_ = new tf::TransformListener();
 
@@ -152,6 +152,7 @@ int main(int argc, char *argv[])
         if (img_recv.empty() || pre_seq == cur_seq)
         {
             ros::spinOnce();
+            rate.sleep();
             continue;
         }
         pre_seq = cur_seq;
@@ -201,8 +202,7 @@ int main(int argc, char *argv[])
                 }
                 catch (tf::TransformException &e)
                 {
-                    ROS_ERROR("Couldn't transform "
-                              "even though the message notifier is in use");
+                    ROS_ERROR("err %s",e.what());
                     break;
                 }
                 armor_msg.pose_base.x = pose.getOrigin().x();
