@@ -303,7 +303,7 @@ int RoboControl::find_enemy_self_closest_point(double enemy_x, double enemy_y, d
         float distance_enemy = sqrt(d_enemy_x * d_enemy_x + d_enemy_y * d_enemy_y);
         float distance_self = sqrt(d_self_x * d_self_x + d_self_y * d_self_y);
 
-        if (distance_enemy < 1.0 || distance_enemy > 2.0)
+        if (distance_enemy < 0.5 || distance_enemy > 2.0)
         {
             distance_enemy = 1000.0;
         }

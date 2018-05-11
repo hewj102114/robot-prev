@@ -101,7 +101,7 @@ int main(int argc, char **argv)
 	chassis 1:velcity 2:angle pose 3:init
 	*/
 	geometry_msgs::Pose target_pose;
-	int work_state = 5;
+	int work_state = 2;
 	int center_state = 0;
 	ros::Rate loop_rate(150);
 	bool realsense_first_in = true;
@@ -351,7 +351,7 @@ int main(int argc, char **argv)
 			ROS_INFO("Goal X, Y: %f, %f", target_pose.position.x, target_pose.position.y);
 			robo_ctl.sendNavGoal(target_pose);
 			ros::Time start_time = ros::Time::now();
-			ros::Duration timeout(0.02); // Timeout of 2 seconds
+			ros::Duration timeout(0.1); // Timeout of 2 seconds
 			while (ros::Time::now() - start_time < timeout)
 			{
 				robo_ctl.readMCUData();
