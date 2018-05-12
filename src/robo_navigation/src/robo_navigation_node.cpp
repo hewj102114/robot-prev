@@ -21,6 +21,7 @@ using namespace std;
 #define DEFFENCE 0.40
 #define DEFF_CORNER 0.50
 
+int center_flag = 0;
 class RoboNav
 {
   public:
@@ -157,7 +158,10 @@ void RoboNav::cb_cur_pose(const nav_msgs::Odometry &msg)
     double dis = sqrt(pow(cur_pose.position.x - cur_goal.position.x, 2) + pow(cur_pose.position.y - cur_goal.position.y, 2));
     double dyaw = abs(tf::getYaw(cur_pose.orientation) - tf::getYaw(cur_goal.orientation));
     if (dis < 0.5 && dyaw < 0.05)
+    {
         state.data = true;
+        center_flag = 1; //first time use
+    }
     else
         state.data = false;
 }
@@ -256,6 +260,7 @@ void RoboNav::get_vel(geometry_msgs::Twist &msg_vel)
         //ROS_INFO("angle: %f  fix angle : %f   dyaw %f",cur_yaw,fix_angle,dyaw);
         //ROS_INFO(" tar_x %f, tar_y %f,cur_x %f , cur_y %f, diff_x %f, diff_y %f", cur_local_goal_x, cur_local_goal_y,
         //         cur_pose.position.x, cur_pose.position.y, dx, dy);
+
         if (abs(dx) < 0.10 && abs(dy) < 0.10)
         {
             path.erase(path.begin());
@@ -264,7 +269,12 @@ void RoboNav::get_vel(geometry_msgs::Twist &msg_vel)
         {
             vel_x = pid_x.calc(dx);
             vel_y = pid_y.calc(dy);
-
+             ROS_INFO("flag %d  %d  %f",center_flag, path[0],dx);
+            if (center_flag == 0 && path[0] == 32 && dx > 1.0)
+                {
+                    vel_y = 0;
+                    ROS_INFO("Adjusting....");
+                }
             if (abs(dx) < 0.05)
                 vel_x = 0;
             if (abs(dy) < 0.05)
@@ -435,8 +445,12 @@ geometry_msgs::Pose RoboNav::adjustlocalgoal(double yaw)
         local_goal.position.x = local_goal_x - 0.1 * (cos(yaw) + sin(yaw));
         local_goal.position.y = local_goal_y + 0.1 * (cos(yaw) - sin(yaw));
     }
-    pid_x.stop=false;
-    pid_y.stop=false;
+
+    if (center_flag == 0)
+    {
+        pid_x.stop = false;
+        pid_y.stop = false;
+    }
     //ROS_INFO("stop x: %d, y: %d", pid_x.stop, pid_y.stop);
     return local_goal;
 }
@@ -448,7 +462,7 @@ int RoboNav::go_center()
     cur_goal.position.y = 2.5;
 
     path.push_back(3);
-    path.push_back(11);
+    //path.push_back(11);
     path.push_back(32);
 
     return 0;

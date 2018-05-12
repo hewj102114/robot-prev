@@ -26,6 +26,7 @@ int main(int argc, char **argv)
 	int armor_lost_count = 0;
 	int key_point_no = 1;
 	clock_t start, end;
+	robo_ctl.main_control_init();
 	robo_ctl.read_xml_file();
 
 	while (0)
@@ -338,6 +339,7 @@ int main(int argc, char **argv)
 		case 2:
 		{
 			ROS_INFO("Stage 2: Find enemy, close to and stack enemy!!!!!!");
+			ROS_INFO("enter %d",robo_ctl.enemy_information.num);
 			robo_ctl.last_enemy_target = robo_ctl.sendEnemyTarget(robo_ctl.enemy_information, robo_ctl.last_enemy_target);
 			int target_num = 0;
 			if (robo_ctl.last_enemy_target.object[0].team.data == "Nothing")
@@ -560,7 +562,11 @@ int main(int argc, char **argv)
 			robo_ctl.readMCUData();
 			ROS_INFO("Stage 5: Testing!!!!!!");
 			robo_ctl.last_enemy_target = robo_ctl.sendEnemyTarget(robo_ctl.enemy_information, robo_ctl.last_enemy_target);
-			robo_ctl.sendMCUMsg(1, 2, 0, 0, 0, 0, 0, 0);
+			robo_ctl.sent_mcu_gimbal_msg = robo_ctl.ctl_stack_enemy();
+			robo_ctl.sendMCUMsg(1, 2, 0, 0, 0, 
+								robo_ctl.sent_mcu_gimbal_msg.yaw, 
+								robo_ctl.sent_mcu_gimbal_msg.pitch, 
+								robo_ctl.sent_mcu_gimbal_msg.global_z);
 			break;
 
 		default:

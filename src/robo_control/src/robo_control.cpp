@@ -323,6 +323,7 @@ int RoboControl::find_enemy_self_closest_point(double enemy_x, double enemy_y, d
 
 robo_perception::ObjectList RoboControl::sendEnemyTarget(const robo_perception::ObjectList &msg, robo_perception::ObjectList &last_enemy_target_msg)
 {
+  
     robo_perception::ObjectList result_enemy_target; // return
     result_enemy_target.header = msg.header;
     result_enemy_target.header.stamp = ros::Time::now();
@@ -458,6 +459,7 @@ robo_perception::ObjectList RoboControl::sendEnemyTarget(const robo_perception::
             return result_enemy_target;
         }
     }
+   
 }
 
 float RoboControl::calculator_enemy_angle(double enemy_x, double enemy_y, double self_x, double self_y)
@@ -494,6 +496,7 @@ GambalInfo RoboControl::ctl_stack_enemy()
             result.pitch = 0;
             result.global_z = 0;
         }
+        
         if (enemy_information.num > 0 && first_in_realsense_flag == true)
         {
             first_in_realsense_flag = false;
@@ -555,4 +558,12 @@ GambalInfo RoboControl::ctl_stack_enemy()
         }
     }
     return result;
+}
+
+void RoboControl::main_control_init()
+{
+    sent_mcu_gimbal_msg.mode = 1;
+    sent_mcu_gimbal_msg.yaw = 0;
+    sent_mcu_gimbal_msg.pitch = 0;
+    sent_mcu_gimbal_msg.global_z = 0;
 }
