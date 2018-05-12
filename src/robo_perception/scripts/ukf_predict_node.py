@@ -278,12 +278,12 @@ def callback_enemy(enemy):
             rel_enemy_1_y = 0
 
         if np.sqrt((aim_target_x - global_enemy_0_x) ** 2 + (aim_target_y - global_enemy_0_y) ** 2) < RS_CLOSE_THRESH:
-            rs_pos_x = rel_enemy_0_x
-            rs_pos_y = rel_enemy_0_x
+            rs_pos_x = global_enemy_0_x
+            rs_pos_y = global_enemy_0_y
             FIND_RS = True
         elif np.sqrt((aim_target_x - global_enemy_1_x) ** 2 + (aim_target_y - global_enemy_1_y) ** 2) < RS_CLOSE_THRESH:
-            rs_pos_x = rel_enemy_1_x
-            rs_pos_y = rel_enemy_1_x
+            rs_pos_x = global_enemy_1_x
+            rs_pos_y = global_enemy_1_y
             FIND_RS = True
         else:
             # no available data, then not last data.
@@ -569,15 +569,16 @@ while not rospy.is_shutdown():
 
     if RS_UKF_AVAILABLE:
         #计算相对速度
-        relative_speed_x = ukf_out_vel_x
-        relative_speed_y = ukf_out_vel_y
+        relative_speed_x = ukf_out_vel_x - odom_vel_x
+        relative_speed_y = ukf_out_vel_y - odom_vel_y
         #print 'relative_speed_x',relative_speed_x,'relative_speed_y',relative_speed_y
         #计算水平于枪口方向的速度,trans to ploe axis then calculate verticle speed
         # target_speed = np.sqrt(relative_speed_x**2 + relative_speed_y**2)
         # target_theta = np.arctan2(relative_speed_y , relative_speed_x)
         # V_verticle = target_speed * np.sin(2 * np.pi - (global_gimbal_yaw + target_theta + 90))
         # print 'target_speed',target_speed, 'target_theta',target_theta,'V_verticle',V_verticle
-        V_verticle = relative_speed_x * np.sin(gimbal_yaw) + relative_speed_y * np.cos(gimbal_yaw)
+        #V_verticle = relative_speed_x * np.sin(gimbal_yaw) + relative_speed_y * np.cos(gimbal_yaw)
+        V_verticle = relative_speed_x * np.sin(global_gimbal_yaw) + relative_speed_y * np.cos(global_gimbal_yaw)
         #print 'V_verticle',V_verticle,'global_gimbal_yaw',global_gimbal_yaw,'relative_speed_x',relative_speed_x,'relative_speed_y',relative_speed_y
         #print V_verticle, odom_yaw
         #计算检测到的目标和我自身的距离
