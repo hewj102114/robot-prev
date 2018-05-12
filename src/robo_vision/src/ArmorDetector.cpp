@@ -209,11 +209,11 @@ void ArmorDetector::findContourInEnemyColor(vector<RotatedRect> &contours_rect)
 			++it;
 			continue;
 		}
-
+  
 		Rect rect2 = rect.boundingRect();
 		makeRectSafe(rect2, _src.size());
 		vector<vector<Point2i>> contours;
-		findContours(_g(rect2), contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
+		findContours(_max_color(rect2), contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
 
 		if (contours.size() == 1)
 		{

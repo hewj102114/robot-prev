@@ -14,7 +14,7 @@
 
 #include <std_msgs/Int16.h>
 #include <std_msgs/Bool.h>
-
+#include <std_msgs/Float64.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <tf/transform_datatypes.h>
 #include <tf2_ros/transform_broadcaster.h>
@@ -104,6 +104,7 @@ class RoboControl
     void cb_cur_goal(const geometry_msgs::PoseStamped &msg);
     void cb_move_base_status(const actionlib_msgs::GoalStatusArray &msg);
     void cb_another_robo_odom(const nav_msgs::Odometry &msg);
+    void cb_front_dis(const std_msgs::Float64 &msg);
 
     void readMCUData();
     void sendNavGoal(geometry_msgs::Pose &target_pose);
@@ -200,6 +201,8 @@ class RoboControl
 	float first_in_gimbal_angle = 0;
 	float current_gimbal_angle = 0;
 	float target_gimbal_angle = 1000;
+
+    double front_dis = 0.0;
 
     // yaw: 1 -> 2
     KeyPoint KEY_POINT[30] = {

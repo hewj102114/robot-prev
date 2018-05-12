@@ -6,7 +6,7 @@
 using namespace cv;
 using namespace std;
 
-
+#define SHOW_DEBUG_IMG
 RMVideoCapture::CAM_PARA campara;
 
 Mat img;

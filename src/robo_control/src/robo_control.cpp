@@ -63,6 +63,11 @@ void RoboControl::cb_cur_goal(const geometry_msgs::PoseStamped &msg)
     nav_current_goal.position.y += 1;
 }
 
+void RoboControl::cb_front_dis(const std_msgs::Float64 &msg)
+{
+    front_dis=msg.data;
+}
+
 void RoboControl::readMCUData()
 {
     ros::Time time = ros::Time::now();

@@ -2,6 +2,7 @@
 #include <vector>
 #include <ros/ros.h>
 #include <std_msgs/Bool.h>
+#include <std_msgs/Float64.h>
 #include <geometry_msgs/Pose.h>
 #include <visualization_msgs/Marker.h>
 #include <geometry_msgs/Twist.h>
@@ -332,7 +333,7 @@ double Filter_ScanData(int index, const sensor_msgs::LaserScan::ConstPtr &sscan)
     int Cindex = index;
     double data = 8;
     int m = 0;
-    for (int i = -23; i < 23; i++)
+    for (int i = -15; i < 15; i++)
     {
         if (index + i < 0)
             Cindex = 360 + index + i;
@@ -358,7 +359,7 @@ void RoboNav::cb_scan(const sensor_msgs::LaserScan::ConstPtr &scan)
         obs_min[i][0] = Filter_ScanData(index, scan);
         obs_min[i][1] = Filter_ScanData(indexC, scan);
     }
-    //ROS_INFO("min Front: %f, Left: %f  Behind: %f, Right: %f ", obs_min[0][0], obs_min[1][0], obs_min[2][0], obs_min[3][0]);
+    ROS_INFO("min Front: %f ", obs_min[0][0]);
     //ROS_INFO("min corner Front: %f, Left: %f  Behind: %f, Right: %f ", obs_min[0][1], obs_min[1][1], obs_min[2][1], obs_min[3][1]);
 }
 
@@ -479,7 +480,7 @@ int main(int argc, char **argv)
 
     ros::Publisher pub_vel = nh.advertise<geometry_msgs::Twist>("cmd_vel", 1);
     ros::Publisher pub_state = nh.advertise<std_msgs::Bool>("nav_state", 1);
-
+    ros::Publisher pub_front = nh.advertise<std_msgs::Float64>("front_dis", 1);
     ros::Rate rate(50);
 
     while (ros::ok())
@@ -492,6 +493,9 @@ int main(int argc, char **argv)
             robo_nav.floyd.printPath();
         pub_vel.publish(msg_vel);
         pub_state.publish(robo_nav.state);
+        std_msgs::Float64 front_distance;
+        front_distance.data=robo_nav.obs_min[0][0];
+        pub_front.publish(front_distance);
         ros::spinOnce();
         rate.sleep();
     }
