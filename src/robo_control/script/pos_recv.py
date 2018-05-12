@@ -45,18 +45,18 @@ while not rospy.is_shutdown():
         team.remainingHP = remainingHP
         team.bulletCount = bulletCount
 
-        team.pose.pose.position.x = pos_x
-        team.pose.pose.position.y = pos_y
-        team.pose.pose.orientation.x = qua[0]
-        team.pose.pose.orientation.y = qua[1]
-        team.pose.pose.orientation.z = qua[2]
-        team.pose.pose.orientation.w = qua[3]
+        team.pose.position.x = pos_x
+        team.pose.position.y = pos_y
+        team.pose.orientation.x = qua[0]
+        team.pose.orientation.y = qua[1]
+        team.pose.orientation.z = qua[2]
+        team.pose.orientation.w = qua[3]
 
-        team.targetRelative.pose.position.x = target_global_x
-        team.targetRelative.pose.position.y = target_global_y
+        team.targetRelative.position.x = target_global_x
+        team.targetRelative.position.y = target_global_y
 
-        team.targetGlobal.pose.position.x = target_rel_x
-        team.targetGlobal.pose.position.y = target_rel_y
+        team.targetGlobal.position.x = target_rel_x
+        team.targetGlobal.position.y = target_rel_y
 
 
         lost_counter = 0
