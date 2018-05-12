@@ -142,7 +142,7 @@ int main(int argc, char **argv)
 					// 1. going center
 					target_pose.position.x = 4.0;
 					target_pose.position.y = 2.5;
-					target_pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, 3.14);
+					target_pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
 					robo_ctl.sendNavGoal(target_pose);
 					if (robo_ctl.finish_navigation.data)	// arrive center
 					{
@@ -338,29 +338,43 @@ int main(int argc, char **argv)
 		{
 			ROS_INFO("Stage 2: Find enemy, close to and stack enemy!!!!!!");
 			robo_ctl.last_enemy_target = robo_ctl.sendEnemyTarget(robo_ctl.enemy_information, robo_ctl.last_enemy_target);
-			int target_num = robo_ctl.find_enemy_self_closest_point(robo_ctl.last_enemy_target.position.x, 
-																	robo_ctl.last_enemy_target.position.y, 
+			int target_num = 0;
+			if (robo_ctl.last_enemy_target.object[0].team.data == "Nothing")
+			{
+				robo_ctl.sendMCUMsg(1, 1, 0, 0, 0, 0, 0, 0);
+				break;
+			}
+			else
+			{
+				target_num = robo_ctl.find_enemy_self_closest_point(robo_ctl.last_enemy_target.object[0].globalpose.position.x, 
+																	robo_ctl.last_enemy_target.object[0].globalpose.position.y, 
 																	robo_ctl.robo_ukf_pose.position.x, 
 																	robo_ctl.robo_ukf_pose.position.y);
+			}
+			
 			geometry_msgs::Pose target_pose;
-			target_pose.position.x = robo_ctl.point_list.at<double>(target_num, 0) / 100.0;
-			target_pose.position.y = robo_ctl.point_list.at<double>(target_num, 1) / 100.0;
-			target_pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
-			ROS_INFO("Target enemy X, Y: %f, %f", robo_ctl.last_enemy_target.position.x, robo_ctl.last_enemy_target.position.y);					
+			target_pose.position.x = robo_ctl.point_list.at<double>(target_num, 1) / 100.0;
+			target_pose.position.y = robo_ctl.point_list.at<double>(target_num, 0) / 100.0;
+			
+			ROS_INFO("Target enemy X, Y: %f, %f", robo_ctl.last_enemy_target.object[0].globalpose.position.x, robo_ctl.last_enemy_target.object[0].globalpose.position.y);					
 			ROS_INFO("Current X, Y: %f, %f", robo_ctl.robo_ukf_pose.position.x, robo_ctl.robo_ukf_pose.position.y);		
 			ROS_INFO("Goal X, Y: %f, %f", target_pose.position.x, target_pose.position.y);
+			// target_pose.position.x = 4.0;
+			// target_pose.position.y = 2.5;
+			target_pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
 			robo_ctl.sendNavGoal(target_pose);
 			ros::Time start_time = ros::Time::now();
-			ros::Duration timeout(0.02); // Timeout of 2 seconds
+			ros::Duration timeout(0.01); // Timeout of 2 seconds
 			while (ros::Time::now() - start_time < timeout)
 			{
 				robo_ctl.readMCUData();
 				robo_ctl.sendMCUMsg(1, 1, robo_ctl.cmd_vel_msg.v_x, robo_ctl.cmd_vel_msg.v_y, robo_ctl.cmd_vel_msg.v_yaw, 0, 0, 0);
 				ros::spinOnce();
 			}
+
 			if (robo_ctl.finish_navigation.data == true)
 			{
-				robo_ctl.sendMCUMsg(1, 1, 0, 0, 0, 0, 0, 0);
+				robo_ctl.sendMCUMsg(1, 1, robo_ctl.cmd_vel_msg.v_x, robo_ctl.cmd_vel_msg.v_y, robo_ctl.cmd_vel_msg.v_yaw, 0, 0, 0);				
 				work_state = 2;
 			}
 			else
@@ -541,6 +555,7 @@ int main(int argc, char **argv)
 			break;
 		}
 		case 5:
+			ROS_INFO("Stage 5: Testing!!!!!!");
 			robo_ctl.readMCUData();
 			ROS_INFO("Stage 5: Testing!!!!!!");
 			robo_ctl.last_enemy_target = robo_ctl.sendEnemyTarget(robo_ctl.enemy_information, robo_ctl.last_enemy_target);

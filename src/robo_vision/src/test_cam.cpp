@@ -2,6 +2,7 @@
 #include "robo_vision/Settings.hpp"
 #include <opencv2/opencv.hpp>
 #include <iostream>
+#include <ros/ros.h>
 using namespace cv;
 using namespace std;
 
@@ -22,7 +23,8 @@ static void setpara(int para,void *p)
 
 int main(int argc, char** argv) 
 {
-    
+    ros::init(argc, argv, "test_vision");
+    ros::NodeHandle nh;
     RMVideoCapture cap2("/dev/ttyVideo0");
     pcap2 = &cap2;
     cap2.info();
@@ -53,33 +55,33 @@ int main(int argc, char** argv)
     cap2.startStream();
     char c = '1';
     
-    char * config_file_name = "../param_config.xml";
+    char * config_file_name = "/home/ubuntu/robot/src/robo_vision/param/param_config.xml";
     Settings setting(config_file_name);
     ArmorDetector armor_detector(setting.armor);
     
-    FileStorage fs(setting.intrinsic_file_480, FileStorage::READ);
-    Mat cam_matrix_480, distortion_coeff_480;
-    fs["Camera_Matrix"] >> cam_matrix_480;
-    fs["Distortion_Coefficients"] >> distortion_coeff_480;
-    FileStorage fs1(setting.intrinsic_file_720, FileStorage::READ);
-    Mat cam_matrix_720, distortion_coeff_720;
-    fs1["Camera_Matrix"] >> cam_matrix_720;
-    fs1["Distortion_Coefficients"] >> distortion_coeff_720;
     
     while(1)
     {
         cap2>>img;
 
 
-        RotatedRect rect;
-        ArmorTarget rect = armor_detector.getTargetAera(img);
-        cout<<rect.center<<endl;
-        Point2f vertices[4];
-        rect.points(vertices);
-        line(src_csm, armor_target.ld, armor_target.lu, CV_RGB(0, 255, 0), 2);
-	    line(src_csm, armor_target.lu, armor_target.ru, CV_RGB(0, 255, 0), 2);
-	    line(src_csm, armor_target.ru, armor_target.rd, CV_RGB(0, 255, 0), 2);
-	    line(src_csm, armor_target.rd, armor_target.ld, CV_RGB(0, 255, 0), 2);
+        vector<ArmorTarget> armor_target;
+        armor_detector.getAllTargetAera(img, armor_target);
+        for (int i = 0; i < armor_target.size(); i++)
+            {
+                circle(img, armor_target[i].ld, 2, CV_RGB(255, 255, 0), 2);
+                circle(img, armor_target[i].lu, 2, CV_RGB(255, 255, 0), 2);
+                circle(img, armor_target[i].ru, 2, CV_RGB(255, 255, 0), 2);
+                circle(img, armor_target[i].rd, 2, CV_RGB(255, 255, 0), 2);
+                line(img, armor_target[i].ld, armor_target[i].lu,
+                     CV_RGB(0, 255, 0), 1);
+                line(img, armor_target[i].lu, armor_target[i].ru,
+                     CV_RGB(0, 255, 0), 1);
+                line(img, armor_target[i].ru, armor_target[i].rd,
+                     CV_RGB(0, 255, 0), 1);
+                line(img, armor_target[i].rd, armor_target[i].ld,
+                     CV_RGB(0, 255, 0), 1);
+            }
         imshow("img",img);
         c = waitKey(1);
         if (c=='q')

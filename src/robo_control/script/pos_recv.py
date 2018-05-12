@@ -9,7 +9,7 @@ import time
 rospy.init_node('pos_socket_recv')
 pub_pos = rospy.Publisher('team/pos', Odometry, queue_size=1)
 s =  socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
-ip=rospy.get_param('~ip_addr_recv','127.0.0.1')
+ip = rospy.get_param('~ip_addr_recv','127.0.0.1')
 addr = (ip,10001)
 s.bind(addr)
 
