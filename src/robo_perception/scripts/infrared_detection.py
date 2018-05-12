@@ -468,6 +468,7 @@ def TsDet_callback(infrared_image, pointcloud):
         enemy_position.blue_num = blue_idx
         enemy_position.death_num = death_idx
         last_enemy_position = enemy_position
+        lose_frame_count = 0
     else:
         # 如果没有发现敌人
         if mc.DEBUG:
@@ -477,14 +478,12 @@ def TsDet_callback(infrared_image, pointcloud):
             enemy_position = last_enemy_position
             enemy_position.header.stamp = rospy.Time.now()
             enemy_position.lost_frame_counter = lose_frame_count
-            
         else:
             enemy_position.num = 0
             enemy_position.red_num = 0  
             enemy_position.blue_num = 0
             enemy_position.death_num = 0
             enemy_position.object = []
-            lose_frame_count = 0
             enemy_position.lost_frame_counter = lose_frame_count
 
     

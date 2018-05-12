@@ -82,7 +82,6 @@ void RoboControl::readMCUData()
     game_msg.remainingHP = msg_frommcu.remaining_HP;
     game_msg.attackArmorID = msg_frommcu.attack_armorID;
     game_msg.bulletCount = msg_frommcu.remaining_bullet;
-    game_msg.bulletCount = msg_frommcu.uwb_yaw;
     game_msg.gimbalAngleYaw = msg_frommcu.gimbal_chassis_angle * 1.0 / 100;
     game_msg.gimbalAnglePitch = -msg_frommcu.gimbal_pitch_angle * 1.0 / 100;
     game_msg.bulletSpeed = msg_frommcu.bullet_speed * 1.0 / 1000;
@@ -477,7 +476,7 @@ void RoboControl::cb_ukf_enemy_information(const nav_msgs::Odometry &msg)
 // 打击函数
 GambalInfo RoboControl::ctl_stack_enemy()
 {
-    int armor_max_lost_num = 400;
+    int armor_max_lost_num = 10;
     // result -> mode, yaw, pitch, global_z
            // 返回值, 包含 云台控制模式, 3个角度信息
     // armor检测和realsense检测和armor丢帧状态合起来有八种状态
@@ -485,7 +484,7 @@ GambalInfo RoboControl::ctl_stack_enemy()
 
     // 2. realsense和armor都没有看到的时候, 并且丢帧数量小于 400, 维持云台角度
     // 3. realsense看到, armor没看到, 并且丢帧数量大于400帧, realsense引导云台转动
-    if (armor_lost_counter > armor_max_lost_num)
+    if (armor_lost_counter > armor_max_lost_num && armor_info_msg.mode == 1)
     {
         // realsense和armor都没有看到的时候, 并且丢帧数量大于 400, 开始摇头
         // if (enemy_information.red_num == 0 && armor_info_msg.mode == 1)
@@ -498,11 +497,6 @@ GambalInfo RoboControl::ctl_stack_enemy()
 
         //     first_in_realsense_flag = true;
         // }
-
-        if (armor_info_msg.mode > 1)
-        {
-            armor_lost_counter = 0;
-        }
 
 
         if (enemy_information.red_num > 0 && first_in_realsense_flag == true)
@@ -531,7 +525,7 @@ GambalInfo RoboControl::ctl_stack_enemy()
             armor_lost_counter = 0;
         }
     }
-    if (armor_lost_counter <= armor_max_lost_num)
+    if (armor_lost_counter <= armor_max_lost_num || armor_info_msg.mode > 1)
     {
         // 4. realsense看到, armor没看到, 并且丢帧数量小于400帧, realsense不管
         if (armor_info_msg.mode == 1)
@@ -549,7 +543,7 @@ GambalInfo RoboControl::ctl_stack_enemy()
             {
                 sent_mcu_gimbal_result.mode = 2;
                 sent_mcu_gimbal_result.yaw = 0;
-                sent_mcu_gimbal_result.pitch = 5;
+                sent_mcu_gimbal_result.pitch = 12;
                 sent_mcu_gimbal_result.global_z = 0;
             }
         }

@@ -658,7 +658,7 @@ while not rospy.is_shutdown():
     elif predict_pos.pose.pose.orientation.w <= - MAX_PREDICT_ANGLE:
         predict_pos.pose.pose.orientation.w = -MAX_PREDICT_ANGLE
 
-    #predict_pos.pose.pose.orientation.w = 0
+    predict_pos.pose.pose.orientation.w = 0
 
     pub_ukf_vel.publish(predict_pos) 
 

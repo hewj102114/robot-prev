@@ -19,7 +19,7 @@ ip = rospy.get_param('~ip_addr_recv', '127.0.0.1')
 addr = (ip, 10001)
 s.bind(addr)
 
-rate = rospy.Rate(50)
+rate = rospy.Rate(60)
 while not rospy.is_shutdown():
     global lost_counter
     data, addr = s.recvfrom(1024)

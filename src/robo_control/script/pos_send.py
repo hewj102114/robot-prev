@@ -57,10 +57,10 @@ addr = (ip, 10001)
 
 rate = rospy.Rate(60)
 while not rospy.is_shutdown():
-    if not pos_x == 0:
-        data_send = "%f %f %f %f %f %f %f %d %d" % (
-            pos_x, pos_y, pos_yaw, target_global_x, target_global_y, target_rel_x, target_rel_y, remainingHP, bulletCount)
+    
+    data_send = "%f %f %f %f %f %f %f %d %d" % (
+    pos_x, pos_y, pos_yaw, target_global_x, target_global_y, target_rel_x, target_rel_y, remainingHP, bulletCount)
 
-        s.sendto(data_send.encode(encoding="utf-8"), addr)
+    s.sendto(data_send.encode(encoding="utf-8"), addr)
     rate.sleep()
 s.close()
