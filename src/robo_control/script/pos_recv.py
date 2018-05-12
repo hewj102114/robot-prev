@@ -11,7 +11,7 @@ import time
 SEND_LEN = 9
 
 rospy.init_node('pos_socket_recv')
-pub_pos = rospy.Publisher('team/pos', Odometry, queue_size=1)
+pub_team = rospy.Publisher('team/info', TeamInfo, queue_size=1)
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 ip = rospy.get_param('~ip_addr_recv', '127.0.0.1')
 addr = (ip, 10001)
@@ -44,6 +44,6 @@ while not rospy.is_shutdown():
         team.pose.pose.orientation.z = qua[2]
         team.pose.pose.orientation.w = qua[3]
         pub_team.publish(team)
-        pos_x, pos_y, pos_yaw, target_global_x, target_global_y, target_rel_x, target_rel_y, remainingHP, bulletCount
+
     rate.sleep()
 s.close()

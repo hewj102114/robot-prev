@@ -19,13 +19,14 @@ int main(int argc, char **argv)
 	ros::Subscriber sub_finish_navigation = nh.subscribe("nav_state", 1, &RoboControl::cb_finish_navigation, &robo_ctl);
 	ros::Subscriber sub_enemy_information = nh.subscribe("infrared_detection/enemy_position", 1, &RoboControl::cb_enemy_information, &robo_ctl);
 	ros::Subscriber sub_ukf_enemy_information = nh.subscribe("ukf/enemy", 1, &RoboControl::cb_ukf_enemy_information, &robo_ctl);
-
+	ros::Subscriber sub_front_dis = nh.subscribe("front_dis", 1, &RoboControl::cb_front_dis, &robo_ctl);
 
 	int init_flag = 1;
 	geometry_msgs::Pose nav_goal; // goal of navigation
 	int armor_lost_count = 0;
 	int key_point_no = 1;
 	clock_t start, end;
+	robo_ctl.main_control_init();
 	robo_ctl.read_xml_file();
 
 	while (0)
@@ -101,7 +102,7 @@ int main(int argc, char **argv)
 	chassis 1:velcity 2:angle pose 3:init
 	*/
 	geometry_msgs::Pose target_pose;
-	int work_state = 2;
+	int work_state = 0;  //2
 	int center_state = 0;
 	ros::Rate loop_rate(150);
 	bool realsense_first_in = true;
@@ -135,15 +136,16 @@ int main(int argc, char **argv)
 		case 0:
 		{
 			ROS_INFO("Stage 0: Go to center!!!!!!");
+
 			switch (center_state)
 			{
 				case 0:
 				{
 					// 1. going center
-					target_pose.position.x = 4.0;
-					target_pose.position.y = 2.5;
-					target_pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
-					robo_ctl.sendNavGoal(target_pose);
+					//target_pose.position.x = 4.0;
+					//target_pose.position.y = 2.5;
+					//target_pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
+					//robo_ctl.sendNavGoal(target_pose);
 					if (robo_ctl.finish_navigation.data)	// arrive center
 					{
 						ROS_INFO("Arrived center, start to clock");
@@ -166,7 +168,7 @@ int main(int argc, char **argv)
 						center_first_in = true;
 						target_gimbal_angle = 1000;						
 					}
-					robo_ctl.sendMCUMsg(1, 1, robo_ctl.cmd_vel_msg.v_x, robo_ctl.cmd_vel_msg.v_y, robo_ctl.cmd_vel_msg.v_yaw, 0, 0, 0);
+					robo_ctl.sendMCUMsg(1, 1, robo_ctl.cmd_vel_msg.v_x, robo_ctl.cmd_vel_msg.v_y, robo_ctl.cmd_vel_msg.v_yaw, 0, 0, (int)(robo_ctl.front_dis * 100));
 					break;
 				}
 				// realsense
@@ -337,6 +339,7 @@ int main(int argc, char **argv)
 		case 2:
 		{
 			ROS_INFO("Stage 2: Find enemy, close to and stack enemy!!!!!!");
+			ROS_INFO("enter %d",robo_ctl.enemy_information.num);
 			robo_ctl.last_enemy_target = robo_ctl.sendEnemyTarget(robo_ctl.enemy_information, robo_ctl.last_enemy_target);
 			int target_num = 0;
 			if (robo_ctl.last_enemy_target.object[0].team.data == "Nothing")
@@ -559,7 +562,11 @@ int main(int argc, char **argv)
 			robo_ctl.readMCUData();
 			ROS_INFO("Stage 5: Testing!!!!!!");
 			robo_ctl.last_enemy_target = robo_ctl.sendEnemyTarget(robo_ctl.enemy_information, robo_ctl.last_enemy_target);
-			robo_ctl.sendMCUMsg(1, 2, 0, 0, 0, 0, 0, 0);
+			robo_ctl.sent_mcu_gimbal_msg = robo_ctl.ctl_stack_enemy();
+			robo_ctl.sendMCUMsg(1, 2, 0, 0, 0, 
+								robo_ctl.sent_mcu_gimbal_msg.yaw, 
+								robo_ctl.sent_mcu_gimbal_msg.pitch, 
+								robo_ctl.sent_mcu_gimbal_msg.global_z);
 			break;
 
 		default:

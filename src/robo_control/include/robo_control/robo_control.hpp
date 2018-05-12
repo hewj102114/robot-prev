@@ -125,6 +125,7 @@ class RoboControl
     float calculator_enemy_angle(double enemy_x, double enemy_y, double self_x, double self_y);
     void cb_ukf_enemy_information(const nav_msgs::Odometry &msg);
     GambalInfo ctl_stack_enemy();
+    void main_control_init();
     ros::NodeHandle *pnh;
 
     ros::Publisher pub_game_info;
@@ -203,6 +204,8 @@ class RoboControl
 	float target_gimbal_angle = 1000;
 
     double front_dis = 0.0;
+
+    GambalInfo sent_mcu_gimbal_msg;
 
     // yaw: 1 -> 2
     KeyPoint KEY_POINT[30] = {
