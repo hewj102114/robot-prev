@@ -102,7 +102,7 @@ int main(int argc, char **argv)
 	chassis 1:velcity 2:angle pose 3:init
 	*/
 	geometry_msgs::Pose target_pose;
-	int work_state = 0;  //2
+	int work_state = 5;  //2
 	int center_state = 0;
 	ros::Rate loop_rate(150);
 	bool realsense_first_in = true;
@@ -563,7 +563,7 @@ int main(int argc, char **argv)
 			ROS_INFO("Stage 5: Testing!!!!!!");
 			robo_ctl.last_enemy_target = robo_ctl.sendEnemyTarget(robo_ctl.enemy_information, robo_ctl.last_enemy_target);
 			robo_ctl.sent_mcu_gimbal_msg = robo_ctl.ctl_stack_enemy();
-			robo_ctl.sendMCUMsg(1, 2, 0, 0, 0, 
+			robo_ctl.sendMCUMsg(1, robo_ctl.sent_mcu_gimbal_msg.mode, 0, 0, 0, 
 								robo_ctl.sent_mcu_gimbal_msg.yaw, 
 								robo_ctl.sent_mcu_gimbal_msg.pitch, 
 								robo_ctl.sent_mcu_gimbal_msg.global_z);

@@ -8,7 +8,9 @@ import socket
 import time
 
 
-SEND_LEN = 9
+RECV_LEN = 9
+lost_counter = 0
+LOST_TRESH = 50
 
 rospy.init_node('pos_socket_recv')
 pub_team = rospy.Publisher('team/info', TeamInfo, queue_size=1)
@@ -19,9 +21,11 @@ s.bind(addr)
 
 rate = rospy.Rate(50)
 while not rospy.is_shutdown():
+    global lost_counter
     data, addr = s.recvfrom(1024)
     datalist = data.split()
-    if len(datalist) == SEND_LEN:
+    team = TeamInfo()
+    if len(datalist) == RECV_LEN:
         pos_x = float(datalist[0])
         pos_y = float(datalist[1])
         pos_yaw = float(datalist[2])
@@ -34,16 +38,43 @@ while not rospy.is_shutdown():
 
         qua = quaternion_from_euler(0, 0, pos_yaw)
 
-        team = TeamInfo()
+        
         team.header.frame_id = "team"
         team.header.stamp = rospy.Time.now()
+
+        team.remainingHP = remainingHP
+        team.bulletCount = bulletCount
+
         team.pose.pose.position.x = pos_x
         team.pose.pose.position.y = pos_y
         team.pose.pose.orientation.x = qua[0]
         team.pose.pose.orientation.y = qua[1]
         team.pose.pose.orientation.z = qua[2]
         team.pose.pose.orientation.w = qua[3]
-        pub_team.publish(team)
 
+        team.targetRelative.pose.position.x = target_global_x
+        team.targetRelative.pose.position.y = target_global_y
+
+        team.targetGlobal.pose.position.x = target_rel_x
+        team.targetGlobal.pose.position.y = target_rel_y
+
+
+        lost_counter = 0
+    else:
+        lost_counter = lost_counter + 1
+        print lost_counter
+
+#connection = 0 temperal lost
+#connection = 1 forever lost
+#connection = 2 connection work fine
+    if lost_counter != 0:
+        team.connection = 0
+    if lost_counter > LOST_TRESH:
+        team.connection = 1
+    if lost_counter == 0:
+        team.connection = 2
+
+    
+    pub_team.publish(team)
     rate.sleep()
 s.close()

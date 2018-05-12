@@ -1,4 +1,5 @@
 Header header
+int16 connection
 int16 remainingHP
 int16 bulletCount
 geometry_msgs/Pose pose

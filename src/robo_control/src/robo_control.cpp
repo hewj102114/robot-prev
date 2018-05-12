@@ -490,6 +490,7 @@ GambalInfo RoboControl::ctl_stack_enemy()
         // realsense和armor都没有看到的时候, 并且丢帧数量大于 400, 开始摇头
         if (enemy_information.red_num == 0 && armor_info_msg.mode == 1)
         {
+            ROS_INFO("mode = 1");
             result.mode = 1;
             result.yaw = 0;
             result.pitch = 0;
@@ -498,6 +499,7 @@ GambalInfo RoboControl::ctl_stack_enemy()
 
         if (enemy_information.red_num > 0 && first_in_realsense_flag == true)
         {
+            ROS_INFO("realsense detected");
             first_in_realsense_flag = false;
             int enemy_realsense_angle = 0;
             if (robo_ukf_enemy_information.orientation.z != 999)
@@ -524,6 +526,7 @@ GambalInfo RoboControl::ctl_stack_enemy()
         // 4. realsense看到, armor没看到, 并且丢帧数量小于400帧, realsense不管
         if (armor_info_msg.mode == 1)
         {
+            ROS_INFO("lose armor");        
             armor_lost_counter++;
             if (first_in_armor_flag == true)
             {
@@ -545,6 +548,7 @@ GambalInfo RoboControl::ctl_stack_enemy()
         // 3. realsense和armor都看到, 以armor的转动为主
         if (armor_info_msg.mode > 1)
         {
+            ROS_INFO("detected armor");            
             result.mode = 2;
             result.yaw = armor_info_msg.yaw + robo_ukf_enemy_information.orientation.w;
             result.pitch = armor_info_msg.pitch;
