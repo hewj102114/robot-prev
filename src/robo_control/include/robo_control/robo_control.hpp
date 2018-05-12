@@ -177,6 +177,26 @@ class RoboControl
     cv::Mat point_list;
 
     bool callback_navigation_flag = false;
+    
+    bool realsense_detection_state = false; // realsense 检测状态
+    int realsense_lost_counter = 10000;         // realsense 丢帧数量
+    bool armor_detction_state = false;      // armor 检测状态
+    int armor_lost_counter = 0;             // armor 丢帧数量
+    bool armor_lost_state = false;          // armor 丢帧状态
+
+    bool detected_armor_flag = false;
+    bool first_in_armor_flag = false;
+    bool first_in_realsense_flag = true;
+
+	float first_in_gimbal_angle = 0;
+	float current_gimbal_angle = 0;
+	float target_gimbal_angle = 1000;
+
+    
+
+
+
+
 
     // yaw: 1 -> 2
     KeyPoint KEY_POINT[30] = {

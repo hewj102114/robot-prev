@@ -468,8 +468,86 @@ void RoboControl::cb_ukf_enemy_information(const nav_msgs::Odometry &msg)
     robo_ukf_enemy_information = msg.pose.pose;
 }
 
-// vector<float> RoboControl::ctl_stack_enemy(const nav_msgs::Odometry &msg)
-// {
-//     vector<float> result;
-//     return result;
-// }
+// 打击函数
+ArmorInfo RoboControl::ctl_stack_enemy()
+{
+    int armor_max_lost_num = 400;
+    // result -> mode, yaw, pitch, global_z
+    ArmorInfo result;       // 返回值, 包含 云台控制模式, 3个角度信息
+    // armor检测和realsense检测和armor丢帧状态合起来有八种状态
+    
+
+    // 2. realsense和armor都没有看到的时候, 并且丢帧数量小于 400, 维持云台角度
+    // 3. realsense看到, armor没看到, 并且丢帧数量大于400帧, realsense引导云台转动
+    if (armor_lost_counter > armor_max_lost_num)
+    {
+        // realsense和armor都没有看到的时候, 并且丢帧数量大于 400, 开始摇头
+        if (enemy_information.num == 0 && armor_info_msg.mode == 1)
+        {
+            result.mode = 1;
+            reslut.yaw = 0;
+            result.pitch = 0;
+            result.global_z = 0;
+        }
+        if (enemy_information.num > 0 && first_in_realsense_flag == true)
+        {
+            first_in_realsense_flag = false;
+            int enemy_realsense_angle = 0;
+            if (robo_ukf_enemy_information.orientation.z != 999)
+            {
+                enemy_realsense_angle = -robo_ukf_enemy_information.orientation.z * 180.0 / PI;
+            }
+            first_in_gimbal_angle = game_msg.gimbalAngleYaw;
+            target_gimbal_angle = enemy_self_angle;
+
+            result.mode = 3;
+            result.yaw = enemy_realsense_angle * 100;
+            result.pitch = 0;
+            result.global_z = 0;
+        }
+        current_gimbal_angle = robo_ctl.game_msg.gimbalAngleYaw;
+        if (abs(abs(current_gimbal_angle - first_in_gimbal_angle) - abs(target_gimbal_angle)) < 5)
+        {
+            first_in_armor_flag == true;
+            armor_lost_counter = 0;
+        }
+    }
+    if (armor_lost_counter < armor_max_lost_num)
+    {
+        // 4. realsense看到, armor没看到, 并且丢帧数量小于400帧, realsense不管
+        if (armor_info_msg.mode == 1)
+        {
+            armor_lost_counter++;
+            if (first_in_armor_flag == true)
+            {
+                result.mode = 2;
+                reslut.yaw = 0;
+                result.pitch = 32760;
+                result.global_z = 0;
+            }
+            if (detected_armor_flag == true)
+            {
+                result.mode = 2;
+                reslut.yaw = 0;
+                result.pitch = 5;
+                result.global_z = 0;
+            }
+        }
+
+        // 只要 armor 检测到, 云台就转, 没有商量的余地, armor 丢帧的话需要商量一下
+        // 3. realsense和armor都看到, 以armor的转动为主
+        if (armor_info_msg.mode > 1)
+        {
+            result.mode = 2;
+            reslut.yaw = armor_info_msg.yaw + robo_ukf_enemy_information.orientation.w;
+            result.pitch = armor_info_msg.pitch;
+            result.global_z = armor_info_msg.global_z * 100;
+
+            armor_lost_counter = 0;
+            detected_armor_flag = true;
+            first_in_armor_flag = false;
+            target_gimbal_angle = 1000;
+        }
+    }
+    return result;
+}
