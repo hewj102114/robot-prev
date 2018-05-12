@@ -488,16 +488,16 @@ GambalInfo RoboControl::ctl_stack_enemy()
     if (armor_lost_counter > armor_max_lost_num)
     {
         // realsense和armor都没有看到的时候, 并且丢帧数量大于 400, 开始摇头
-        if (enemy_information.red_num == 0 && armor_info_msg.mode == 1)
-        {
-            ROS_INFO("mode = 1");
-            sent_mcu_gimbal_result.mode = 1;
-            sent_mcu_gimbal_result.yaw = 0;
-            sent_mcu_gimbal_result.pitch = 0;
-            sent_mcu_gimbal_result.global_z = 0;
+        // if (enemy_information.red_num == 0 && armor_info_msg.mode == 1)
+        // {
+        //     ROS_INFO("mode = 1");
+        //     sent_mcu_gimbal_result.mode = 1;
+        //     sent_mcu_gimbal_result.yaw = 0;
+        //     sent_mcu_gimbal_result.pitch = 0;
+        //     sent_mcu_gimbal_result.global_z = 0;
 
-            first_in_realsense_flag = true;
-        }
+        //     first_in_realsense_flag = true;
+        // }
 
         if (armor_info_msg.mode > 1)
         {

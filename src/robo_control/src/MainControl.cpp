@@ -102,7 +102,7 @@ int main(int argc, char **argv)
 	chassis 1:velcity 2:angle pose 3:init
 	*/
 	geometry_msgs::Pose target_pose;
-	int work_state = 0;  //2
+	int work_state = 5;  //2
 	int center_state = 0;
 	ros::Rate loop_rate(150);
 	bool realsense_first_in = true;
