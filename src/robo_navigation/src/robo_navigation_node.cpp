@@ -58,6 +58,7 @@ class RoboNav
     void setFixAngle(const geometry_msgs::Quaternion &qua);
     void cb_scan(const sensor_msgs::LaserScan::ConstPtr &scan);
     //void cb_enemy_infor(const robo_perception::ObjectList &msg);
+    int go_center();
     geometry_msgs::Pose adjustlocalgoal(double yaw);
 };
 
@@ -76,6 +77,7 @@ void RoboNav::init()
     fs["Point"] >> point_list;
     floyd.loadMatrix(arrArcs);
     floyd.initFloydGraph();
+    path.clear();
 
     state.data = false;
 
@@ -247,42 +249,14 @@ void RoboNav::get_vel(geometry_msgs::Twist &msg_vel)
         geometry_msgs::Pose cur_local_goal = adjustlocalgoal(cur_yaw);
         double cur_local_goal_y = cur_local_goal.position.y;
         double cur_local_goal_x = cur_local_goal.position.x;
-        //         tf::Stamped<tf::Pose> ident (tf::Transform(tf::createIdentityQuaternion(),
-        //                                              tf::Vector3(cur_local_goal_x,cur_local_goal_y,0)),
-        //                                  ros::Time(), "odom");
-        //         tf::Stamped<tf::Pose> pose;
-        //
-        //         try
-        //         {
-        //
-        //         tf_->transformPose("base_link", ident, pose);
-        //         }
-        //         catch(tf::TransformException& e)
-        //         {
-        //         ROS_ERROR("Couldn't transform "
-        //                     "even though the message notifier is in use");
-        //         return;
-        //         }
 
         double dx = (cur_local_goal_x - cur_pose.position.x) * cos(cur_yaw) + (cur_local_goal_y - cur_pose.position.y) * sin(cur_yaw);
         double dy = -(cur_local_goal_x - cur_pose.position.x) * sin(cur_yaw) + (cur_local_goal_y - cur_pose.position.y) * cos(cur_yaw);
 
-        // geometry_msgs::PoseStamped pose_local;
-        // pose_local.header.stamp = ros::Time::now();
-        // pose_local.header.frame_id = "base_link";
-        // pose_local.pose.position.x = dx;
-        // pose_local.pose.position.y = dy;
-        // pose_local.pose.position.y = 0;
-        // pose_local.pose.orientation.x = 0;
-        // pose_local.pose.orientation.y = 0;
-        // pose_local.pose.orientation.z = 0;
-        // pose_local.pose.orientation.w = 1;
-        // pub_local_goal_pose.publish(pose_local);
-
         //ROS_INFO("angle: %f  fix angle : %f   dyaw %f",cur_yaw,fix_angle,dyaw);
         //ROS_INFO(" tar_x %f, tar_y %f,cur_x %f , cur_y %f, diff_x %f, diff_y %f", cur_local_goal_x, cur_local_goal_y,
         //         cur_pose.position.x, cur_pose.position.y, dx, dy);
-        if (abs(dx) < 0.05 && abs(dy) < 0.05)
+        if (abs(dx) < 0.10 && abs(dy) < 0.10)
         {
             path.erase(path.begin());
         }
@@ -461,9 +435,23 @@ geometry_msgs::Pose RoboNav::adjustlocalgoal(double yaw)
         local_goal.position.x = local_goal_x - 0.1 * (cos(yaw) + sin(yaw));
         local_goal.position.y = local_goal_y + 0.1 * (cos(yaw) - sin(yaw));
     }
-
+    pid_x.stop=false;
+    pid_y.stop=false;
     //ROS_INFO("stop x: %d, y: %d", pid_x.stop, pid_y.stop);
     return local_goal;
+}
+
+int RoboNav::go_center()
+{
+
+    cur_goal.position.x = 4.0;
+    cur_goal.position.y = 2.5;
+
+    path.push_back(3);
+    path.push_back(11);
+    path.push_back(32);
+
+    return 0;
 }
 
 int main(int argc, char **argv)
@@ -473,6 +461,9 @@ int main(int argc, char **argv)
 
     RoboNav robo_nav;
     robo_nav.init();
+
+    robo_nav.go_center();
+
     ros::Subscriber cb_tar_pose = nh.subscribe("base/goal", 1, &RoboNav::cb_tar_pose, &robo_nav);
     ros::Subscriber cb_cur_pose = nh.subscribe("odom", 1, &RoboNav::cb_cur_pose, &robo_nav);
     ros::Subscriber sub = nh.subscribe<sensor_msgs::LaserScan>("scan", 1, &RoboNav::cb_scan, &robo_nav);
@@ -485,16 +476,23 @@ int main(int argc, char **argv)
 
     while (ros::ok())
     {
-
         geometry_msgs::Twist msg_vel;
         robo_nav.get_vel(msg_vel);
+
         //ROS_INFO("vel x: %f y:%f", msg_vel.linear.x, msg_vel.linear.y);
         if (robo_nav.path.size() > 0)
-            robo_nav.floyd.printPath();
+        {
+            for (int i = 0; i < robo_nav.path.size() - 1; i++)
+            {
+                cout << robo_nav.path[i] << " - > ";
+            }
+            cout << robo_nav.path.back() << endl;
+        }
+
         pub_vel.publish(msg_vel);
         pub_state.publish(robo_nav.state);
         std_msgs::Float64 front_distance;
-        front_distance.data=robo_nav.obs_min[0][0];
+        front_distance.data = robo_nav.obs_min[0][0];
         pub_front.publish(front_distance);
         ros::spinOnce();
         rate.sleep();
