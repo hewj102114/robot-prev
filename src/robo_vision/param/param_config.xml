@@ -12,7 +12,7 @@
 <color_threshold>30</color_threshold>
 <max_light_delta_w>280</max_light_delta_w>
 <min_light_delta_w>16</min_light_delta_w>
-<max_light_delta_angle>15</max_light_delta_angle>
+<max_light_delta_angle></max_light_delta_angle>
 <br_threshold>40</br_threshold>
 
 <!--Parameter for Enemy Color, 0(default) means for red, otherwise blue-->
