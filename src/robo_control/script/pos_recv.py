@@ -16,7 +16,7 @@ rospy.init_node('pos_socket_recv')
 pub_team = rospy.Publisher('team/info', TeamInfo, queue_size=1)
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 ip = rospy.get_param('~ip_addr_recv', '127.0.0.1')
-addr = (ip, 10001)
+addr = (ip, 10002)
 s.bind(addr)
 
 rate = rospy.Rate(50)

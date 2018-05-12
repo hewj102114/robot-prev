@@ -479,9 +479,9 @@ GambalInfo RoboControl::ctl_stack_enemy()
 {
     int armor_max_lost_num = 400;
     // result -> mode, yaw, pitch, global_z
-    GambalInfo result;       // 返回值, 包含 云台控制模式, 3个角度信息
+           // 返回值, 包含 云台控制模式, 3个角度信息
     // armor检测和realsense检测和armor丢帧状态合起来有八种状态
-    
+    ROS_INFO("armor_lost_counter: %d", armor_lost_counter);
 
     // 2. realsense和armor都没有看到的时候, 并且丢帧数量小于 400, 维持云台角度
     // 3. realsense看到, armor没看到, 并且丢帧数量大于400帧, realsense引导云台转动
@@ -514,7 +514,9 @@ GambalInfo RoboControl::ctl_stack_enemy()
             result.pitch = 0;
             result.global_z = 0;
         }
+        ROS_INFO("armor_lost_counter > 400");
         current_gimbal_angle = game_msg.gimbalAngleYaw;
+        ROS_INFO("first_in: %f, target: %f, current: %f", first_in_gimbal_angle, target_gimbal_angle, current_gimbal_angle);
         if (abs(abs(current_gimbal_angle - first_in_gimbal_angle) - abs(target_gimbal_angle)) < 5)
         {
             first_in_armor_flag = true;

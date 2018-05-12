@@ -28,7 +28,7 @@ def callback_odom(msg):
     pos_yaw = yaw
 
 
-def game_info(game):
+def callback_gameinfo(game):
     global remainingHP, bulletCount
     remainingHP = game.remainingHP
     bulletCount = game.bulletCount
@@ -46,8 +46,8 @@ def callback_target(target):
 
 rospy.init_node('pos_socket_send')
 subodom = rospy.Subscriber('odom', Odometry, callback_odom)
-subtarget = rospy.Subscriber('enemy/target', Odometry, callback_target)
-subgameinfo = rospy.Subscriber('base/game_info', Odometry, callback_gameinfo)
+subtarget = rospy.Subscriber('enemy/target', ObjectList, callback_target)
+subgameinfo = rospy.Subscriber('base/game_info', GameInfo, callback_gameinfo)
 
 
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
