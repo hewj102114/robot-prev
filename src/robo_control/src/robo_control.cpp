@@ -320,6 +320,7 @@ robo_perception::ObjectList RoboControl::sendEnemyTarget(const robo_perception::
 {
     robo_perception::ObjectList result_enemy_target; // return
     result_enemy_target.header = msg.header;
+    result_enemy_target.header.stamp = ros::Time::now();
     result_enemy_target.num = 0;
     result_enemy_target.red_num = 0;
     result_enemy_target.death_num = 0;
@@ -329,6 +330,7 @@ robo_perception::ObjectList RoboControl::sendEnemyTarget(const robo_perception::
 
     robo_perception::ObjectList enemy_odom_target_msg; // publish
     enemy_odom_target_msg.header = msg.header;
+    result_enemy_target.header.stamp = ros::Time::now();
     enemy_odom_target_msg.num = 0;
     enemy_odom_target_msg.red_num = 0;
     enemy_odom_target_msg.death_num = 0;
