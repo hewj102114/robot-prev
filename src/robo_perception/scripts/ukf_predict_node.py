@@ -171,7 +171,7 @@ def UKFPnpInit(in_dt, init_x):
     global ukf_pnp
 
     p_std_x, p_std_y = 0.04, 0.04
-    v_std_x, v_std_y = 0.3, 0.3
+    v_std_x, v_std_y = 0.15, 0.15
     dt = in_dt 
 
 
@@ -519,7 +519,7 @@ while not rospy.is_shutdown():
 
 
     # 选择传感器预测优先级
-    if RS_UKF_AVAILABLE and 0:
+    if RS_UKF_AVAILABLE:
         ukf_out_pos_x = ukf_rs_pos_x  
         ukf_out_vel_x = ukf_rs_vel_x
         ukf_out_pos_y = ukf_rs_pos_y 

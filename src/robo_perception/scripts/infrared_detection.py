@@ -476,6 +476,7 @@ def TsDet_callback(infrared_image, pointcloud):
         if lose_frame_count < 5:
             enemy_position = last_enemy_position
             enemy_position.header.stamp = rospy.Time.now()
+            enemy_position.lost_frame_counter = lose_frame_count
             
         else:
             enemy_position.num = 0
@@ -484,8 +485,8 @@ def TsDet_callback(infrared_image, pointcloud):
             enemy_position.death_num = 0
             enemy_position.object = []
             lose_frame_count = 0
+            enemy_position.lost_frame_counter = lose_frame_count
 
-    enemy_position.lost_frame_counter = lose_frame_count
     
     pub.publish(enemy_position)
     t_filter = time.time()
