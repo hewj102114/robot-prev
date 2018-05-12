@@ -364,7 +364,7 @@ geometry_msgs::Pose RoboControl::sendEnemyTarget(const robo_perception::ObjectLi
                 enemy_index2 = i;
             }
         }
-        if (last_enemy_target_msg.position.x == 0 && last_enemy_target_msg.position.y == 0 && last_enemy_target_msg.position.z == 0)
+        if (last_enemy_target_msg.numget_msg.position.y == 0 && last_enemy_target_msg.position.z == 0)
         {
             // 没有打击过敌人, 选择相对距离近的敌人
             if (msg.object[enemy_index1].pose.position.x < msg.object[enemy_index2].pose.position.x)
