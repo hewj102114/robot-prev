@@ -495,7 +495,15 @@ GambalInfo RoboControl::ctl_stack_enemy()
             sent_mcu_gimbal_result.yaw = 0;
             sent_mcu_gimbal_result.pitch = 0;
             sent_mcu_gimbal_result.global_z = 0;
+
+            first_in_realsense_flag = true;
         }
+
+        if (armor_info_msg.mode > 1)
+        {
+            armor_lost_counter = 0;
+        }
+
 
         if (enemy_information.red_num > 0 && first_in_realsense_flag == true)
         {

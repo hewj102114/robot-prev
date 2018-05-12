@@ -51,7 +51,7 @@ subgameinfo = rospy.Subscriber('base/game_info', GameInfo, callback_gameinfo)
 
 
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-ip = rospy.get_param('~ip_addr_send', '127.0.0.1')
+ip = rospy.get_param('~ip_addr_send', '192.168.1.148')
 print ip
 addr = (ip, 10001)
 
