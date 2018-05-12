@@ -21,7 +21,9 @@ using namespace std;
 #define DEFFENCE 0.40
 #define DEFF_CORNER 0.50
 
-int center_flag = 0;
+int GO_CENTER_S = 1; //0 direct go center; 1: using one other point
+
+    int center_flag = 0;
 class RoboNav
 {
   public:
@@ -269,12 +271,20 @@ void RoboNav::get_vel(geometry_msgs::Twist &msg_vel)
         {
             vel_x = pid_x.calc(dx);
             vel_y = pid_y.calc(dy);
-            
-            if (center_flag == 0 && path[0] == 32 && dx > 1.8)
+            if (GO_CENTER_S == 1)
+                if (center_flag == 0 && path[0] == 32 && dx > 1.8)
                 {
                     vel_y = 0;
-                    ROS_INFO("Adjusting....");
                 }
+            if (GO_CENTER_S == 0)
+            {
+                ROS_INFO("dx: %f, dy: %f", dx, dy);
+                if (center_flag == 0 && path[0] == 32 && dx > 1.75)
+                    vel_y = 0;
+                else if (center_flag == 0 && path[0] == 32 && dx <= 1.52 && dy > 0.20)
+                    vel_x = 0;
+            }
+
             if (abs(dx) < 0.05)
                 vel_x = 0;
             if (abs(dy) < 0.05)
@@ -461,9 +471,14 @@ int RoboNav::go_center()
     cur_goal.position.x = 4.0;
     cur_goal.position.y = 2.5;
 
-    path.push_back(3);
-    //path.push_back(11);
-    path.push_back(32);
+    if (GO_CENTER_S == 0)
+        path.push_back(32);
+
+    if (GO_CENTER_S == 1)
+    {
+        path.push_back(3);
+        path.push_back(32);
+    }
 
     return 0;
 }
