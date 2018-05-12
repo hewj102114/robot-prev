@@ -393,7 +393,7 @@ robo_perception::ObjectList RoboControl::sendEnemyTarget(const robo_perception::
             {
                 enemy_index2 = i;
             }
-
+        }
         if (last_enemy_target_msg.num == 0)
         {
             ROS_INFO("red_num = 2, num = 0");
@@ -469,11 +469,11 @@ void RoboControl::cb_ukf_enemy_information(const nav_msgs::Odometry &msg)
 }
 
 // 打击函数
-ArmorInfo RoboControl::ctl_stack_enemy()
+GambalInfo RoboControl::ctl_stack_enemy()
 {
     int armor_max_lost_num = 400;
     // result -> mode, yaw, pitch, global_z
-    ArmorInfo result;       // 返回值, 包含 云台控制模式, 3个角度信息
+    GambalInfo result;       // 返回值, 包含 云台控制模式, 3个角度信息
     // armor检测和realsense检测和armor丢帧状态合起来有八种状态
     
 
@@ -485,7 +485,7 @@ ArmorInfo RoboControl::ctl_stack_enemy()
         if (enemy_information.num == 0 && armor_info_msg.mode == 1)
         {
             result.mode = 1;
-            reslut.yaw = 0;
+            result.yaw = 0;
             result.pitch = 0;
             result.global_z = 0;
         }
@@ -498,14 +498,14 @@ ArmorInfo RoboControl::ctl_stack_enemy()
                 enemy_realsense_angle = -robo_ukf_enemy_information.orientation.z * 180.0 / PI;
             }
             first_in_gimbal_angle = game_msg.gimbalAngleYaw;
-            target_gimbal_angle = enemy_self_angle;
+            target_gimbal_angle = enemy_realsense_angle;
 
             result.mode = 3;
             result.yaw = enemy_realsense_angle * 100;
             result.pitch = 0;
             result.global_z = 0;
         }
-        current_gimbal_angle = robo_ctl.game_msg.gimbalAngleYaw;
+        current_gimbal_angle = game_msg.gimbalAngleYaw;
         if (abs(abs(current_gimbal_angle - first_in_gimbal_angle) - abs(target_gimbal_angle)) < 5)
         {
             first_in_armor_flag == true;
@@ -521,14 +521,14 @@ ArmorInfo RoboControl::ctl_stack_enemy()
             if (first_in_armor_flag == true)
             {
                 result.mode = 2;
-                reslut.yaw = 0;
+                result.yaw = 0;
                 result.pitch = 32760;
                 result.global_z = 0;
             }
             if (detected_armor_flag == true)
             {
                 result.mode = 2;
-                reslut.yaw = 0;
+                result.yaw = 0;
                 result.pitch = 5;
                 result.global_z = 0;
             }
@@ -539,7 +539,7 @@ ArmorInfo RoboControl::ctl_stack_enemy()
         if (armor_info_msg.mode > 1)
         {
             result.mode = 2;
-            reslut.yaw = armor_info_msg.yaw + robo_ukf_enemy_information.orientation.w;
+            result.yaw = armor_info_msg.yaw + robo_ukf_enemy_information.orientation.w;
             result.pitch = armor_info_msg.pitch;
             result.global_z = armor_info_msg.global_z * 100;
 

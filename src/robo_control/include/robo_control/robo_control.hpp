@@ -62,6 +62,14 @@ struct KeyPoint
     float yaw; // the direction of keypoint
 };
 
+struct GambalInfo
+{
+    int mode;
+    float global_z;
+    float pitch;
+    float yaw;
+};
+
 class RoboControl
 {
   public:
@@ -115,6 +123,7 @@ class RoboControl
     robo_perception::ObjectList sendEnemyTarget(const robo_perception::ObjectList &msg, robo_perception::ObjectList &last_enemy_target_msg);
     float calculator_enemy_angle(double enemy_x, double enemy_y, double self_x, double self_y);
     void cb_ukf_enemy_information(const nav_msgs::Odometry &msg);
+    GambalInfo ctl_stack_enemy();
     ros::NodeHandle *pnh;
 
     ros::Publisher pub_game_info;
@@ -177,7 +186,7 @@ class RoboControl
     cv::Mat point_list;
 
     bool callback_navigation_flag = false;
-    
+
     bool realsense_detection_state = false; // realsense 检测状态
     int realsense_lost_counter = 10000;         // realsense 丢帧数量
     bool armor_detction_state = false;      // armor 检测状态
@@ -191,12 +200,6 @@ class RoboControl
 	float first_in_gimbal_angle = 0;
 	float current_gimbal_angle = 0;
 	float target_gimbal_angle = 1000;
-
-    
-
-
-
-
 
     // yaw: 1 -> 2
     KeyPoint KEY_POINT[30] = {
