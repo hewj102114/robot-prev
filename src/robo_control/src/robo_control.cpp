@@ -574,7 +574,7 @@ void RoboControl::main_control_init()
     sent_mcu_gimbal_msg.global_z = 0;
 
 
-    enemy_information.header.frame_id = 'enemy';
+    enemy_information.header.frame_id = "enemy";
     enemy_information.header.stamp = ros::Time::now();
     enemy_information.num = 0;
     enemy_information.red_num = 0;
