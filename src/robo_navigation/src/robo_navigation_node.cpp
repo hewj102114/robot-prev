@@ -269,8 +269,8 @@ void RoboNav::get_vel(geometry_msgs::Twist &msg_vel)
         {
             vel_x = pid_x.calc(dx);
             vel_y = pid_y.calc(dy);
-             ROS_INFO("flag %d  %d  %f",center_flag, path[0],dx);
-            if (center_flag == 0 && path[0] == 32 && dx > 1.0)
+            
+            if (center_flag == 0 && path[0] == 32 && dx > 1.8)
                 {
                     vel_y = 0;
                     ROS_INFO("Adjusting....");

@@ -323,7 +323,6 @@ int RoboControl::find_enemy_self_closest_point(double enemy_x, double enemy_y, d
 
 robo_perception::ObjectList RoboControl::sendEnemyTarget(const robo_perception::ObjectList &msg, robo_perception::ObjectList &last_enemy_target_msg)
 {
-  
     robo_perception::ObjectList result_enemy_target; // return
     result_enemy_target.header = msg.header;
     result_enemy_target.header.stamp = ros::Time::now();
@@ -459,7 +458,7 @@ robo_perception::ObjectList RoboControl::sendEnemyTarget(const robo_perception::
             return result_enemy_target;
         }
     }
-   
+    return result_enemy_target;
 }
 
 float RoboControl::calculator_enemy_angle(double enemy_x, double enemy_y, double self_x, double self_y)
@@ -489,15 +488,15 @@ GambalInfo RoboControl::ctl_stack_enemy()
     if (armor_lost_counter > armor_max_lost_num)
     {
         // realsense和armor都没有看到的时候, 并且丢帧数量大于 400, 开始摇头
-        if (enemy_information.num == 0 && armor_info_msg.mode == 1)
+        if (enemy_information.red_num == 0 && armor_info_msg.mode == 1)
         {
             result.mode = 1;
             result.yaw = 0;
             result.pitch = 0;
             result.global_z = 0;
         }
-        
-        if (enemy_information.num > 0 && first_in_realsense_flag == true)
+
+        if (enemy_information.red_num > 0 && first_in_realsense_flag == true)
         {
             first_in_realsense_flag = false;
             int enemy_realsense_angle = 0;
@@ -516,11 +515,11 @@ GambalInfo RoboControl::ctl_stack_enemy()
         current_gimbal_angle = game_msg.gimbalAngleYaw;
         if (abs(abs(current_gimbal_angle - first_in_gimbal_angle) - abs(target_gimbal_angle)) < 5)
         {
-            first_in_armor_flag == true;
+            first_in_armor_flag = true;
             armor_lost_counter = 0;
         }
     }
-    if (armor_lost_counter < armor_max_lost_num)
+    if (armor_lost_counter <= armor_max_lost_num)
     {
         // 4. realsense看到, armor没看到, 并且丢帧数量小于400帧, realsense不管
         if (armor_info_msg.mode == 1)
@@ -554,8 +553,9 @@ GambalInfo RoboControl::ctl_stack_enemy()
             armor_lost_counter = 0;
             detected_armor_flag = true;
             first_in_armor_flag = false;
-            target_gimbal_angle = 1000;
         }
+        target_gimbal_angle = 1000;        
+        first_in_realsense_flag = true;
     }
     return result;
 }
@@ -566,4 +566,24 @@ void RoboControl::main_control_init()
     sent_mcu_gimbal_msg.yaw = 0;
     sent_mcu_gimbal_msg.pitch = 0;
     sent_mcu_gimbal_msg.global_z = 0;
+
+
+    enemy_information.header.frame_id = 'enemy';
+    enemy_information.header.stamp = ros::Time::now();
+    enemy_information.num = 0;
+    enemy_information.red_num = 0;
+    enemy_information.death_num = 0;
+    enemy_information.blue_num = 0;
+
+    robo_perception::Object temp_object;
+    temp_object.team.data = "Nothing";
+    temp_object.pose.position.x = 0;
+    temp_object.pose.position.y = 0;
+    temp_object.pose.position.z = 0;
+
+    temp_object.globalpose.position.x = 0;
+    temp_object.globalpose.position.y = 0;
+    temp_object.globalpose.position.z = 0;
+
+    enemy_information.object.push_back(temp_object);
 }
