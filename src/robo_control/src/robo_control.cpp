@@ -299,15 +299,15 @@ int RoboControl::find_enemy_self_closest_point(double enemy_x, double enemy_y, d
         float d_self_y = self_y - point_list.at<double>(i, 0) * 1.0 / 100;
         float d_self_x = self_x - point_list.at<double>(i, 1) * 1.0 / 100;
 
-        float distance_enemy = sqrt(d_enemy_x * d_enemy_x + d_enemy_y * d_enemy_y);
-        float distance_self = sqrt(d_self_x * d_self_x + d_self_y * d_self_y);
+        float distance_enemy = sqrt(0.4 * d_enemy_x * d_enemy_x + 0.6 * d_enemy_y * d_enemy_y);
+        float distance_self = sqrt(0.4 * d_self_x * d_self_x + 0.6 *d_self_y * d_self_y);
 
         if (distance_enemy < 0.5 || distance_enemy > 2.0)
         {
             distance_enemy = 1000.0;
         }
 
-        dis_list.push_back(0.3 * distance_self + 0.7 * distance_enemy);
+        dis_list.push_back(0.4 * distance_self + 0.6 * distance_enemy);
     }
 
     vector<float>::iterator smallest = min_element(dis_list.begin(), dis_list.end());
@@ -467,3 +467,9 @@ void RoboControl::cb_ukf_enemy_information(const nav_msgs::Odometry &msg)
 {
     robo_ukf_enemy_information = msg.pose.pose;
 }
+
+// vector<float> RoboControl::ctl_stack_enemy(const nav_msgs::Odometry &msg)
+// {
+//     vector<float> result;
+//     return result;
+// }

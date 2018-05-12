@@ -353,8 +353,8 @@ int main(int argc, char **argv)
 			}
 			
 			geometry_msgs::Pose target_pose;
-			target_pose.position.x = robo_ctl.point_list.at<double>(target_num, 0) / 100.0;
-			target_pose.position.y = robo_ctl.point_list.at<double>(target_num, 1) / 100.0;
+			target_pose.position.x = robo_ctl.point_list.at<double>(target_num, 1) / 100.0;
+			target_pose.position.y = robo_ctl.point_list.at<double>(target_num, 0) / 100.0;
 			
 			ROS_INFO("Target enemy X, Y: %f, %f", robo_ctl.last_enemy_target.object[0].globalpose.position.x, robo_ctl.last_enemy_target.object[0].globalpose.position.y);					
 			ROS_INFO("Current X, Y: %f, %f", robo_ctl.robo_ukf_pose.position.x, robo_ctl.robo_ukf_pose.position.y);		
@@ -364,7 +364,7 @@ int main(int argc, char **argv)
 			target_pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
 			robo_ctl.sendNavGoal(target_pose);
 			ros::Time start_time = ros::Time::now();
-			ros::Duration timeout(0.1); // Timeout of 2 seconds
+			ros::Duration timeout(0.01); // Timeout of 2 seconds
 			while (ros::Time::now() - start_time < timeout)
 			{
 				robo_ctl.readMCUData();
