@@ -491,10 +491,10 @@ GambalInfo RoboControl::ctl_stack_enemy()
         if (enemy_information.red_num == 0 && armor_info_msg.mode == 1)
         {
             ROS_INFO("mode = 1");
-            result.mode = 1;
-            result.yaw = 0;
-            result.pitch = 0;
-            result.global_z = 0;
+            sent_mcu_gimbal_result.mode = 1;
+            sent_mcu_gimbal_result.yaw = 0;
+            sent_mcu_gimbal_result.pitch = 0;
+            sent_mcu_gimbal_result.global_z = 0;
         }
 
         if (enemy_information.red_num > 0 && first_in_realsense_flag == true)
@@ -509,10 +509,10 @@ GambalInfo RoboControl::ctl_stack_enemy()
             first_in_gimbal_angle = game_msg.gimbalAngleYaw;
             target_gimbal_angle = enemy_realsense_angle;
 
-            result.mode = 3;
-            result.yaw = enemy_realsense_angle * 100;
-            result.pitch = 0;
-            result.global_z = 0;
+            sent_mcu_gimbal_result.mode = 3;
+            sent_mcu_gimbal_result.yaw = enemy_realsense_angle * 100;
+            sent_mcu_gimbal_result.pitch = 0;
+            sent_mcu_gimbal_result.global_z = 0;
         }
         ROS_INFO("armor_lost_counter > 400");
         current_gimbal_angle = game_msg.gimbalAngleYaw;
@@ -532,17 +532,17 @@ GambalInfo RoboControl::ctl_stack_enemy()
             armor_lost_counter++;
             if (first_in_armor_flag == true)
             {
-                result.mode = 2;
-                result.yaw = 0;
-                result.pitch = 32760;
-                result.global_z = 0;
+                sent_mcu_gimbal_result.mode = 2;
+                sent_mcu_gimbal_result.yaw = 0;
+                sent_mcu_gimbal_result.pitch = 32760;
+                sent_mcu_gimbal_result.global_z = 0;
             }
             if (detected_armor_flag == true)
             {
-                result.mode = 2;
-                result.yaw = 0;
-                result.pitch = 5;
-                result.global_z = 0;
+                sent_mcu_gimbal_result.mode = 2;
+                sent_mcu_gimbal_result.yaw = 0;
+                sent_mcu_gimbal_result.pitch = 5;
+                sent_mcu_gimbal_result.global_z = 0;
             }
         }
 
@@ -551,10 +551,10 @@ GambalInfo RoboControl::ctl_stack_enemy()
         if (armor_info_msg.mode > 1)
         {
             ROS_INFO("detected armor");            
-            result.mode = 2;
-            result.yaw = armor_info_msg.yaw + robo_ukf_enemy_information.orientation.w;
-            result.pitch = armor_info_msg.pitch;
-            result.global_z = armor_info_msg.global_z * 100;
+            sent_mcu_gimbal_result.mode = 2;
+            sent_mcu_gimbal_result.yaw = armor_info_msg.yaw + robo_ukf_enemy_information.orientation.w;
+            sent_mcu_gimbal_result.pitch = armor_info_msg.pitch;
+            sent_mcu_gimbal_result.global_z = armor_info_msg.global_z * 100;
 
             armor_lost_counter = 0;
             detected_armor_flag = true;
@@ -563,7 +563,7 @@ GambalInfo RoboControl::ctl_stack_enemy()
         target_gimbal_angle = 1000;        
         first_in_realsense_flag = true;
     }
-    return result;
+    return sent_mcu_gimbal_result;
 }
 
 void RoboControl::main_control_init()

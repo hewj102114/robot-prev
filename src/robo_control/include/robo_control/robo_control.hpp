@@ -206,6 +206,7 @@ class RoboControl
     double front_dis = 0.0;
 
     GambalInfo sent_mcu_gimbal_msg;
+    GambalInfo sent_mcu_gimbal_result;
 
     // yaw: 1 -> 2
     KeyPoint KEY_POINT[30] = {
