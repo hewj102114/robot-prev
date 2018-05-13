@@ -5,6 +5,7 @@ void RoboControl::cb_armorInfo(const robo_vision::ArmorInfo &msg)
     armor_info_msg.global_z = msg.target.pose_base.x;
     armor_info_msg.pitch = msg.angle.y;
     armor_info_msg.yaw = msg.angle.x;
+    armor_info_target = msg;
     armor_ready_flag = 1;
 }
 
@@ -342,7 +343,7 @@ void RoboControl::read_xml_file()
     *  参数说明：无数如参数
     *  函数返回：无返回值
     *************************************************************************/
-    cv::FileStorage fs("/home/ubuntu/robot/src/robo_navigation/launch/matrix.xml", cv::FileStorage::READ);
+    cv::FileStorage fs("/home/ubuntu/robot/src/robo_navigation/script/matrix.xml", cv::FileStorage::READ);
     fs["Point"] >> point_list;
 }
 

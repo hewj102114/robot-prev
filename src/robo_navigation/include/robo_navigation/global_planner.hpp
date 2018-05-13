@@ -6,7 +6,7 @@ using namespace std;
 using namespace cv;
 
 #define INF 10000
-#define MAX_VERTEX_COUNT 33
+#define MAX_VERTEX_COUNT 35
 
 
 class Floyd{

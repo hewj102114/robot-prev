@@ -76,7 +76,7 @@ RoboNav::RoboNav()
 
 void RoboNav::init()
 {
-    FileStorage fs("/home/ubuntu/robot/src/robo_navigation/launch/matrix.xml", FileStorage::READ);
+    FileStorage fs("/home/ubuntu/robot/src/robo_navigation/script/matrix.xml", FileStorage::READ);
     fs["Matrix"] >> arrArcs;
     fs["Point"] >> point_list;
     floyd.loadMatrix(arrArcs);
@@ -264,10 +264,11 @@ void RoboNav::get_vel(geometry_msgs::Twist &msg_vel)
     double vel_x = 0;
     double vel_y = 0;
     double vel_yaw = 0;
+     double cur_yaw = tf::getYaw(cur_pose.orientation);
 
     if (path.size() > 0)
     {
-        double cur_yaw = tf::getYaw(cur_pose.orientation);
+        //obstacle
         geometry_msgs::Pose cur_local_goal = adjustlocalgoal(cur_yaw);
         double cur_local_goal_y = cur_local_goal.position.y;
         double cur_local_goal_x = cur_local_goal.position.x;
@@ -320,9 +321,9 @@ void RoboNav::get_vel(geometry_msgs::Twist &msg_vel)
                 vel_y = 0;
         }
     }
-    double cur_yaw = tf::getYaw(cur_pose.orientation);
-    double dyaw;
 
+//yaw control
+    double dyaw;
     if (fix_angle > 0 && cur_yaw < 0 && (fix_angle - cur_yaw) > 3.14)
     {
         dyaw = -(cur_yaw + 6.28 - fix_angle);
