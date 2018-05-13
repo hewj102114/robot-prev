@@ -1,1 +1,1 @@
-roslaunch robo_control robo_control.launch | tee logs/robo_control.txt
+rosrun robo_control control_node

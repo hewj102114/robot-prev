@@ -102,7 +102,7 @@ int main(int argc, char **argv)
 	chassis 1:velcity 2:angle pose 3:init
 	*/
 	geometry_msgs::Pose target_pose;
-	int work_state = 5; //2
+	int work_state = 1; //2
 	int center_state = 0;
 	ros::Rate loop_rate(150);
 	bool realsense_first_in = true;
@@ -121,7 +121,7 @@ int main(int argc, char **argv)
 	bool center_first_in = true;
 	bool arrived_center_flag = false;
 	float yaw_value_sent = 0, pitch_value_sent = 0, global_z_value_sent = 0;
-	while (ros::ok())
+	while (0)
 	{
 		// 读取 MCU 数据
 		robo_ctl.readMCUData();
@@ -576,6 +576,7 @@ int main(int argc, char **argv)
 	while (ros::ok())
 	{
 		robo_ctl.readMCUData();
+		ROS_INFO("OK1");
 		switch (work_state)
 		{
 		/*************************************************************************
@@ -585,6 +586,8 @@ int main(int argc, char **argv)
 		*************************************************************************/
 		case 0:
 		{
+			ROS_INFO("OK2");
+
 			work_state = 1;
 			break;
 		}
@@ -595,7 +598,9 @@ int main(int argc, char **argv)
 		*************************************************************************/
 		case 1:
 		{
-			robo_ctl.sent_mcu_vel_msg = ctl_go_to_point(1, 3.1, 2.6, 0);
+			ROS_INFO("OK3");
+
+			robo_ctl.sent_mcu_vel_msg = robo_ctl.ctl_go_to_point(1, 2.6, 3.1, 0);
 			if (robo_ctl.last_enemy_target.red_num == 1)
 			{
 				work_state = 2;
@@ -610,7 +615,9 @@ int main(int argc, char **argv)
 		*************************************************************************/
 		case 2:
 		{
-			robo_ctl.sent_mcu_vel_msg = ctl_go_to_point(2, robo_ctl.last_enemy_target_pose.position.x, robo_ctl.last_enemy_target_pose.position.y, 0);
+			ROS_INFO("OK4");
+
+			robo_ctl.sent_mcu_vel_msg = robo_ctl.ctl_go_to_point(2, robo_ctl.last_enemy_target_pose.position.x, robo_ctl.last_enemy_target_pose.position.y, 0);
 			if (robo_ctl.last_enemy_target.red_num == 0)
 			{
 				work_state = 1;
@@ -621,17 +628,28 @@ int main(int argc, char **argv)
 		default:
 			break;
 		}
+		ROS_INFO("OK5");
 
 		// 目标会一直发送, 通过 'Nothing' 来判断有没有敌人
 		robo_ctl.last_enemy_target = robo_ctl.sendEnemyTarget(robo_ctl.enemy_information, robo_ctl.last_enemy_target);
+		ROS_INFO("OK6");
+
 		robo_ctl.last_enemy_target_pose.position.x = robo_ctl.last_enemy_target.object[0].globalpose.position.x;
+		ROS_INFO("OK7");
+
 		robo_ctl.last_enemy_target_pose.position.y = robo_ctl.last_enemy_target.object[0].globalpose.position.y;
 
 		// 云台一直转动, 无论干什么都是一直转动
+		ROS_INFO("OK8");
+
 		robo_ctl.sent_mcu_gimbal_msg = robo_ctl.ctl_stack_enemy();
+		ROS_INFO("OK9");
+
 		robo_ctl.sendMCUMsg(1, robo_ctl.sent_mcu_gimbal_msg.mode,
 							robo_ctl.sent_mcu_vel_msg.v_x, robo_ctl.sent_mcu_vel_msg.v_y, robo_ctl.sent_mcu_vel_msg.v_yaw,
 							robo_ctl.sent_mcu_gimbal_msg.yaw, robo_ctl.sent_mcu_gimbal_msg.pitch, robo_ctl.sent_mcu_gimbal_msg.global_z);
+		ROS_INFO("OK10");
+
 		ros::spinOnce();
 		loop_rate.sleep();
 	}

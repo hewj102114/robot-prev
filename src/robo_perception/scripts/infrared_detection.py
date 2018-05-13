@@ -374,6 +374,8 @@ def TsDet_callback(infrared_image, pointcloud):
             avgY = np.mean(positionY)
             avgZ = np.mean(positionZ)
 
+            print("w*h/avgZ^2:", w*h/(avgZ*avgZ))    
+
             if np.isnan(avgX) or np.isnan(avgY) or np.isnan(avgZ):
                 print("continue")
                 continue
