@@ -183,7 +183,7 @@ void RoboNav::cb_enemy_infor(const robo_perception::ObjectList &msg)
         //idx = enemy_information.object[index].team.data.find("death");
         //if (idx != string::npos)
         {
-            ROS_INFO("a");
+            
             double pt_x = enemy_information.object[index].globalpose.position.x;
             double pt_y = enemy_information.object[index].globalpose.position.y;
             vector<float> dis_list;
@@ -194,21 +194,23 @@ void RoboNav::cb_enemy_infor(const robo_perception::ObjectList &msg)
                 float distance = sqrt(dx * dx + dy * dy);
                 dis_list.push_back(distance);
             }
-            ROS_INFO("ab");
+            
             vector<float>::iterator smallest = min_element(dis_list.begin(), dis_list.end());
             int n = distance(dis_list.begin(), smallest);
             double small_dis = *smallest;
-            ROS_INFO("center: %d, invalid point: %d",center_flag, n);
-            if(center_flag==0&&n==32)
+            ROS_INFO("center: %f",dis_list.back());
+            
+            if(center_flag==0&&dis_list.back()<0.25)
             {
                 ROS_INFO("Enemy on bonus zone, Attack!!!");
+                if(path.size()>0)
                 path.erase(path.begin());
                 state.data = true;
             }
             //too close to a point, all the path related to this point should be invalid
             if (*smallest < 0.25)
             {
-                ROS_INFO("abb");
+                
                 int i = 0;
                 while (i != n)
                 {
@@ -218,7 +220,7 @@ void RoboNav::cb_enemy_infor(const robo_perception::ObjectList &msg)
             }
             else //not too close to a point, find the invalid path
             {
-                ROS_INFO("abc");
+                
                 dis_list.erase(smallest);
                 vector<float>::iterator smallestK = min_element(dis_list.begin(), dis_list.end());
                 int m = distance(dis_list.begin(), smallestK);
@@ -228,7 +230,7 @@ void RoboNav::cb_enemy_infor(const robo_perception::ObjectList &msg)
             }
         }
         index++;
-        ROS_INFO("abcd");
+        
         if (index == enemy_information.num - 1)
         {
             floyd.initFloydGraph();
@@ -380,7 +382,7 @@ void RoboNav::cb_scan(const sensor_msgs::LaserScan::ConstPtr &scan)
         obs_min[i][0] = Filter_ScanData(index, scan);
         obs_min[i][1] = Filter_ScanData(indexC, scan);
     }
-    ROS_INFO("min Front: %f ", obs_min[0][0]);
+    //ROS_INFO("min Front: %f ", obs_min[0][0]);
     //ROS_INFO("min corner Front: %f, Left: %f  Behind: %f, Right: %f ", obs_min[0][1], obs_min[1][1], obs_min[2][1], obs_min[3][1]);
 }
 
@@ -550,6 +552,7 @@ int main(int argc, char **argv)
         std_msgs::Float64 front_distance;
         front_distance.data = robo_nav.obs_min[0][0];
         pub_front.publish(front_distance);
+
         ros::spinOnce();
         rate.sleep();
     }
