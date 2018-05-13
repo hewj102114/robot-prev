@@ -109,6 +109,12 @@ void RoboControl::main_control_init()
 
     // read xml file
     read_xml_file();
+
+    // init armor_info_target
+    armor_info_target.armor_count = 0;
+    armor_info_target.header.frame_id = "base_link";
+    armor_info_target.header.stamp = ros::Time::now();
+    armor_info_target.mode = 1;
 }
 
 void RoboControl::readMCUData()
@@ -386,10 +392,10 @@ robo_perception::ObjectList RoboControl::sendEnemyTarget(const robo_perception::
 {
     /*************************************************************************
     *  sendEnemyTarget()
-    *  功能说明：选择打击目标并 publish
+    *  功能说明：选择打击目标并 publish, realsense 的优先级最高, armor 其次, 如果realsense能够检测到, 就以 realsense 为主
     *  参数说明：msg -> realsense 的检测信息, last_enemy_target_msg -> 上一帧的打击目标
     *  函数返回：本帧的打击目标
-    *  TODO: 1. 融合 armor 检测信息, 2. 测试断错误 bug
+    *  TODO: 1. 融合 armor 检测信息, 2. 测试断错误 bug, 3. 重新单独测试此函数, 看判断的敌人是不是稳定的
     *************************************************************************/
     ROS_INFO("OK11");
     vector<int> enemy_index;
@@ -407,11 +413,13 @@ robo_perception::ObjectList RoboControl::sendEnemyTarget(const robo_perception::
     result_enemy_target.blue_num = 0;
     int enemy_index1 = 0;
     int enemy_index2 = 0;
+
+    int select_idx = 0;
     ROS_INFO("OK13");
 
     robo_perception::ObjectList enemy_odom_target_msg; // publish
     enemy_odom_target_msg.header = msg.header;
-    result_enemy_target.header.stamp = ros::Time::now();
+    enemy_odom_target_msg.header.stamp = ros::Time::now();
     ROS_INFO("OK14");
 
     enemy_odom_target_msg.num = 0;
@@ -428,26 +436,101 @@ robo_perception::ObjectList RoboControl::sendEnemyTarget(const robo_perception::
     {
         // 丢失敌人
         ROS_INFO("red_num = 0");
-        temp_object.team.data = "Nothing";
-        temp_object.pose.position.x = 0;
-        temp_object.pose.position.y = 0;
-        temp_object.pose.position.z = 0;
 
-        temp_object.globalpose.position.x = 0;
-        temp_object.globalpose.position.y = 0;
-        temp_object.globalpose.position.z = 0;
-        ROS_INFO("OK16");
+        if (armor_info_target.armor_count == 0)
+        {
+            // 此 if 表明 realsense 和 armor 都没有检测到
+            temp_object.team.data = "Nothing";
+            temp_object.pose.position.x = 0;
+            temp_object.pose.position.y = 0;
+            temp_object.pose.position.z = 0;
 
-        result_enemy_target.object.push_back(temp_object);
-        enemy_odom_target_msg = result_enemy_target;
-        pub_enemy_target.publish(enemy_odom_target_msg);
-        return result_enemy_target;
+            temp_object.globalpose.position.x = 0;
+            temp_object.globalpose.position.y = 0;
+            temp_object.globalpose.position.z = 0;
+            ROS_INFO("OK16");
+
+            result_enemy_target.object.push_back(temp_object);
+            enemy_odom_target_msg = result_enemy_target;
+            pub_enemy_target.publish(enemy_odom_target_msg);
+            return result_enemy_target;
+        }
+        else
+        {
+            // 此 if 表明 armor 检测到, realsense 没有检测到
+            if (armor_info_target.armor_count == 1)
+            {
+                // 只检测到一个 armor
+                enemy_odom_target_msg.num = 1;
+                enemy_odom_target_msg.red_num = 1;
+
+                temp_object.team.data = "red0";
+                temp_object.pose.position.x = armor_info_target.armor_list[0].pose_base.x;
+                temp_object.pose.position.y = armor_info_target.armor_list[0].pose_base.y;
+                temp_object.pose.position.z = 0;
+
+                temp_object.globalpose.position.x = armor_info_target.armor_list[0].pose_odom.x;
+                temp_object.globalpose.position.y = armor_info_target.armor_list[0].pose_odom.y;
+                temp_object.globalpose.position.z = 0;
+
+                enemy_odom_target_msg.object.push_back(temp_object);
+
+                enemy_odom_target_msg.object[0].pose.orientation.w = 1;
+                enemy_odom_target_msg.object[0].globalpose.orientation.w = 1;
+                result_enemy_target = enemy_odom_target_msg;
+                pub_enemy_target.publish(enemy_odom_target_msg);
+                return result_enemy_target;
+            }
+            if (armor_info_target.armor_count >= 2)
+            {
+                // 检测到多个 armor
+                for (int i = 0; i < armor_info_target.armor_count; i++)
+                {
+
+                    enemy_index.push_back(i);
+                    enemy_self_distance.push_back(armor_info_target.armor_list[0].pose_base.x);
+                    enemy_last_distance.push_back(pow(armor_info_target.armor_list[0].pose_odom.x - last_enemy_target_msg.object[0].globalpose.position.x, 2) + pow(armor_info_target.armor_list[0].pose_odom.y - last_enemy_target_msg.object[0].globalpose.position.y, 2));
+                }
+
+                if (last_enemy_target_msg.num == 0)
+                {
+                    // 没有打击过敌人, 选择相对距离近的敌人
+                    vector<float>::iterator smallest = min_element(enemy_self_distance.begin(), enemy_self_distance.end());
+                    select_idx = distance(enemy_self_distance.begin(), smallest);
+                }
+                else
+                {
+                    // 之前打击过敌人, 选择离之前的选择近的敌人
+                    vector<float>::iterator smallest = min_element(enemy_last_distance.begin(), enemy_last_distance.end());
+                    select_idx = distance(enemy_last_distance.begin(), smallest);
+                }
+                enemy_odom_target_msg.num = 1;
+                enemy_odom_target_msg.red_num = 1;
+
+                temp_object.pose.position.x = armor_info_target.armor_list[select_idx].pose_base.x;
+                temp_object.pose.position.y = armor_info_target.armor_list[select_idx].pose_base.y;
+                temp_object.pose.position.z = 0;
+
+                temp_object.globalpose.position.x = armor_info_target.armor_list[select_idx].pose_odom.x;
+                temp_object.globalpose.position.y = armor_info_target.armor_list[select_idx].pose_odom.y;
+                temp_object.globalpose.position.z = 0;
+
+                enemy_odom_target_msg.object.push_back(temp_object);
+                enemy_odom_target_msg.object[0].team.data = "red0";
+                enemy_odom_target_msg.object[0].pose.orientation.w = 1;
+                enemy_odom_target_msg.object[0].globalpose.orientation.w = 1;
+                result_enemy_target = enemy_odom_target_msg;
+
+                pub_enemy_target.publish(enemy_odom_target_msg);
+                return result_enemy_target;
+            }
+        }
     }
     if (msg.red_num == 1)
     {
         ROS_INFO("red_num = 1");
 
-        // 没有选择, 只打当前的敌人
+        // 没有选择, 只打当前的敌人, 遍历所有检测到的目标, 注意是 msg.num
         for (int i = 0; i < msg.num; i++)
         {
             if (msg.object[i].team.data == "red0")
@@ -476,49 +559,32 @@ robo_perception::ObjectList RoboControl::sendEnemyTarget(const robo_perception::
             if (msg.object[i].team.data == "red" + to_string(i))
             {
                 enemy_index.push_back(i);
-                enemy_self_distance.push_back(msg.object[enemy_index1].pose.position.x);
-                enemy_last_distance.push_back(pow(msg.object[enemy_index1].globalpose.position.x - last_enemy_target_msg.object[0].globalpose.position.x, 2) + pow(msg.object[enemy_index1].globalpose.position.y - last_enemy_target_msg.object[0].globalpose.position.y, 2));
+                enemy_self_distance.push_back(msg.object[i].pose.position.x);
+                enemy_last_distance.push_back(pow(msg.object[i].globalpose.position.x - last_enemy_target_msg.object[0].globalpose.position.x, 2) + pow(msg.object[i].globalpose.position.y - last_enemy_target_msg.object[0].globalpose.position.y, 2));
             }
         }
 
         if (last_enemy_target_msg.num == 0)
         {
-            vector<float>::iterator smallest = min_element(enemy_self_distance.begin(), enemy_self_distance.end());
-            int idx = distance(enemy_self_distance.begin(), smallest);
-
-            ROS_INFO("red_num = 2, num = 0");
             // 没有打击过敌人, 选择相对距离近的敌人
-
-            // 选择第一个敌人
-            enemy_odom_target_msg.num = 1;
-            enemy_odom_target_msg.red_num = 1;
-            enemy_odom_target_msg.object.push_back(msg.object[idx]);
-            ROS_INFO("OK18");
-
-            enemy_odom_target_msg.object[0].pose.orientation.w = 1;
-            enemy_odom_target_msg.object[0].globalpose.orientation.w = 1;
-            result_enemy_target = enemy_odom_target_msg;
-
-            pub_enemy_target.publish(enemy_odom_target_msg);
-            return result_enemy_target;
+            vector<float>::iterator smallest = min_element(enemy_self_distance.begin(), enemy_self_distance.end());
+            select_idx = distance(enemy_self_distance.begin(), smallest);
         }
         else
         {
-            ROS_INFO("red_num = 2, num != 0");
-            vector<float>::iterator smallest = min_element(enemy_last_distance.begin(), enemy_last_distance.end());
-            int idx = distance(enemy_last_distance.begin(), smallest);
             // 之前打击过敌人, 选择离之前的选择近的敌人
-            ROS_INFO("OK22");
-
-            enemy_odom_target_msg.num = 1;
-            enemy_odom_target_msg.red_num = 1;
-            enemy_odom_target_msg.object.push_back(msg.object[idx]);
-            enemy_odom_target_msg.object[0].pose.orientation.w = 1;
-            enemy_odom_target_msg.object[0].globalpose.orientation.w = 1;
-            result_enemy_target = enemy_odom_target_msg;
-            pub_enemy_target.publish(enemy_odom_target_msg);
-            return result_enemy_target;
+            vector<float>::iterator smallest = min_element(enemy_last_distance.begin(), enemy_last_distance.end());
+            select_idx = distance(enemy_last_distance.begin(), smallest);
         }
+        enemy_odom_target_msg.num = 1;
+        enemy_odom_target_msg.red_num = 1;
+        enemy_odom_target_msg.object.push_back(msg.object[select_idx]);
+        enemy_odom_target_msg.object[0].team.data = "red0";
+        enemy_odom_target_msg.object[0].pose.orientation.w = 1;
+        enemy_odom_target_msg.object[0].globalpose.orientation.w = 1;
+        result_enemy_target = enemy_odom_target_msg;
+        pub_enemy_target.publish(enemy_odom_target_msg);
+        return result_enemy_target;
     }
     return result_enemy_target;
 }
@@ -533,8 +599,8 @@ GambalInfo RoboControl::ctl_stack_enemy()
     *  函数返回：云台控制模式和角度 result -> mode, yaw, pitch, global_z
     *  TODO: 1. 添加摇头功能, 2. 考虑打击标志位如何放置, 理论上 armor mode = 3 时就应该开枪, 优先级高于一切
     *************************************************************************/
-    int armor_max_lost_num = 5;     // armor detection 最大允许的丢帧数量
-// 2. realsense和armor都没有看到的时候, 并且丢帧数量小于 400, 维持云台角度
+    int armor_max_lost_num = 5; // armor detection 最大允许的丢帧数量
+                                // 2. realsense和armor都没有看到的时候, 并且丢帧数量小于 400, 维持云台角度
     ROS_INFO("armor_lost_counter: %d", armor_lost_counter);
 
     if (armor_lost_counter > armor_max_lost_num && armor_info_msg.mode == 1)
@@ -656,7 +722,6 @@ VelInfo RoboControl::ctl_go_to_point(int mode, float goal_x, float goal_y, float
     }
     if (mode == 3)
     {
-        
     }
     sendNavGoal(target_pose);
 
@@ -683,10 +748,10 @@ geometry_msgs::Pose RoboControl::ctl_track_enemy(double enemy_x, double enemy_y,
     float self_x = robo_ukf_pose.position.x;
     float self_y = robo_ukf_pose.position.y;
 
-    if (robo_ctl.last_enemy_target.object[0].pose.position.x < min_distance)
+    if (last_enemy_target.object[0].pose.position.x < min_distance)
     {
         // 如果 enemy_target 的距离小于 0.8m, 将 enemy 映射到以自身为中心的对称点上, 计算得到相同直线上的反向最小距离点
-        self_coefficient = 0.6, enemy_coefficient = 0.4;        // 修改系数大小, 这时候应该离自身较近
+        self_coefficient = 0.6, enemy_coefficient = 0.4; // 修改系数大小, 这时候应该离自身较近
         enemy_y = self_y - (enemy_y - self_y);
         enemy_x = self_x - (enemy_x - self_x);
     }

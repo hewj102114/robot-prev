@@ -227,6 +227,8 @@ class RoboControl
     
     geometry_msgs::Pose last_enemy_target_pose;
 
+    robo_vision::ArmorInfo armor_info_target;
+
     // yaw: 1 -> 2
     KeyPoint KEY_POINT[30] = {
         {0, 1.30, 0.80, 0 * PI / 180.0},
