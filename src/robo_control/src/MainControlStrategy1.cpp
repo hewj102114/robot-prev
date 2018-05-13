@@ -21,19 +21,8 @@ int main(int argc, char **argv)
     ros::Subscriber sub_ukf_enemy_information = nh.subscribe("ukf/enemy", 1, &RoboControl::cb_ukf_enemy_information, &robo_ctl);
     ros::Subscriber sub_front_dis = nh.subscribe("front_dis", 1, &RoboControl::cb_front_dis, &robo_ctl);
 
-    int init_flag = 1;
-    geometry_msgs::Pose nav_goal; // goal of navigation
-    int armor_lost_count = 0;
-    int key_point_no = 1;
-    clock_t start, end;
-    robo_ctl.main_control_init();
-    robo_ctl.read_xml_file();
+    robo_ctl.main_control_init();   // init main contol function
 
-    /* TODO: 2018-05-01 测试完整逻辑
-	1. 到中心点 (使用自己写的导航包)
-	2. 看到敌人(realsense) -> 敌我判断 -> 到敌人附近 -> 攻击
-	3. 没有看到敌人 -> 继续巡图
-	*/
     /* 重要参数: 
 	gimbal 1:serach 2:shoot
 	chassis 1:velcity 2:angle pose 3:init
