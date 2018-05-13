@@ -23,7 +23,7 @@ using namespace std;
 
 int GO_CENTER_S = 1; //0 direct go center; 1: using one other point
 
-    int center_flag = 0;
+int center_flag = 0;
 class RoboNav
 {
   public:
@@ -50,6 +50,7 @@ class RoboNav
      *  
      */
     double obs_min[4][2]; //90,+-60
+    int dx_flag, dy_flag;
 
     RoboNav();
     void init();
@@ -60,7 +61,7 @@ class RoboNav
     void get_vel(geometry_msgs::Twist &msg_vel);
     void setFixAngle(const geometry_msgs::Quaternion &qua);
     void cb_scan(const sensor_msgs::LaserScan::ConstPtr &scan);
-    //void cb_enemy_infor(const robo_perception::ObjectList &msg);
+    void cb_enemy_infor(const robo_perception::ObjectList &msg);
     int go_center();
     geometry_msgs::Pose adjustlocalgoal(double yaw);
 };
@@ -83,7 +84,8 @@ void RoboNav::init()
     path.clear();
 
     state.data = false;
-
+    dx_flag = 0;
+    dy_flag = 0;
     double Kp_linear, Ki_linear, Kd_linear;
     double limit_linear_max = 1.0;
     double Kp_angular, Ki_angular, Kd_angular;
@@ -145,7 +147,7 @@ void RoboNav::cb_tar_pose(const geometry_msgs::Pose &msg)
             if (first_dis + second_dis < 1.2 * pairwise_dis)
             {
                 path.erase(path.begin());
-                ROS_INFO("First point erased!!!!!!!!!!!!!!!!");
+                //ROS_INFO("First point erased!!!!!!!!!!!!!!!!");
             }
         }
     }
@@ -167,20 +169,21 @@ void RoboNav::cb_cur_pose(const nav_msgs::Odometry &msg)
     else
         state.data = false;
 }
-/*
+
 // obstable avoidance
 void RoboNav::cb_enemy_infor(const robo_perception::ObjectList &msg)
 {
     enemy_information = msg;
-
+    
     //update path
     int index = 0, i = 0, j = 0;
-    while (enemy_information.num > 0)
+    while (index<enemy_information.num)
     {
-        string::size_type idx;
-        idx = enemy_information.object[index].team.data.find("death");
-        if (idx != string::npos)
+        //string::size_type idx;
+        //idx = enemy_information.object[index].team.data.find("death");
+        //if (idx != string::npos)
         {
+            
             double pt_x = enemy_information.object[index].globalpose.position.x;
             double pt_y = enemy_information.object[index].globalpose.position.y;
             vector<float> dis_list;
@@ -191,13 +194,23 @@ void RoboNav::cb_enemy_infor(const robo_perception::ObjectList &msg)
                 float distance = sqrt(dx * dx + dy * dy);
                 dis_list.push_back(distance);
             }
-
+            
             vector<float>::iterator smallest = min_element(dis_list.begin(), dis_list.end());
             int n = distance(dis_list.begin(), smallest);
             double small_dis = *smallest;
+            ROS_INFO("center: %f",dis_list.back());
+            
+            if(center_flag==0&&dis_list.back()<0.25)
+            {
+                ROS_INFO("Enemy on bonus zone, Attack!!!");
+                if(path.size()>0)
+                path.erase(path.begin());
+                state.data = true;
+            }
             //too close to a point, all the path related to this point should be invalid
             if (*smallest < 0.25)
             {
+                
                 int i = 0;
                 while (i != n)
                 {
@@ -207,6 +220,7 @@ void RoboNav::cb_enemy_infor(const robo_perception::ObjectList &msg)
             }
             else //not too close to a point, find the invalid path
             {
+                
                 dis_list.erase(smallest);
                 vector<float>::iterator smallestK = min_element(dis_list.begin(), dis_list.end());
                 int m = distance(dis_list.begin(), smallestK);
@@ -216,14 +230,16 @@ void RoboNav::cb_enemy_infor(const robo_perception::ObjectList &msg)
             }
         }
         index++;
+        
         if (index == enemy_information.num - 1)
         {
             floyd.initFloydGraph();
             path_plan(cur_goal);
         }
     }
+    
 }
-*/
+
 int RoboNav::findClosestPt(double x, double y)
 {
     vector<float> dis_list;
@@ -262,12 +278,25 @@ void RoboNav::get_vel(geometry_msgs::Twist &msg_vel)
         //ROS_INFO("angle: %f  fix angle : %f   dyaw %f",cur_yaw,fix_angle,dyaw);
         //ROS_INFO(" tar_x %f, tar_y %f,cur_x %f , cur_y %f, diff_x %f, diff_y %f", cur_local_goal_x, cur_local_goal_y,
         //         cur_pose.position.x, cur_pose.position.y, dx, dy);
+        if (abs(dx) < 0.10)
+            dx_flag = 1;
+        if (abs(dy) < 0.10)
+            dy_flag = 1;
 
-        if (abs(dx) < 0.10 && abs(dy) < 0.10)
+        if (dx_flag && abs(dy) < 0.10)
         {
             path.erase(path.begin());
+            dx_flag = 0;
+            dy_flag = 0;
         }
-        else
+
+        if (dy_flag && abs(dx) < 0.10)
+        {
+            path.erase(path.begin());
+            dx_flag = 0;
+            dy_flag = 0;
+        }
+
         {
             vel_x = pid_x.calc(dx);
             vel_y = pid_y.calc(dy);
@@ -353,7 +382,7 @@ void RoboNav::cb_scan(const sensor_msgs::LaserScan::ConstPtr &scan)
         obs_min[i][0] = Filter_ScanData(index, scan);
         obs_min[i][1] = Filter_ScanData(indexC, scan);
     }
-    ROS_INFO("min Front: %f ", obs_min[0][0]);
+    //ROS_INFO("min Front: %f ", obs_min[0][0]);
     //ROS_INFO("min corner Front: %f, Left: %f  Behind: %f, Right: %f ", obs_min[0][1], obs_min[1][1], obs_min[2][1], obs_min[3][1]);
 }
 
@@ -491,12 +520,12 @@ int main(int argc, char **argv)
     RoboNav robo_nav;
     robo_nav.init();
 
-    robo_nav.go_center();
+    //robo_nav.go_center();
 
     ros::Subscriber cb_tar_pose = nh.subscribe("base/goal", 1, &RoboNav::cb_tar_pose, &robo_nav);
     ros::Subscriber cb_cur_pose = nh.subscribe("odom", 1, &RoboNav::cb_cur_pose, &robo_nav);
     ros::Subscriber sub = nh.subscribe<sensor_msgs::LaserScan>("scan", 1, &RoboNav::cb_scan, &robo_nav);
-    // ros::Subscriber sub_enemy_info = nh.subscribe("infrared_detection/enemy_position", 1, &RoboNav::cb_enemy_infor, &robo_nav);
+    ros::Subscriber sub_enemy_info = nh.subscribe("infrared_detection/enemy_position", 1, &RoboNav::cb_enemy_infor, &robo_nav);
 
     ros::Publisher pub_vel = nh.advertise<geometry_msgs::Twist>("cmd_vel", 1);
     ros::Publisher pub_state = nh.advertise<std_msgs::Bool>("nav_state", 1);
@@ -523,6 +552,7 @@ int main(int argc, char **argv)
         std_msgs::Float64 front_distance;
         front_distance.data = robo_nav.obs_min[0][0];
         pub_front.publish(front_distance);
+
         ros::spinOnce();
         rate.sleep();
     }

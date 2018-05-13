@@ -374,6 +374,8 @@ def TsDet_callback(infrared_image, pointcloud):
             avgY = np.mean(positionY)
             avgZ = np.mean(positionZ)
 
+            print("w*h/avgZ^2:", w*h/(avgZ*avgZ))    
+
             if np.isnan(avgX) or np.isnan(avgY) or np.isnan(avgZ):
                 print("continue")
                 continue
@@ -588,7 +590,7 @@ TFinit()
 DetectInit()
 rgb_sub = message_filters.Subscriber('camera/infra1/image_rect_raw', Image)
 #subodom = rospy.Subscriber('odom', Odometry, callback_odom)
-subrgb = rospy.Subscriber('/camera/color/image_raw', Image, callback_rgb)
+subrgb = rospy.Subscriber('camera/color/image_raw', Image, callback_rgb)
 subodom = rospy.Subscriber('odom', Odometry, callback_odom)
 pc_sub = message_filters.Subscriber('camera/points', PointCloud2)
 pub = rospy.Publisher('infrared_detection/enemy_position', ObjectList, queue_size=1)
