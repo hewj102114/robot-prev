@@ -70,6 +70,16 @@ struct GambalInfo
     float yaw;
 };
 
+
+struct VelInfo
+{
+    int mode;
+    float v_x;
+    float v_y;
+    float v_yaw;
+};
+
+
 class RoboControl
 {
   public:
@@ -126,6 +136,10 @@ class RoboControl
     void cb_ukf_enemy_information(const nav_msgs::Odometry &msg);
     GambalInfo ctl_stack_enemy();
     void main_control_init();
+    VelInfo ctl_go_to_point(int mode, float goal_x, float goal_y, float goal_yaw);
+    geometry_msgs::Pose ctl_track_enemy(double enemy_x, double enemy_y, double yaw);
+    
+    
     ros::NodeHandle *pnh;
 
     ros::Publisher pub_game_info;
@@ -207,6 +221,11 @@ class RoboControl
 
     GambalInfo sent_mcu_gimbal_msg;
     GambalInfo sent_mcu_gimbal_result;
+
+    VelInfo sent_mcu_vel_msg;
+    VelInfo sent_mcu_vel_result;
+    
+    geometry_msgs::Pose last_enemy_target_pose;
 
     // yaw: 1 -> 2
     KeyPoint KEY_POINT[30] = {

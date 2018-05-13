@@ -65,7 +65,45 @@ void RoboControl::cb_cur_goal(const geometry_msgs::PoseStamped &msg)
 
 void RoboControl::cb_front_dis(const std_msgs::Float64 &msg)
 {
-    front_dis=msg.data;
+    front_dis = msg.data;
+}
+
+void RoboControl::main_control_init()
+{
+    sent_mcu_gimbal_msg.mode = 1;
+    sent_mcu_gimbal_msg.yaw = 0;
+    sent_mcu_gimbal_msg.pitch = 0;
+    sent_mcu_gimbal_msg.global_z = 0;
+
+    sent_mcu_vel_result.mode = 1;
+    sent_mcu_vel_result.v_x = 0;
+    sent_mcu_vel_result.v_y = 0;
+    sent_mcu_vel_result.v_yaw = 0;
+
+    enemy_information.header.frame_id = "enemy";
+    enemy_information.header.stamp = ros::Time::now();
+    enemy_information.num = 0;
+    enemy_information.red_num = 0;
+    enemy_information.death_num = 0;
+    enemy_information.blue_num = 0;
+
+    robo_perception::Object temp_object;
+    temp_object.team.data = "Nothing";
+    temp_object.pose.position.x = 0;
+    temp_object.pose.position.y = 0;
+    temp_object.pose.position.z = 0;
+
+    temp_object.globalpose.position.x = 0;
+    temp_object.globalpose.position.y = 0;
+    temp_object.globalpose.position.z = 0;
+
+    enemy_information.object.push_back(temp_object);
+
+    last_enemy_target_pose.position.x = 0;
+    last_enemy_target_pose.position.y = 0;
+    last_enemy_target_pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, yaw);
+
+    
 }
 
 void RoboControl::readMCUData()
@@ -296,7 +334,7 @@ int RoboControl::find_enemy_self_closest_point(double enemy_x, double enemy_y, d
     vector<float> dis_list;
     for (int i = 0; i < point_list.rows; i++)
     {
-        ROS_INFO("find_enemy_self_closest_point: %d", i);        
+        ROS_INFO("find_enemy_self_closest_point: %d", i);
         float d_enemy_y = enemy_y - point_list.at<double>(i, 0) * 1.0 / 100;
         float d_enemy_x = enemy_x - point_list.at<double>(i, 1) * 1.0 / 100;
 
@@ -304,7 +342,7 @@ int RoboControl::find_enemy_self_closest_point(double enemy_x, double enemy_y, d
         float d_self_x = self_x - point_list.at<double>(i, 1) * 1.0 / 100;
 
         float distance_enemy = sqrt(0.4 * d_enemy_x * d_enemy_x + 0.6 * d_enemy_y * d_enemy_y);
-        float distance_self = sqrt(0.4 * d_self_x * d_self_x + 0.6 *d_self_y * d_self_y);
+        float distance_self = sqrt(0.4 * d_self_x * d_self_x + 0.6 * d_self_y * d_self_y);
 
         if (distance_enemy < 0.5 || distance_enemy > 2.0)
         {
@@ -364,7 +402,7 @@ robo_perception::ObjectList RoboControl::sendEnemyTarget(const robo_perception::
     if (msg.red_num == 1)
     {
         ROS_INFO("red_num = 1");
-        
+
         // 没有选择, 只打当前的敌人
         for (int i = 0; i < msg.num; i++)
         {
@@ -385,7 +423,7 @@ robo_perception::ObjectList RoboControl::sendEnemyTarget(const robo_perception::
     if (msg.red_num == 2)
     {
         ROS_INFO("red_num = 2");
-        
+
         // 判断之前有没有打击过敌人, 如果之前没有打击过敌人, 选择距离近的敌人, 否则选择之前打击过的
         for (int i = 0; i < msg.num; i++)
         {
@@ -428,7 +466,7 @@ robo_perception::ObjectList RoboControl::sendEnemyTarget(const robo_perception::
         else
         {
             ROS_INFO("red_num = 2, num != 0");
-            
+
             // 之前打击过敌人, 选择离之前的选择近的敌人
             // for (int i = 0; i < 2; i++)
             {
@@ -478,7 +516,7 @@ GambalInfo RoboControl::ctl_stack_enemy()
 {
     int armor_max_lost_num = 10;
     // result -> mode, yaw, pitch, global_z
-           // 返回值, 包含 云台控制模式, 3个角度信息
+    // 返回值, 包含 云台控制模式, 3个角度信息
     // armor检测和realsense检测和armor丢帧状态合起来有八种状态
     ROS_INFO("armor_lost_counter: %d", armor_lost_counter);
 
@@ -497,7 +535,6 @@ GambalInfo RoboControl::ctl_stack_enemy()
 
         //     first_in_realsense_flag = true;
         // }
-
 
         if (enemy_information.red_num > 0 && first_in_realsense_flag == true)
         {
@@ -530,7 +567,7 @@ GambalInfo RoboControl::ctl_stack_enemy()
         // 4. realsense看到, armor没看到, 并且丢帧数量小于400帧, realsense不管
         if (armor_info_msg.mode == 1)
         {
-            ROS_INFO("lose armor");        
+            ROS_INFO("lose armor");
             armor_lost_counter++;
             if (first_in_armor_flag == true)
             {
@@ -548,11 +585,11 @@ GambalInfo RoboControl::ctl_stack_enemy()
             }
         }
 
-        // 只要 armor 检测到, 云台就转, 没有商量的余地, armor 丢帧的话需要商量一下
+        // 只要 armor 检测到, 云台就转,j, 没有商量的余地, armor 丢帧的话需要商量一下
         // 3. realsense和armor都看到, 以armor的转动为主
         if (armor_info_msg.mode > 1)
         {
-            ROS_INFO("detected armor");            
+            ROS_INFO("detected armor");
             sent_mcu_gimbal_result.mode = 2;
             sent_mcu_gimbal_result.yaw = armor_info_msg.yaw + robo_ukf_enemy_information.orientation.w;
             sent_mcu_gimbal_result.pitch = armor_info_msg.pitch;
@@ -562,36 +599,93 @@ GambalInfo RoboControl::ctl_stack_enemy()
             detected_armor_flag = true;
             first_in_armor_flag = false;
         }
-        target_gimbal_angle = 1000;        
+        target_gimbal_angle = 1000;
         first_in_realsense_flag = true;
     }
     return sent_mcu_gimbal_result;
 }
 
-void RoboControl::main_control_init()
+// TODO: 底盘只存在两种控制模式, 1. 人工给定确定点的控制模式, 2. 由敌人位置确定的控制模式，敌人位置确定的控制模式优先级最高, 然后才是人工给定的点的控制模式
+VelInfo RoboControl::ctl_go_to_point(int mode, float goal_x, float goal_y, float goal_yaw)
 {
-    sent_mcu_gimbal_msg.mode = 1;
-    sent_mcu_gimbal_msg.yaw = 0;
-    sent_mcu_gimbal_msg.pitch = 0;
-    sent_mcu_gimbal_msg.global_z = 0;
+    /*************************************************************************
+    *  ctl_go_to_point()
+    *  功能说明：去某个点
+    *  参数说明：mode: 1 -> 根据给定点去某个点, 2 -> 根据地方位置去某个点(不使用realsense信息), 3 -> 根据地方位置去某个点(使用realsense信息)
+    *  函数返回：返回下次去的位置
+    *************************************************************************/
+    geometry_msgs::Pose target_pose;
+    target_pose.position.x = 0;
+    target_pose.position.y = 0;
+    target_pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
+    if (mode == 1)
+    {
+        target_pose.position.x = goal_x;
+        target_pose.position.y = goal_y;
+        target_pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, goal_yaw);
 
+        sent_mcu_vel_result.mode = 1;
+    }
+    if (mode == 2)
+    {
+        target_pose = ctl_track_enemy(goal_x, goal_y, goal_yaw)
+        sent_mcu_vel_result.mode = 1;
+    }
+    if (mode == 3)
+    {
 
-    enemy_information.header.frame_id = "enemy";
-    enemy_information.header.stamp = ros::Time::now();
-    enemy_information.num = 0;
-    enemy_information.red_num = 0;
-    enemy_information.death_num = 0;
-    enemy_information.blue_num = 0;
+    }
+    robo_ctl.sendNavGoal(target_pose);
 
-    robo_perception::Object temp_object;
-    temp_object.team.data = "Nothing";
-    temp_object.pose.position.x = 0;
-    temp_object.pose.position.y = 0;
-    temp_object.pose.position.z = 0;
+    sent_mcu_vel_result.v_x = msg.linear.x;
+    sent_mcu_vel_result.v_y = msg.linear.y;
+    sent_mcu_vel_result.v_yaw = msg.angular.z;
 
-    temp_object.globalpose.position.x = 0;
-    temp_object.globalpose.position.y = 0;
-    temp_object.globalpose.position.z = 0;
+    return sent_mcu_vel_result;
+}
 
-    enemy_information.object.push_back(temp_object);
+geometry_msgs::Pose RoboControl::ctl_track_enemy(double enemy_x, double enemy_y, double yaw)
+{
+    /*************************************************************************
+    *  ctl_track_enemy()
+    *  功能说明：跟踪敌军
+    *  参数说明：enemy_{x,y} 敌军全局位置, yaw: 自身姿态
+    *  函数返回：返回下次去的位置
+    *************************************************************************/
+    float x_coefficient = 0.4, y_coefficient = 0.6;
+    float self_coefficient = 0.4, enemy_coefficient = 0.6;
+
+    float self_x = robo_ukf_pose.position.x;
+    float self_y = robo_ukf_pose.position.y;
+
+    vector<float> dis_list;
+    for (int i = 0; i < point_list.rows; i++)
+    {
+        ROS_INFO("find_enemy_self_closest_point: %d", i);
+        float d_enemy_y = enemy_y - point_list.at<double>(i, 0) * 1.0 / 100;
+        float d_enemy_x = enemy_x - point_list.at<double>(i, 1) * 1.0 / 100;
+
+        float d_self_y = self_y - point_list.at<double>(i, 0) * 1.0 / 100;
+        float d_self_x = self_x - point_list.at<double>(i, 1) * 1.0 / 100;
+
+        float distance_enemy = sqrt(x_coefficient * d_enemy_x * d_enemy_x + y_coefficient * d_enemy_y * d_enemy_y);
+        float distance_self = sqrt(x_coefficient * d_self_x * d_self_x + y_coefficient * d_self_y * d_self_y);
+
+        if (distance_enemy < 0.5 || distance_enemy > 2.0)
+        {
+            distance_enemy = 1000.0;
+        }
+
+        dis_list.push_back(self_coefficient * distance_self + enemy_coefficient * distance_enemy);
+    }
+
+    vector<float>::iterator smallest = min_element(dis_list.begin(), dis_list.end());
+
+    int n = distance(dis_list.begin(), smallest);
+
+    geometry_msgs::Pose target_pose;
+    target_pose.position.x = robo_ctl.point_list.at<double>(n, 1) / 100.0;
+    target_pose.position.y = robo_ctl.point_list.at<double>(n, 0) / 100.0;
+    target_pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, yaw);
+    return target_pose;
 }
