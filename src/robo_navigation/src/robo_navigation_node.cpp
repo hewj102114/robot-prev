@@ -147,7 +147,7 @@ void RoboNav::cb_tar_pose(const geometry_msgs::Pose &msg)
             if (first_dis + second_dis < 1.2 * pairwise_dis)
             {
                 path.erase(path.begin());
-                ROS_INFO("First point erased!!!!!!!!!!!!!!!!");
+                //ROS_INFO("First point erased!!!!!!!!!!!!!!!!");
             }
         }
     }
@@ -174,15 +174,16 @@ void RoboNav::cb_cur_pose(const nav_msgs::Odometry &msg)
 void RoboNav::cb_enemy_infor(const robo_perception::ObjectList &msg)
 {
     enemy_information = msg;
-    /*
+    
     //update path
     int index = 0, i = 0, j = 0;
-    while (enemy_information.num > 0)
+    while (index<enemy_information.num)
     {
         //string::size_type idx;
         //idx = enemy_information.object[index].team.data.find("death");
         //if (idx != string::npos)
         {
+            ROS_INFO("a");
             double pt_x = enemy_information.object[index].globalpose.position.x;
             double pt_y = enemy_information.object[index].globalpose.position.y;
             vector<float> dis_list;
@@ -193,11 +194,11 @@ void RoboNav::cb_enemy_infor(const robo_perception::ObjectList &msg)
                 float distance = sqrt(dx * dx + dy * dy);
                 dis_list.push_back(distance);
             }
-
+            ROS_INFO("ab");
             vector<float>::iterator smallest = min_element(dis_list.begin(), dis_list.end());
             int n = distance(dis_list.begin(), smallest);
             double small_dis = *smallest;
-
+            ROS_INFO("center: %d, invalid point: %d",center_flag, n);
             if(center_flag==0&&n==32)
             {
                 ROS_INFO("Enemy on bonus zone, Attack!!!");
@@ -207,6 +208,7 @@ void RoboNav::cb_enemy_infor(const robo_perception::ObjectList &msg)
             //too close to a point, all the path related to this point should be invalid
             if (*smallest < 0.25)
             {
+                ROS_INFO("abb");
                 int i = 0;
                 while (i != n)
                 {
@@ -216,6 +218,7 @@ void RoboNav::cb_enemy_infor(const robo_perception::ObjectList &msg)
             }
             else //not too close to a point, find the invalid path
             {
+                ROS_INFO("abc");
                 dis_list.erase(smallest);
                 vector<float>::iterator smallestK = min_element(dis_list.begin(), dis_list.end());
                 int m = distance(dis_list.begin(), smallestK);
@@ -225,13 +228,14 @@ void RoboNav::cb_enemy_infor(const robo_perception::ObjectList &msg)
             }
         }
         index++;
+        ROS_INFO("abcd");
         if (index == enemy_information.num - 1)
         {
             floyd.initFloydGraph();
             path_plan(cur_goal);
         }
     }
-    */
+    
 }
 
 int RoboNav::findClosestPt(double x, double y)

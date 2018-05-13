@@ -359,6 +359,9 @@ int RoboControl::find_enemy_self_closest_point(double enemy_x, double enemy_y, d
 robo_perception::ObjectList RoboControl::sendEnemyTarget(const robo_perception::ObjectList &msg, robo_perception::ObjectList &last_enemy_target_msg)
 {
     ROS_INFO("OK11");
+    vector<int> enemy_index;
+    vector<float> enemy_self_distance; // 当前敌人与自己的相对距离
+    vector<float> enemy_last_distance; // 当前敌人与上一帧敌人的距离
 
     robo_perception::ObjectList result_enemy_target; // return
     result_enemy_target.header = msg.header;
@@ -437,80 +440,49 @@ robo_perception::ObjectList RoboControl::sendEnemyTarget(const robo_perception::
         // 判断之前有没有打击过敌人, 如果之前没有打击过敌人, 选择距离近的敌人, 否则选择之前打击过的
         for (int i = 0; i < msg.num; i++)
         {
-            if (msg.object[i].team.data == "red0")
+            if (msg.object[i].team.data == "red" + to_string(i))
             {
-                enemy_index1 = i;
-            }
-            if (msg.object[i].team.data == "red1")
-            {
-                enemy_index2 = i;
+                enemy_index.push_back(i);
+                enemy_self_distance.push_back(msg.object[enemy_index1].pose.position.x);
+                enemy_last_distance.push_back(pow(msg.object[enemy_index1].globalpose.position.x - last_enemy_target_msg.object[0].globalpose.position.x, 2) + pow(msg.object[enemy_index1].globalpose.position.y - last_enemy_target_msg.object[0].globalpose.position.y, 2));
             }
         }
+
         if (last_enemy_target_msg.num == 0)
         {
+            vector<float>::iterator smallest = min_element(enemy_self_distance.begin(), enemy_self_distance.end());
+            int idx = distance(enemy_self_distance.begin(), smallest);
+
             ROS_INFO("red_num = 2, num = 0");
             // 没有打击过敌人, 选择相对距离近的敌人
-            if (msg.object[enemy_index1].pose.position.x < msg.object[enemy_index2].pose.position.x)
-            {
-                // 选择第一个敌人
-                enemy_odom_target_msg.num = 1;
-                enemy_odom_target_msg.red_num = 1;
-                enemy_odom_target_msg.object.push_back(msg.object[enemy_index1]);
-                ROS_INFO("OK18");
 
-                enemy_odom_target_msg.object[0].pose.orientation.w = 1;
-                enemy_odom_target_msg.object[0].globalpose.orientation.w = 1;
-                result_enemy_target = enemy_odom_target_msg;
-            }
-            else
-            {
-                // 选择第二个敌人
-                enemy_odom_target_msg.num = 1;
-                enemy_odom_target_msg.red_num = 1;
-                enemy_odom_target_msg.object.push_back(msg.object[enemy_index2]);
-                ROS_INFO("OK19");
+            // 选择第一个敌人
+            enemy_odom_target_msg.num = 1;
+            enemy_odom_target_msg.red_num = 1;
+            enemy_odom_target_msg.object.push_back(msg.object[idx]);
+            ROS_INFO("OK18");
 
-                enemy_odom_target_msg.object[0].pose.orientation.w = 1;
-                enemy_odom_target_msg.object[0].globalpose.orientation.w = 1;
-                result_enemy_target = enemy_odom_target_msg;
-            }
+            enemy_odom_target_msg.object[0].pose.orientation.w = 1;
+            enemy_odom_target_msg.object[0].globalpose.orientation.w = 1;
+            result_enemy_target = enemy_odom_target_msg;
+
             pub_enemy_target.publish(enemy_odom_target_msg);
             return result_enemy_target;
         }
         else
         {
             ROS_INFO("red_num = 2, num != 0");
-
+            vector<float>::iterator smallest = min_element(enemy_last_distance.begin(), enemy_last_distance.end());
+            int idx = distance(enemy_last_distance.begin(), smallest);
             // 之前打击过敌人, 选择离之前的选择近的敌人
-            // for (int i = 0; i < 2; i++)
-            {
-                float dis1 = pow(msg.object[enemy_index1].globalpose.position.x - last_enemy_target_msg.object[0].globalpose.position.x, 2) + pow(msg.object[enemy_index1].globalpose.position.y - last_enemy_target_msg.object[0].globalpose.position.y, 2);
-                float dis2 = pow(msg.object[enemy_index2].globalpose.position.x - last_enemy_target_msg.object[0].globalpose.position.x, 2) + pow(msg.object[enemy_index2].globalpose.position.y - last_enemy_target_msg.object[0].globalpose.position.y, 2);
-                ROS_INFO("OK20");
+            ROS_INFO("OK22");
 
-                if (dis1 <= dis2)
-                {
-                    ROS_INFO("OK21");
-
-                    enemy_odom_target_msg.num = 1;
-                    enemy_odom_target_msg.red_num = 1;
-                    enemy_odom_target_msg.object.push_back(msg.object[enemy_index1]);
-                    enemy_odom_target_msg.object[0].pose.orientation.w = 1;
-                    enemy_odom_target_msg.object[0].globalpose.orientation.w = 1;
-                    result_enemy_target = enemy_odom_target_msg;
-                }
-                else
-                {
-                    ROS_INFO("OK22");
-
-                    enemy_odom_target_msg.num = 1;
-                    enemy_odom_target_msg.red_num = 1;
-                    enemy_odom_target_msg.object.push_back(msg.object[enemy_index2]);
-                    enemy_odom_target_msg.object[0].pose.orientation.w = 1;
-                    enemy_odom_target_msg.object[0].globalpose.orientation.w = 1;
-                    result_enemy_target = enemy_odom_target_msg;
-                }
-            }
+            enemy_odom_target_msg.num = 1;
+            enemy_odom_target_msg.red_num = 1;
+            enemy_odom_target_msg.object.push_back(msg.object[idx]);
+            enemy_odom_target_msg.object[0].pose.orientation.w = 1;
+            enemy_odom_target_msg.object[0].globalpose.orientation.w = 1;
+            result_enemy_target = enemy_odom_target_msg;
             pub_enemy_target.publish(enemy_odom_target_msg);
             return result_enemy_target;
         }
@@ -602,7 +574,7 @@ GambalInfo RoboControl::ctl_stack_enemy()
             {
                 sent_mcu_gimbal_result.mode = 2;
                 sent_mcu_gimbal_result.yaw = 0;
-                sent_mcu_gimbal_result.pitch = 12;
+                sent_mcu_gimbal_result.pitch = 20;
                 sent_mcu_gimbal_result.global_z = 0;
             }
         }
@@ -650,6 +622,10 @@ VelInfo RoboControl::ctl_go_to_point(int mode, float goal_x, float goal_y, float
     }
     if (mode == 2)
     {
+        if (robo_ukf_enemy_information.orientation.z != 999)
+        {
+            goal_yaw = -robo_ukf_enemy_information.orientation.z * 180.0 / PI;
+        }
         target_pose = ctl_track_enemy(goal_x, goal_y, goal_yaw);
         sent_mcu_vel_result.mode = 1;
     }

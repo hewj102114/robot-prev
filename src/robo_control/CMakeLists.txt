@@ -46,11 +46,7 @@ ${catkin_INCLUDE_DIRS}
 )
 
 
-add_executable(control_node src/MainControl.cpp src/robo_control.cpp src/serial.cpp)
-add_dependencies(control_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(control_node
-  ${catkin_LIBRARIES}
-)
+
 
 add_executable(nav_test src/navigation_test.cpp src/robo_control.cpp src/serial.cpp)
 target_link_libraries(nav_test
@@ -73,4 +69,18 @@ add_executable(enemy_pnp_listen src/enemy_listen_pnp.cpp)
 
 target_link_libraries(enemy_pnp_listen
   ${catkin_LIBRARIES} 
+)
+
+
+add_executable(control_node src/MainControl.cpp src/robo_control.cpp src/serial.cpp)
+add_dependencies(control_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(control_node
+  ${catkin_LIBRARIES}
+)
+
+
+add_executable(control_strategy_1_node src/MainControlStrategy1.cpp src/robo_control.cpp src/serial.cpp)
+add_dependencies(control_strategy_1_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(control_strategy_1_node
+  ${catkin_LIBRARIES}
 )
