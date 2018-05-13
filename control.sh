@@ -1,1 +1,0 @@
-rosrun robo_control control_node
