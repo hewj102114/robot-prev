@@ -34,8 +34,8 @@ pt_self=[(70,60),  #0
 (440,330),         #10
 (320,330),         #11
 (450,160),         #12
-(400,400),         #13
-(320,400),         #14
+(380,400),         #13
+(290,400),         #14
 (320,210),         #15
 (170,60)]          #16
 pt_enemy=[]
@@ -54,7 +54,7 @@ def add_edge(i,j):
     cv2.line(map_pt,pt_list[i],pt_list[j],color_red,2)
     distance=pow(pow((pt_list[i][0]-pt_list[j][0]),2)+pow((pt_list[i][1]-pt_list[j][1]),2),0.5)
     line_center=((pt_list[i][0]+pt_list[j][0])//2,(pt_list[i][1]+pt_list[j][1])//2)
-    # cv2.putText(map_pt,'%d'%(int(distance)),line_center,font,0.6,color_red)
+    cv2.putText(map_pt,'%d'%(int(distance)),line_center,font,0.6,color_red)
     nei_matrix[i][j]=round(distance+0.1)
     nei_matrix[j][i]=round(distance+0.1)
 
@@ -64,7 +64,7 @@ def add_edge(i,j):
         if (j != len(pt_list)-1):    
             j=len(pt_self)+j
 
-        cv2.line(map_draw_temp,pt_list[i],pt_list[j],color_light_gray,66)
+        #cv2.line(map_draw_temp,pt_list[i],pt_list[j],color_light_gray,66)
         cv2.line(map_pt,pt_list[i],pt_list[j],color_red,2)
         distance=pow(pow((pt_list[i][0]-pt_list[j][0]),2)+pow((pt_list[i][1]-pt_list[j][1]),2),0.5)
         line_center=((pt_list[i][0]+pt_list[j][0])//2,(pt_list[i][1]+pt_list[j][1])//2)

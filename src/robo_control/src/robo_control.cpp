@@ -665,7 +665,7 @@ GambalInfo RoboControl::ctl_stack_enemy()
             {
                 sent_mcu_gimbal_result.mode = 2;
                 sent_mcu_gimbal_result.yaw = 0;
-                sent_mcu_gimbal_result.pitch = 20;
+                sent_mcu_gimbal_result.pitch = 25;
                 sent_mcu_gimbal_result.global_z = 0;
             }
         }
@@ -716,13 +716,14 @@ VelInfo RoboControl::ctl_go_to_point(int mode, float goal_x, float goal_y, float
     {
         if (robo_ukf_enemy_information.orientation.z != 999)
         {
-            goal_yaw = -robo_ukf_enemy_information.orientation.z * 180.0 / PI;
+            goal_yaw = -robo_ukf_enemy_information.orientation.y * 180.0 / PI;
         }
         target_pose = ctl_track_enemy(goal_x, goal_y, 0);
         sent_mcu_vel_result.mode = 1;
     }
     if (mode == 3)
     {
+        
     }
     sendNavGoal(target_pose);
 
@@ -749,12 +750,42 @@ geometry_msgs::Pose RoboControl::ctl_track_enemy(double enemy_x, double enemy_y,
     float self_x = robo_ukf_pose.position.x;
     float self_y = robo_ukf_pose.position.y;
 
+    geometry_msgs::Pose target_pose;
+
     if (last_enemy_target.object[0].pose.position.x < min_distance)
     {
         // 如果 enemy_target 的距离小于 0.8m, 将 enemy 映射到以自身为中心的对称点上, 计算得到相同直线上的反向最小距离点
-        self_coefficient = 0.6, enemy_coefficient = 0.4; // 修改系数大小, 这时候应该离自身较近
-        enemy_y = self_y - (enemy_y - self_y);
-        enemy_x = self_x - (enemy_x - self_x);
+        // self_coefficient = 0.6, enemy_coefficient = 0.4; // 修改系数大小, 这时候应该离自身较近
+        // enemy_y = self_y - (enemy_y - self_y);
+        // enemy_x = self_x - (enemy_x - self_x);
+        if (self_x > 4.0)
+        {
+            target_pose.position.x = self_x - 0.5;
+            target_pose.position.y = self_y;
+        }
+        else
+        {
+            target_pose.position.x = self_x - 0.5;
+            if (self_y < 1.5)
+            {
+                self_y = 0.7;
+            }
+            else if(self_y < 2.7)
+            {
+                self_y = self_y;
+            }
+            else if(self_y < 3.7)
+            {
+                self_y = 3.1;
+            }
+            else
+            {
+                self_y = 4.5;
+            }
+            target_pose.position.y = self_y;
+        }
+        target_pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, yaw);
+        return target_pose;
     }
 
     vector<float> dis_list;
@@ -788,7 +819,6 @@ geometry_msgs::Pose RoboControl::ctl_track_enemy(double enemy_x, double enemy_y,
     int n = distance(dis_list.begin(), smallest);
     ROS_INFO("OK27");
 
-    geometry_msgs::Pose target_pose;
     target_pose.position.x = point_list.at<double>(n, 1) / 100.0;
     target_pose.position.y = point_list.at<double>(n, 0) / 100.0;
     target_pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, yaw);
