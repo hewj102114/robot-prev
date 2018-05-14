@@ -76,7 +76,7 @@ def DetectInit():
     last_enemy_position.object = []
 
     detect_net = 'squeezeDet'
-    checkpoint = '/home/ubuntu/robot/src/robo_perception/scripts/weights/Infrared-Armor-988-Images/model.ckpt-99999'
+    checkpoint = '/home/ubuntu/robot/src/robo_perception/scripts/weights/Infrared-Armor-800-Images/model.ckpt-99999'
 
     assert detect_net == 'squeezeDet' or detect_net == 'squeezeDet+', 'Selected nueral net architecture not supported'
 

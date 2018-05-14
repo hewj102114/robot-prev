@@ -148,6 +148,7 @@ class RoboControl
     float ctl_yaw(int mode, float goal_yaw);
     PointInfo ctl_go_to_point(int mode, float goal_x, float goal_y);
     VelInfo ctl_chassis(int xy_mode, int yaw_mode, float goal_x, float goal_y, float goal_yaw);
+    void mustRunInWhile();
 
     ros::NodeHandle *pnh;
 
@@ -213,7 +214,7 @@ class RoboControl
     bool callback_navigation_flag = false;
 
     bool realsense_detection_state = false; // realsense 检测状态
-    int realsense_lost_counter = 10000;     // realsense 丢帧数量
+    int realsense_lost_counter = 0;     // realsense 丢帧数量
     bool armor_detction_state = false;      // armor 检测状态
     int armor_lost_counter = 0;             // armor 丢帧数量
     bool armor_lost_state = false;          // armor 丢帧状态
