@@ -342,8 +342,9 @@ void RoboControl::read_xml_file()
     *  参数说明：无数如参数
     *  函数返回：无返回值
     *************************************************************************/
-    cv::FileStorage fs("/home/ubuntu/robot/src/robo_navigation/launch/matrix.xml", cv::FileStorage::READ);
+    cv::FileStorage fs("/home/ubuntu/robot/src/robo_navigation/script/matrix.xml", cv::FileStorage::READ);
     fs["Point"] >> point_list;
+
 }
 
 int RoboControl::find_enemy_self_closest_point(double enemy_x, double enemy_y, double self_x, double self_y)

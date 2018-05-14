@@ -9,7 +9,8 @@
 
 using namespace std;
 using namespace cv;
-//#define SHOW_IMAGE
+#define SHOW_IMAGE
+#define TH_RATIO 0.25
 Mat img_recv_left, img_recv_right;
 
 void image_left_callback(const sensor_msgs::ImageConstPtr &msg)
@@ -169,11 +170,11 @@ void prosess(Mat &img, vector<Vec3f> &pt_center)
 
 int fisheye_pose_estimate(int pt_x, int pt_y, int center)
 {
-    if (abs(pt_x - center) < 100)
+    if (abs(pt_x - center) < center*TH_RATIO)
         return 0;
-    if (pt_x < center - 100)
+    if (pt_x < center - center*TH_RATIO)
         return 1;
-    if (pt_x > center + 100)
+    if (pt_x > center + center*TH_RATIO)
         return -1;
 }
 
@@ -202,6 +203,7 @@ int main(int argc, char **argv)
         it.subscribe("fishcamera/right/image", 1, &image_right_callback);
 
     Mat src_left, src_right, src_csm_left, src_csm_right;
+    int th_ratio=0.25;
     ros::Rate rate(10);
     ROS_INFO("Image FishEye Start!");
     while (ros::ok())
@@ -233,10 +235,10 @@ int main(int argc, char **argv)
             circle(src_right, Point2f(pt_center_right[i][0], pt_center_right[i][1]), 10,
                    Scalar(255, 255, 255), 10);
         }
-        line(src_left, Point(cam_left_radius - 100, 0), Point(cam_left_radius - 100, cam_left_down - cam_left_up), Scalar(255), 3);
-        line(src_left, Point(cam_left_radius + 100, 0), Point(cam_left_radius + 100, cam_left_down - cam_left_up), Scalar(255), 3);
-        line(src_right, Point(cam_right_radius - 100, 0), Point(cam_right_radius - 100, cam_right_down - cam_right_up), Scalar(255), 3);
-        line(src_right, Point(cam_right_radius + 100, 0), Point(cam_right_radius + 100, cam_right_down - cam_right_up), Scalar(255), 3);
+        line(src_left, Point(cam_left_radius - cam_left_radius*TH_RATIO, 0), Point(cam_left_radius - cam_left_radius*TH_RATIO, cam_left_down - cam_left_up), Scalar(255), 3);
+        line(src_left, Point(cam_left_radius + cam_left_radius*TH_RATIO, 0), Point(cam_left_radius + cam_left_radius*TH_RATIO, cam_left_down - cam_left_up), Scalar(255), 3);
+        line(src_right, Point(cam_right_radius - cam_left_radius*TH_RATIO, 0), Point(cam_right_radius - cam_left_radius*TH_RATIO, cam_right_down - cam_right_up), Scalar(255), 3);
+        line(src_right, Point(cam_right_radius + cam_left_radius*TH_RATIO, 0), Point(cam_right_radius + cam_left_radius*TH_RATIO, cam_right_down - cam_right_up), Scalar(255), 3);
 
         imshow("l", src_left);
         imshow("r", src_right);
@@ -296,8 +298,8 @@ int main(int argc, char **argv)
             }
             else if (pt_center_right.size() == 2)
             {
-                int ret1 = fisheye_pose_estimate(pt_center_right[0][0], pt_center_right[0][1], cam_left_radius);
-                int ret2 = fisheye_pose_estimate(pt_center_right[1][0], pt_center_right[1][1], cam_left_radius);
+                int ret1 = fisheye_pose_estimate(pt_center_right[0][0], pt_center_right[0][1], cam_right_radius);
+                int ret2 = fisheye_pose_estimate(pt_center_right[1][0], pt_center_right[1][1], cam_right_radius);
                 if (ret1 == ret2)
                 {
                     fishcam_msg.size=1;
@@ -321,7 +323,7 @@ int main(int argc, char **argv)
             else
             {
                 int ret1 = fisheye_pose_estimate(pt_center_left[0][0], pt_center_left[0][1], cam_left_radius);
-                int ret2 = fisheye_pose_estimate(pt_center_right[0][0], pt_center_right[0][1], cam_left_radius);
+                int ret2 = fisheye_pose_estimate(pt_center_right[0][0], pt_center_right[0][1], cam_right_radius);
                 if (ret1 == 1 && ret2 == -1)
                 {
                     fishcam_msg.size=1;
