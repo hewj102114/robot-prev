@@ -635,12 +635,16 @@ while not rospy.is_shutdown():
 
     predict_pos.twist.twist.linear.z = TEMPERAL_LOST
     
-    predict_pos.pose.pose.orientation.x = UNABLE_PREDICT    
-    predict_pos.pose.pose.orientation.y = aimtheta
+    predict_pos.pose.pose.orientation.x = UNABLE_PREDICT  
+    if TARGET_RECETIVED == True: 
+        predict_pos.pose.pose.orientation.y = aimtheta
+    else:
+        predict_pos.pose.pose.orientation.y = 999
+
     if TARGET_RECETIVED == True: 
         #dyaw between target and gimbal
         gimbal_dtheta = aimtheta - global_gimbal_yaw 
-        # print 'gimbal_dtheta',gimbal_dtheta/np.pi*180,'aimtheta', aimtheta, 'global_gimbal_yaw',global_gimbal_yaw/np.pi*180
+        #print 'gimbal_dtheta',gimbal_dtheta/np.pi*180,'aimtheta', aimtheta, 'global_gimbal_yaw',global_gimbal_yaw/np.pi*180
         predict_pos.pose.pose.orientation.z = gimbal_dtheta
     else:
         predict_pos.pose.pose.orientation.z = 999 

@@ -176,8 +176,8 @@ void RoboNav::cb_enemy_infor(const robo_perception::ObjectList &msg)
     enemy_information = msg;
 
     //update path
-    int index = 0, i = 0, j = 0;
-    while (index < enemy_information.num)
+    int index = -1, i = 0, j = 0;
+    while (index > enemy_information.num)
     {
         //string::size_type idx;
         //idx = enemy_information.object[index].team.data.find("death");
@@ -231,11 +231,11 @@ void RoboNav::cb_enemy_infor(const robo_perception::ObjectList &msg)
         }
         index++;
 
-        // if (index == enemy_information.num - 1)
-        // {
-        //     floyd.initFloydGraph();
-        //     path_plan(cur_goal);
-        // }
+         if (index == enemy_information.num - 1)
+         {
+             floyd.initFloydGraph();
+             path_plan(cur_goal);
+         }
     }
 }
 
