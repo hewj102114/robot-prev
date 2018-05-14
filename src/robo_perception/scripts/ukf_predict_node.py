@@ -102,7 +102,7 @@ pnp_vel_x = pnp_vel_y = pnp_pos_x = pnp_pos_y = last_pnp_pos_x = last_pnp_pos_y 
 odom_yaw = odom_pos_x = odom_pos_y = odom_vel_x = odom_vel_y = 0
 rs_pos_x = rs_pos_y = rs_vel_x = rs_vel_y = last_rs_pos_x = last_rs_pos_y = 0
 gimbal_yaw = gimbal_dtheta = 0
-aimtheta  = predict_angle = 0
+aimtheta  = predict_angle = global_aimtheta = 0
 ukf_out_pos_x = ukf_out_pos_y = ukf_out_vel_x = ukf_out_vel_y = 0
 pnp_lost_counter = rs_lost_counter = 0
 rs_lost_time = []
@@ -464,29 +464,31 @@ def callback_odom(odom):
 
 
 def callback_target(target):
-    global aim_target_x, aim_target_y, ENABLE_PREDICT, aimtheta,tfBuffer,gimbal_yaw,odom_yaw,gimbal_dtheta,TARGET_RECETIVED, aim_relative_distance
+    global aim_target_x, aim_target_y, ENABLE_PREDICT, aimtheta,tfBuffer,gimbal_yaw,odom_yaw,gimbal_dtheta,TARGET_RECETIVED, aim_relative_distance ,global_aimtheta
     aim_target_x = target.object[0].globalpose.position.x
     aim_target_y = target.object[0].globalpose.position.y
+    aim_target_rel_x = target.object[0].pose.position.x
+    aim_target_rel_y = target.object[0].pose.position.y
     TARGET_RECETIVED = False
     if aim_target_x and aim_target_y != 0:
         TARGET_RECETIVED = True
-        rs_trans = TransformStamped()
-        try:
-            rs_trans = tfBuffer.lookup_transform('odom', 'realsense_camera', rospy.Time(0))
-        except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
-            print('realsense TF TRANS TRANS FAIL! check your code')
+        # rs_trans = TransformStamped()
+        # try:
+        #     rs_trans = tfBuffer.lookup_transform('odom', 'realsense_camera', rospy.Time(0))
+        # except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+        #     print('realsense TF TRANS TRANS FAIL! check your code')
         
-        #use sele as orign of axis
-        relative_x = aim_target_x - rs_trans.transform.translation.x
-        relative_y = aim_target_y - rs_trans.transform.translation.y
+        # #use sele as orign of axis
+        # relative_x = aim_target_x - rs_trans.transform.translation.x
+        # relative_y = aim_target_y - rs_trans.transform.translation.y
         
-        aim_relative_distance = np.sqrt(relative_x **2 + relative_y ** 2)
+        aim_relative_distance = np.sqrt(aim_target_rel_x **2 + aim_target_rel_y ** 2)
         # print rs_trans.transform.translation.x,rs_trans.transform.translation.y
         # print 'aim_target_x',aim_target_x,'aim_target_y',aim_target_y
         # print 'relative',relative_x,relative_y
         #target 
-        aimtheta = np.arctan2(relative_y, relative_x)
-
+        aimtheta = np.arctan2(aim_target_rel_y, aim_target_rel_x)
+        global_aimtheta = aimtheta + odom_yaw
 
 
 
@@ -644,7 +646,7 @@ while not rospy.is_shutdown():
         #dyaw between target and gimbal
         gimbal_dtheta = aimtheta - global_gimbal_yaw
         predict_pos.pose.pose.position.z = aim_relative_distance
-        predict_pos.pose.pose.orientation.y = aimtheta
+        predict_pos.pose.pose.orientation.y = global_aimtheta
         #print 'gimbal_dtheta',gimbal_dtheta/np.pi*180,'aimtheta', aimtheta, 'global_gimbal_yaw',global_gimbal_yaw/np.pi*180
         predict_pos.pose.pose.orientation.z = gimbal_dtheta
     else:

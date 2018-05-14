@@ -93,9 +93,9 @@ void RoboControl::main_control_init()
 
     robo_perception::Object temp_object;
     temp_object.team.data = "Nothing";
-    temp_object.pose.position.x = 0;
-    temp_object.pose.position.y = 0;
-    temp_object.pose.position.z = 0;
+    temp_object.basepose.position.x = 0;
+    temp_object.basepose.position.y = 0;
+    temp_object.basepose.position.z = 0;
 
     temp_object.globalpose.position.x = 0;
     temp_object.globalpose.position.y = 0;
@@ -435,7 +435,7 @@ robo_perception::ObjectList RoboControl::sendEnemyTarget(const robo_perception::
 
     robo_perception::Object temp_object;
     ROS_INFO("OK15");
-    ROS_INFO("red_num:", msg.red_num);
+    ROS_INFO("red_num: %f", msg.red_num);
 
     // 计算打击哪个车, 给定 infrared detection 的检测结果和上一帧的打击目标
     if (msg.red_num == 0)
@@ -447,9 +447,9 @@ robo_perception::ObjectList RoboControl::sendEnemyTarget(const robo_perception::
         {
             // 此 if 表明 realsense 和 armor 都没有检测到
             temp_object.team.data = "Nothing";
-            temp_object.pose.position.x = 0;
-            temp_object.pose.position.y = 0;
-            temp_object.pose.position.z = 0;
+            temp_object.basepose.position.x = 0;
+            temp_object.basepose.position.y = 0;
+            temp_object.basepose.position.z = 0;
 
             temp_object.globalpose.position.x = 0;
             temp_object.globalpose.position.y = 0;
@@ -471,9 +471,9 @@ robo_perception::ObjectList RoboControl::sendEnemyTarget(const robo_perception::
                 enemy_odom_target_msg.red_num = 1;
 
                 temp_object.team.data = "red0";
-                temp_object.pose.position.x = armor_info_target.armor_list[0].pose_base.x;
-                temp_object.pose.position.y = armor_info_target.armor_list[0].pose_base.y;
-                temp_object.pose.position.z = 0;
+                temp_object.basepose.position.x = armor_info_target.armor_list[0].pose_base.x;
+                temp_object.basepose.position.y = armor_info_target.armor_list[0].pose_base.y;
+                temp_object.basepose.position.z = 0;
 
                 temp_object.globalpose.position.x = armor_info_target.armor_list[0].pose_odom.x;
                 temp_object.globalpose.position.y = armor_info_target.armor_list[0].pose_odom.y;
@@ -513,9 +513,9 @@ robo_perception::ObjectList RoboControl::sendEnemyTarget(const robo_perception::
                 enemy_odom_target_msg.num = 1;
                 enemy_odom_target_msg.red_num = 1;
 
-                temp_object.pose.position.x = armor_info_target.armor_list[select_idx].pose_base.x;
-                temp_object.pose.position.y = armor_info_target.armor_list[select_idx].pose_base.y;
-                temp_object.pose.position.z = 0;
+                temp_object.basepose.position.x = armor_info_target.armor_list[select_idx].pose_base.x;
+                temp_object.basepose.position.y = armor_info_target.armor_list[select_idx].pose_base.y;
+                temp_object.basepose.position.z = 0;
 
                 temp_object.globalpose.position.x = armor_info_target.armor_list[select_idx].pose_odom.x;
                 temp_object.globalpose.position.y = armor_info_target.armor_list[select_idx].pose_odom.y;
@@ -523,7 +523,7 @@ robo_perception::ObjectList RoboControl::sendEnemyTarget(const robo_perception::
 
                 enemy_odom_target_msg.object.push_back(temp_object);
                 enemy_odom_target_msg.object[0].team.data = "red0";
-                enemy_odom_target_msg.object[0].pose.orientation.w = 1;
+                enemy_odom_target_msg.object[0].basepose.orientation.w = 1;
                 enemy_odom_target_msg.object[0].globalpose.orientation.w = 1;
                 result_enemy_target = enemy_odom_target_msg;
 
@@ -549,7 +549,7 @@ robo_perception::ObjectList RoboControl::sendEnemyTarget(const robo_perception::
         enemy_odom_target_msg.num = 1;
         enemy_odom_target_msg.red_num = 1;
         enemy_odom_target_msg.object.push_back(msg.object[enemy_index1]);
-        enemy_odom_target_msg.object[0].pose.orientation.w = 1;
+        enemy_odom_target_msg.object[0].basepose.orientation.w = 1;
         enemy_odom_target_msg.object[0].globalpose.orientation.w = 1;
         result_enemy_target = enemy_odom_target_msg;
         pub_enemy_target.publish(enemy_odom_target_msg);
@@ -565,7 +565,7 @@ robo_perception::ObjectList RoboControl::sendEnemyTarget(const robo_perception::
             if (msg.object[i].team.data == "red" + to_string(i))
             {
                 enemy_index.push_back(i);
-                enemy_self_distance.push_back(msg.object[i].pose.position.x);
+                enemy_self_distance.push_back(msg.object[i].basepose.position.x);
                 enemy_last_distance.push_back(pow(msg.object[i].globalpose.position.x - last_enemy_target_msg.object[0].globalpose.position.x, 2) + pow(msg.object[i].globalpose.position.y - last_enemy_target_msg.object[0].globalpose.position.y, 2));
             }
         }
@@ -586,7 +586,7 @@ robo_perception::ObjectList RoboControl::sendEnemyTarget(const robo_perception::
         enemy_odom_target_msg.red_num = 1;
         enemy_odom_target_msg.object.push_back(msg.object[select_idx]);
         enemy_odom_target_msg.object[0].team.data = "red0";
-        enemy_odom_target_msg.object[0].pose.orientation.w = 1;
+        enemy_odom_target_msg.object[0].basepose.orientation.w = 1;
         enemy_odom_target_msg.object[0].globalpose.orientation.w = 1;
         result_enemy_target = enemy_odom_target_msg;
         pub_enemy_target.publish(enemy_odom_target_msg);
@@ -697,6 +697,13 @@ GambalInfo RoboControl::ctl_stack_enemy()
 
 VelInfo RoboControl::ctl_chassis(int xy_mode, int yaw_mode, float goal_x, float goal_y, float goal_yaw)
 {
+    /*************************************************************************
+    * ctl_chassis()
+    * 功能说明：控制底盘硬件
+    * 参数说明：xy_mode: 控制底盘的位置, yaw_mode: 控制地盘的角度, (goal_x, goal_y, goal_yaw): 控制地盘的位置和角度
+    * 函数返回：返回底盘的转动模式, 位置和角度
+    * TODO: 1. 测试
+    *************************************************************************/
     // 定义publish的值
     geometry_msgs::Pose target_pose;
     target_pose.position.x = 0;
@@ -728,35 +735,40 @@ float RoboControl::ctl_yaw(int mode, float goal_yaw)
     * 功能说明：控制底盘 yaw
     * 参数说明：mode: 1 -> 进攻模式 2 -> 防御模式
     * 函数返回：返回底盘转角
-    * TODO: 1. 测试
+    * TODO: 1. 测试, 2. 改回原来的返回值
     *************************************************************************/
     float yaw = 0;
     float DEATH_AREA = 20;
     if (mode == 1)
     {
         // 正常模式
-        if (robo_ukf_enemy_information.orientation.z != 999)
+        if (robo_ukf_enemy_information.orientation.y != 999)
         {
             // 有目标的时候才转
-            yaw = -robo_ukf_enemy_information.orientation.y * 180.0 / PI;
-            if (abs(yaw) > DEATH_AREA)
+            yaw = robo_ukf_enemy_information.orientation.y * 180.0 / PI;
+            if (abs(yaw - tf::getYaw(robo_ukf_pose.orientation)) > DEATH_AREA)
             {
-                return yaw;
+                yaw = yaw * PI / 180.0;
+                last_yaw = yaw;
+                // return yaw;
+                return 0;
             }
         }
         if (fishcam_msg.size > 0)
         {
             // 鱼眼相机发现目标
             yaw = fishcam_msg.target[0].z;
-            return yaw;
+            // return yaw;
+            return 0;
         }
-        return goal_yaw;
+        //return goal_yaw;
     }
     if (mode == 2)
     {
         // 没有子弹. 永不转身
     }
-    return yaw;
+    // return last_yaw;
+    return 0;
 }
 
 PointInfo RoboControl::ctl_go_to_point(int mode, float goal_x, float goal_y)
@@ -810,7 +822,7 @@ geometry_msgs::Point RoboControl::ctl_track_enemy(double enemy_x, double enemy_y
 
     geometry_msgs::Point target_pose;
 
-    if (last_enemy_target.object[0].pose.position.x < min_distance)
+    if (robo_ukf_enemy_information.position.z < min_distance)
     {
         // 如果 enemy_target 的距离小于 0.8m, 将 enemy 映射到以自身为中心的对称点上, 计算得到相同直线上的反向最小距离点
         // self_coefficient = 0.6, enemy_coefficient = 0.4; // 修改系数大小, 这时候应该离自身较近

@@ -23,7 +23,7 @@ using namespace std;
 
 int GO_CENTER_S = 1; //0 direct go center; 1: using one other point
 
-int center_flag = 0;
+int center_flag = 3;
 class RoboNav
 {
   public:
@@ -50,7 +50,7 @@ class RoboNav
      *  
      */
     double obs_min[4][2]; //90,+-60
-    int dx_flag, dy_flag;
+    int dx_flag, dy_flag, dyaw_flag;
 
     RoboNav();
     void init();
@@ -86,6 +86,7 @@ void RoboNav::init()
     state.data = false;
     dx_flag = 0;
     dy_flag = 0;
+    dyaw_flag=0;
     double Kp_linear, Ki_linear, Kd_linear;
     double limit_linear_max = 1.0;
     double Kp_angular, Ki_angular, Kd_angular;
@@ -156,12 +157,30 @@ void RoboNav::cb_tar_pose(const geometry_msgs::Pose &msg)
     setFixAngle(msg.orientation); //orientation fixed all the time in every frame.
 }
 
+double calyaw(double set_yaw, double cur_yaw)
+{
+    double dyaw = 0;
+    if (set_yaw > 0 && cur_yaw < 0 && (set_yaw - cur_yaw) > 3.14)
+    {
+        dyaw = -(cur_yaw + 6.28 - set_yaw);
+    }
+    else if (set_yaw < 0 && cur_yaw > 0 && (cur_yaw - set_yaw) > 3.14)
+    {
+        dyaw = set_yaw + 6.28 - cur_yaw;
+    }
+    else
+    {
+        dyaw = set_yaw - cur_yaw;
+    }
+    return dyaw;
+}
+
 void RoboNav::cb_cur_pose(const nav_msgs::Odometry &msg)
 {
     cur_pose = msg.pose.pose;
     double dis = sqrt(pow(cur_pose.position.x - cur_goal.position.x, 2) + pow(cur_pose.position.y - cur_goal.position.y, 2));
-    double dyaw = abs(tf::getYaw(cur_pose.orientation) - tf::getYaw(cur_goal.orientation));  //bug
-    if (dis < 0.5 && dyaw < 0.05)
+    //double dyaw = abs(calyaw(fix_angle, tf::getYaw(cur_pose.orientation)));  
+    if (dis < 0.5) // && dyaw < 0.05)
     {
         state.data = true;
         center_flag = 1; //first time use
@@ -265,7 +284,17 @@ void RoboNav::get_vel(geometry_msgs::Twist &msg_vel)
     double vel_yaw = 0;
     double cur_yaw = tf::getYaw(cur_pose.orientation);
 
-    if (path.size() > 0)
+    //yaw control
+    double dyaw = calyaw(fix_angle, cur_yaw);
+    ROS_INFO("cur_yaw: %f, dyaw %f ", cur_yaw, dyaw);
+    vel_yaw = pid_yaw.calc(dyaw);
+    if (abs(dyaw) < 0.05)
+    {
+        vel_yaw = 0;
+        dyaw_flag = 1;
+    }
+
+    if (path.size() > 0 && dyaw_flag)
     {
         //obstacle
         geometry_msgs::Pose cur_local_goal = adjustlocalgoal(cur_yaw);
@@ -282,83 +311,46 @@ void RoboNav::get_vel(geometry_msgs::Twist &msg_vel)
             dx_flag = 1;
         if (abs(dy) < 0.10)
             dy_flag = 1;
-        vel_yaw=0;
         if (dx_flag && abs(dy) < 0.10)
         {
-            //yaw control
-            double dyaw;
-            if (fix_angle > 0 && cur_yaw < 0 && (fix_angle - cur_yaw) > 3.14)
-            {
-                dyaw = -(cur_yaw + 6.28 - fix_angle);
-            }
-            else if (fix_angle < 0 && cur_yaw > 0 && (cur_yaw - fix_angle) > 3.14)
-            {
-                dyaw = fix_angle + 6.28 - cur_yaw;
-            }
-            else
-            {
-                dyaw = fix_angle - cur_yaw;
-            }
-            //ROS_INFO("cur_yaw: %f, dyaw %f ", cur_yaw, dyaw);
-            vel_yaw = pid_yaw.calc(dyaw);
-            if (abs(dyaw) < 0.05)
-            {
-                vel_yaw = 0;
-                path.erase(path.begin());
-                dx_flag = 0;
-                dy_flag = 0;
-            }
+            path.erase(path.begin());
+            dx_flag = 0;
+            dy_flag = 0;
         }
 
         if (dy_flag && abs(dx) < 0.10)
         {
-            //yaw control
-            double dyaw;
-            if (fix_angle > 0 && cur_yaw < 0 && (fix_angle - cur_yaw) > 3.14)
-            {
-                dyaw = -(cur_yaw + 6.28 - fix_angle);
-            }
-            else if (fix_angle < 0 && cur_yaw > 0 && (cur_yaw - fix_angle) > 3.14)
-            {
-                dyaw = fix_angle + 6.28 - cur_yaw;
-            }
-            else
-            {
-                dyaw = fix_angle - cur_yaw;
-            }
-            //ROS_INFO("cur_yaw: %f, dyaw %f ", cur_yaw, dyaw);
-            vel_yaw = pid_yaw.calc(dyaw);
-            if (abs(dyaw) < 0.05)
-            {
-                vel_yaw = 0;
-                path.erase(path.begin());
-                dx_flag = 0;
-                dy_flag = 0;
-            }
+            path.erase(path.begin());
+            dx_flag = 0;
+            dy_flag = 0;
         }
 
-        {
-            vel_x = pid_x.calc(dx);
-            vel_y = pid_y.calc(dy);
-            if (GO_CENTER_S == 1)
-                if (center_flag == 0 && path[0] == 32 && dx > 1.8)
-                {
-                    vel_y = 0;
-                }
-            if (GO_CENTER_S == 0)
-            {
-                ROS_INFO("dx: %f, dy: %f", dx, dy);
-                if (center_flag == 0 && path[0] == 32 && dx > 1.75)
-                    vel_y = 0;
-                else if (center_flag == 0 && path[0] == 32 && dx <= 1.52 && dy > 0.20)
-                    vel_x = 0;
-            }
+        vel_x = pid_x.calc(dx);
+        vel_y = pid_y.calc(dy);
 
-            if (abs(dx) < 0.05)
-                vel_x = 0;
-            if (abs(dy) < 0.05)
+        if (GO_CENTER_S == 1)
+            if (center_flag == 0 && path[0] == 32 && dx > 1.8)
+            {
                 vel_y = 0;
+            }
+        if (GO_CENTER_S == 0)
+        {
+            ROS_INFO("dx: %f, dy: %f", dx, dy);
+            if (center_flag == 0 && path[0] == 32 && dx > 1.75)
+                vel_y = 0;
+            else if (center_flag == 0 && path[0] == 32 && dx <= 1.52 && dy > 0.20)
+                vel_x = 0;
         }
+
+        if (abs(dx) < 0.05)
+            vel_x = 0;
+        if (abs(dy) < 0.05)
+            vel_y = 0;
+    }
+    else
+    {
+        vel_x=0;
+        vel_y=0;
     }
 
     msg_vel.linear.x = vel_x;
@@ -505,7 +497,7 @@ geometry_msgs::Pose RoboNav::adjustlocalgoal(double yaw)
         local_goal.position.x = local_goal_x - 0.1 * (cos(yaw) + sin(yaw));
         local_goal.position.y = local_goal_y + 0.1 * (cos(yaw) - sin(yaw));
     }
-
+    center_flag=0;
     if (center_flag == 0)
     {
         pid_x.stop = false;

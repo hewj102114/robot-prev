@@ -1,7 +1,6 @@
 <launch>
-<node pkg="robo_control" type="control_strategy_2_node" name="control_strategy_2_node" output="screen"/>
+    <node pkg="robo_control" type="control_strategy_2_node" name="control_strategy_2_node" output="screen"/>
 
-<param name="robot_id" value=""/>
-</node>
-
+    <param name="robot_id" value="1"/>
+    </node>
 </launch>

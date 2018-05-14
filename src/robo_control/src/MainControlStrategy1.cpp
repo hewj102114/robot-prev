@@ -62,7 +62,7 @@ int main(int argc, char **argv)
         {
             ROS_INFO("Stage 1: Go to certain point!!!!!!");
             // point 1: (2.6, 3.1)
-            robo_ctl.sent_mcu_vel_msg = robo_ctl.ctl_go_to_point(1, 2.6, 3.1, 0);
+            robo_ctl.sent_mcu_vel_msg = robo_ctl.ctl_chassis(1, 1, 2.6, 3.1, 0);
             if (robo_ctl.last_enemy_target.red_num == 1)
             {
                 work_state = 2;
@@ -78,7 +78,7 @@ int main(int argc, char **argv)
         case 2:
         {
             ROS_INFO("Stage 2: Tracking enemy!!!!!!");
-            robo_ctl.sent_mcu_vel_msg = robo_ctl.ctl_go_to_point(2, robo_ctl.last_enemy_target_pose.position.x, robo_ctl.last_enemy_target_pose.position.y, 0);
+            robo_ctl.sent_mcu_vel_msg = robo_ctl.ctl_chassis(2, 1, robo_ctl.last_enemy_target_pose.position.x, robo_ctl.last_enemy_target_pose.position.y, 0);
             if (robo_ctl.last_enemy_target.red_num == 0)
             {
                 work_state = 1;

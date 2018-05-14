@@ -104,13 +104,44 @@ for i in range(len(pt_list)):
 
 cv2.imwrite("map.jpg",map_pt)
 
+pt_yaw = [0,  # 0
+            0,  # 1
+            1.57,  # 2
+            0,  # 3
+            0,  # 4
+            0,  # 5
+            -0.78,  # 6
+            0,  # 7
+            0,  # 8
+            1.57,  # 9
+            -1.0,  # 10
+           999,  # 11
+           0,  # 12
+           -1.57,  # 13
+           999,  # 14
+           0,  # 15
+           0]  # 16
+
 point_matrix=np.zeros([len(pt_list),2])
+point_yaw = np.zeros(len(pt_list))
 for i in range(len(pt_list)):
-    point_matrix[i][0]=pt_list[i][0]
-    point_matrix[i][1]=pt_list[i][1]
+    point_matrix[i][0] = pt_list[i][0]
+    point_matrix[i][1] = pt_list[i][1]
+    if i < int(len(pt_list)/2):
+        point_yaw[i]=pt_yaw[i]
+    else:
+        if point_yaw[i-17]<0:
+            point_yaw[i]=3.14+point_yaw[i-17]
+        elif point_yaw[i-17]==999:
+            point_yaw[i]=999
+        else:
+            point_yaw[i]= point_yaw[i-17]-3.14
+
+point_yaw[len(pt_list)-1]=999
 
 fs = cv2.FileStorage("matrix.xml", cv2.FILE_STORAGE_WRITE)
 fs.write('Matrix',nei_matrix)
 fs.write('Point',point_matrix)
+fs.write('Point_yaw', point_yaw)
 cv2.imshow("map",map_pt)
 cv2.waitKey(0)

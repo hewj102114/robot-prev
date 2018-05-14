@@ -409,6 +409,7 @@ def TsDet_callback(infrared_image, pointcloud):
             # ROS 中发送数据
             rs_x = robo_position[object_idx, 2]
             rs_y = -robo_position[object_idx, 0]
+            rs_z = robo_position[object_idx, 1]
             #theta in rs axis
             theta = np.arctan2(rs_y,rs_x)
             #global = cos(theta+yaw) * target_distance + rs_relative_distance_to_base_link + base_link_global_axis
@@ -419,9 +420,13 @@ def TsDet_callback(infrared_image, pointcloud):
 
             #append target relative and global position
             enemy = Object()
-            enemy.pose.position.x = robo_position[object_idx, 2]
-            enemy.pose.position.y = -robo_position[object_idx, 0]
-            enemy.pose.position.z = robo_position[object_idx, 1]
+            enemy.pose.position.x = rs_x
+            enemy.pose.position.y = rs_y
+            enemy.pose.position.z = rs_z
+
+            enemy.basepose.position.x = rs_x + 0.22*np.cos(odom_yaw)
+            enemy.basepose.position.y = rs_y + 0.22*np.sin(odom_yaw)
+            enemy.basepose.position.z = 0
 
             enemy.globalpose.position.x = global_x
             enemy.globalpose.position.y = global_y

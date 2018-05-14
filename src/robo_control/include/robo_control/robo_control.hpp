@@ -29,9 +29,11 @@
 
 #include "robo_control/serial.h"
 #include "robo_vision/ArmorInfo.h"
+#include "robo_vision/FishCamInfo.h"
 #include "robo_control/GameInfo.h"
 #include "robo_perception/ObjectList.h"
 #include "robo_perception/Object.h"
+
 
 using namespace std;
 #define PI 3.1415926535898
@@ -141,13 +143,13 @@ class RoboControl
     void cb_ukf_enemy_information(const nav_msgs::Odometry &msg);
     GambalInfo ctl_stack_enemy();
     void main_control_init();
-    geometry_msgs::Pose ctl_track_enemy(double enemy_x, double enemy_y, double yaw);
+    geometry_msgs::Point ctl_track_enemy(double enemy_x, double enemy_y);
     void cb_fishcam_info(const robo_vision::FishCamInfo &msg);
     float ctl_yaw(int mode, float goal_yaw);
-    PointInfo ctl_go_to_point(int mode, float goal_x, float goal_y)
-    VelInfo ctl_chassis(int xy_mode, int yaw_mode, float goal_x, float goal_y, float goal_yaw)
+    PointInfo ctl_go_to_point(int mode, float goal_x, float goal_y);
+    VelInfo ctl_chassis(int xy_mode, int yaw_mode, float goal_x, float goal_y, float goal_yaw);
 
-        ros::NodeHandle *pnh;
+    ros::NodeHandle *pnh;
 
     ros::Publisher pub_game_info;
     ros::Publisher pub_uwb_odom;
@@ -237,6 +239,7 @@ class RoboControl
     robo_vision::ArmorInfo armor_info_target;
 
     robo_vision::FishCamInfo fishcam_msg;
+    float last_yaw;
 
     // yaw: 1 -> 2
     KeyPoint KEY_POINT[30] = {
