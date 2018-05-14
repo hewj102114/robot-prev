@@ -70,7 +70,6 @@ struct GambalInfo
     float yaw;
 };
 
-
 struct VelInfo
 {
     int mode;
@@ -79,6 +78,12 @@ struct VelInfo
     float v_yaw;
 };
 
+struct PointInfo
+{
+    int mode;
+    float x;
+    float y;
+};
 
 class RoboControl
 {
@@ -136,11 +141,13 @@ class RoboControl
     void cb_ukf_enemy_information(const nav_msgs::Odometry &msg);
     GambalInfo ctl_stack_enemy();
     void main_control_init();
-    VelInfo ctl_go_to_point(int mode, float goal_x, float goal_y, float goal_yaw);
     geometry_msgs::Pose ctl_track_enemy(double enemy_x, double enemy_y, double yaw);
-    
-    
-    ros::NodeHandle *pnh;
+    void cb_fishcam_info(const robo_vision::FishCamInfo &msg);
+    float ctl_yaw(int mode, float goal_yaw);
+    PointInfo ctl_go_to_point(int mode, float goal_x, float goal_y)
+    VelInfo ctl_chassis(int xy_mode, int yaw_mode, float goal_x, float goal_y, float goal_yaw)
+
+        ros::NodeHandle *pnh;
 
     ros::Publisher pub_game_info;
     ros::Publisher pub_uwb_odom;
@@ -186,7 +193,7 @@ class RoboControl
     int nav_status; //status from move_base pkg
 
     geometry_msgs::Pose nav_current_goal;
-    
+
     bool keyPointNav(int keypoint_num);
     ros::Time nav_start_time;
 
@@ -204,7 +211,7 @@ class RoboControl
     bool callback_navigation_flag = false;
 
     bool realsense_detection_state = false; // realsense 检测状态
-    int realsense_lost_counter = 10000;         // realsense 丢帧数量
+    int realsense_lost_counter = 10000;     // realsense 丢帧数量
     bool armor_detction_state = false;      // armor 检测状态
     int armor_lost_counter = 0;             // armor 丢帧数量
     bool armor_lost_state = false;          // armor 丢帧状态
@@ -213,9 +220,9 @@ class RoboControl
     bool first_in_armor_flag = false;
     bool first_in_realsense_flag = true;
 
-	float first_in_gimbal_angle = 0;
-	float current_gimbal_angle = 0;
-	float target_gimbal_angle = 1000;
+    float first_in_gimbal_angle = 0;
+    float current_gimbal_angle = 0;
+    float target_gimbal_angle = 1000;
 
     double front_dis = 0.0;
 
@@ -224,10 +231,12 @@ class RoboControl
 
     VelInfo sent_mcu_vel_msg;
     VelInfo sent_mcu_vel_result;
-    
+
     geometry_msgs::Pose last_enemy_target_pose;
 
     robo_vision::ArmorInfo armor_info_target;
+
+    robo_vision::FishCamInfo fishcam_msg;
 
     // yaw: 1 -> 2
     KeyPoint KEY_POINT[30] = {

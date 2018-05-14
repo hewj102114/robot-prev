@@ -307,6 +307,11 @@ void RoboControl::cb_enemy_information(const robo_perception::ObjectList &msg)
     enemy_information = msg;
 }
 
+void RoboControl::cb_fishcam_info(const robo_vision::FishCamInfo &msg)
+{
+    fishcam_msg = msg;
+}
+
 void RoboControl::go_on_patrol(int flag, int key_point_count, float current_position, float enemy_position)
 {
     /*************************************************************************
@@ -691,7 +696,71 @@ GambalInfo RoboControl::ctl_stack_enemy()
     return sent_mcu_gimbal_result;
 }
 
-VelInfo RoboControl::ctl_go_to_point(int mode, float goal_x, float goal_y, float goal_yaw)
+VelInfo RoboControl::ctl_chassis(int xy_mode, int yaw_mode, float goal_x, float goal_y, float goal_yaw)
+{
+    // 定义publish的值
+    geometry_msgs::Pose target_pose;
+    target_pose.position.x = 0;
+    target_pose.position.y = 0;
+    target_pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
+
+    float yaw = ctl_yaw(yaw_mode, goal_yaw);
+    PointInfo point = ctl_go_to_point(xy_mode, goal_x, goal_y);
+
+    // 发送并返回
+    target_pose.position.x = point.x;
+    target_pose.position.y = point.y;
+    target_pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, yaw);
+
+    sendNavGoal(target_pose);
+
+    sent_mcu_vel_result.mode = point.mode;
+    sent_mcu_vel_result.v_x = cmd_vel_msg.v_x;
+    sent_mcu_vel_result.v_y = cmd_vel_msg.v_y;
+    sent_mcu_vel_result.v_yaw = cmd_vel_msg.v_yaw;
+
+    return sent_mcu_vel_result;
+}
+
+float RoboControl::ctl_yaw(int mode, float goal_yaw)
+{
+    /*************************************************************************
+    * ctl_yaw()
+    * 功能说明：控制底盘 yaw
+    * 参数说明：mode: 1 -> 进攻模式 2 -> 防御模式
+    * 函数返回：返回底盘转角
+    * TODO: 1. 测试
+    *************************************************************************/
+    float yaw = 0;
+    float DEATH_AREA = 20;
+    if (mode == 1)
+    {
+        // 正常模式
+        if (robo_ukf_enemy_information.orientation.z != 999)
+        {
+            // 有目标的时候才转
+            yaw = -robo_ukf_enemy_information.orientation.y * 180.0 / PI;
+            if (abs(yaw) > DEATH_AREA)
+            {
+                return yaw;
+            }
+        }
+        if (fishcam_msg.size > 0)
+        {
+            // 鱼眼相机发现目标
+            yaw = fishcam_msg.target[0].z;
+            return yaw;
+        }
+        return goal_yaw;
+    }
+    if (mode == 2)
+    {
+        // 没有子弹. 永不转身
+    }
+    return yaw;
+}
+
+PointInfo RoboControl::ctl_go_to_point(int mode, float goal_x, float goal_y)
 {
     /*************************************************************************
     * ctl_go_to_point()
@@ -701,41 +770,30 @@ VelInfo RoboControl::ctl_go_to_point(int mode, float goal_x, float goal_y, float
     * 底盘只存在两种控制模式, 1. 人工给定确定点的控制模式, 2. 由敌人位置确定的控制模式，敌人位置确定的控制模式优先级最高, 然后才是人工给定的点的控制模式
     * TODO: 1. 测试转动底盘保持目标在 realsense 的中心
     *************************************************************************/
-    geometry_msgs::Pose target_pose;
-    target_pose.position.x = 0;
-    target_pose.position.y = 0;
-    target_pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
+
+    PointInfo point;
+    geometry_msgs::Point track_enemy_point;
     if (mode == 1)
     {
-        target_pose.position.x = goal_x;
-        target_pose.position.y = goal_y;
-        target_pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, goal_yaw);
-
-        sent_mcu_vel_result.mode = 1;
+        point.x = goal_x;
+        point.y = goal_y;
+        point.mode = 1;
     }
     if (mode == 2)
     {
-        if (robo_ukf_enemy_information.orientation.z != 999)
-        {
-            goal_yaw = -robo_ukf_enemy_information.orientation.y * 180.0 / PI;
-        }
-        target_pose = ctl_track_enemy(goal_x, goal_y, 0);
-        sent_mcu_vel_result.mode = 1;
+        track_enemy_point = ctl_track_enemy(goal_x, goal_y);
+        point.x = track_enemy_point.x;
+        point.y = track_enemy_point.y;
+        point.mode = 1;
     }
     if (mode == 3)
     {
-        
     }
-    sendNavGoal(target_pose);
 
-    sent_mcu_vel_result.v_x = cmd_vel_msg.v_x;
-    sent_mcu_vel_result.v_y = cmd_vel_msg.v_y;
-    sent_mcu_vel_result.v_yaw = cmd_vel_msg.v_yaw;
-
-    return sent_mcu_vel_result;
+    return point;
 }
 
-geometry_msgs::Pose RoboControl::ctl_track_enemy(double enemy_x, double enemy_y, double yaw)
+geometry_msgs::Point RoboControl::ctl_track_enemy(double enemy_x, double enemy_y)
 {
     /*************************************************************************
     *  ctl_track_enemy()
@@ -751,7 +809,7 @@ geometry_msgs::Pose RoboControl::ctl_track_enemy(double enemy_x, double enemy_y,
     float self_x = robo_ukf_pose.position.x;
     float self_y = robo_ukf_pose.position.y;
 
-    geometry_msgs::Pose target_pose;
+    geometry_msgs::Point target_pose;
 
     if (last_enemy_target.object[0].pose.position.x < min_distance)
     {
@@ -761,21 +819,21 @@ geometry_msgs::Pose RoboControl::ctl_track_enemy(double enemy_x, double enemy_y,
         // enemy_x = self_x - (enemy_x - self_x);
         if (self_x > 4.0)
         {
-            target_pose.position.x = self_x - 0.5;
-            target_pose.position.y = self_y;
+            target_pose.x = self_x - 0.5;
+            target_pose.y = self_y;
         }
         else
         {
-            target_pose.position.x = self_x - 0.5;
+            target_pose.x = self_x - 0.5;
             if (self_y < 1.5)
             {
                 self_y = 0.7;
             }
-            else if(self_y < 2.7)
+            else if (self_y < 2.7)
             {
                 self_y = self_y;
             }
-            else if(self_y < 3.7)
+            else if (self_y < 3.7)
             {
                 self_y = 3.1;
             }
@@ -783,9 +841,8 @@ geometry_msgs::Pose RoboControl::ctl_track_enemy(double enemy_x, double enemy_y,
             {
                 self_y = 4.5;
             }
-            target_pose.position.y = self_y;
+            target_pose.y = self_y;
         }
-        target_pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, yaw);
         return target_pose;
     }
 
@@ -820,8 +877,7 @@ geometry_msgs::Pose RoboControl::ctl_track_enemy(double enemy_x, double enemy_y,
     int n = distance(dis_list.begin(), smallest);
     ROS_INFO("OK27");
 
-    target_pose.position.x = point_list.at<double>(n, 1) / 100.0;
-    target_pose.position.y = point_list.at<double>(n, 0) / 100.0;
-    target_pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, yaw);
+    target_pose.x = point_list.at<double>(n, 1) / 100.0;
+    target_pose.y = point_list.at<double>(n, 0) / 100.0;
     return target_pose;
 }

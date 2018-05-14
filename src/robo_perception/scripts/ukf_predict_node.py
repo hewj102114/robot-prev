@@ -108,6 +108,7 @@ pnp_lost_counter = rs_lost_counter = 0
 rs_lost_time = []
 pnp_lost_time = []
 aim_target_x = aim_target_y = 0
+aim_relative_distance = 0
 
 def butter_lowpass(cutoff, fs, order=5):
     nyq = 0.5 * fs
@@ -463,7 +464,7 @@ def callback_odom(odom):
 
 
 def callback_target(target):
-    global aim_target_x, aim_target_y, ENABLE_PREDICT, aimtheta,tfBuffer,gimbal_yaw,odom_yaw,gimbal_dtheta,TARGET_RECETIVED
+    global aim_target_x, aim_target_y, ENABLE_PREDICT, aimtheta,tfBuffer,gimbal_yaw,odom_yaw,gimbal_dtheta,TARGET_RECETIVED, aim_relative_distance
     aim_target_x = target.object[0].globalpose.position.x
     aim_target_y = target.object[0].globalpose.position.y
     TARGET_RECETIVED = False
@@ -479,6 +480,7 @@ def callback_target(target):
         relative_x = aim_target_x - rs_trans.transform.translation.x
         relative_y = aim_target_y - rs_trans.transform.translation.y
         
+        aim_relative_distance = np.sqrt(relative_x **2 + relative_y ** 2)
         # print rs_trans.transform.translation.x,rs_trans.transform.translation.y
         # print 'aim_target_x',aim_target_x,'aim_target_y',aim_target_y
         # print 'relative',relative_x,relative_y
@@ -636,18 +638,19 @@ while not rospy.is_shutdown():
     predict_pos.twist.twist.linear.z = TEMPERAL_LOST
     
     predict_pos.pose.pose.orientation.x = UNABLE_PREDICT  
-    if TARGET_RECETIVED == True: 
-        predict_pos.pose.pose.orientation.y = aimtheta
-    else:
-        predict_pos.pose.pose.orientation.y = 999
+  
 
     if TARGET_RECETIVED == True: 
         #dyaw between target and gimbal
-        gimbal_dtheta = aimtheta - global_gimbal_yaw 
+        gimbal_dtheta = aimtheta - global_gimbal_yaw
+        predict_pos.pose.pose.position.z = aim_relative_distance
+        predict_pos.pose.pose.orientation.y = aimtheta
         #print 'gimbal_dtheta',gimbal_dtheta/np.pi*180,'aimtheta', aimtheta, 'global_gimbal_yaw',global_gimbal_yaw/np.pi*180
         predict_pos.pose.pose.orientation.z = gimbal_dtheta
     else:
-        predict_pos.pose.pose.orientation.z = 999 
+        predict_pos.pose.pose.orientation.z = 999
+        predict_pos.pose.pose.orientation.y = 999 
+        predict_pos.pose.pose.position.z = 999 
 
     #send predict when ukf avaliable
     if PNP_UKF_AVAILABLE or RS_UKF_AVAILABLE:
