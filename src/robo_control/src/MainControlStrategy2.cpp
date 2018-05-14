@@ -1,7 +1,10 @@
 /*************************************************************************
 *
-*  1 策略: 最简单的策略: 看到敌人 -> 动态追击, 没有看到敌人 -> 固定蹲点
-*
+*  2 策略: 防守策略 1
+*  假设: 敌人 1 车开局抢占中点, 2 车站在地方区域 
+*  应对策略: 
+*  1. 我方 1 车占据 A(2.6, 3.1, 0度), 2 车占据 B(4.0, 4.2, 90度), 全力攻击敌方抢中点的车, 不管有没有将敌方车辆打死, 回到基地蹲点
+*  2. 我方 1 车蹲守 C(1.3, 1.8, -90度), 2 车占据 D(2.6, 2.0, -90度), 进行蹲点, 如果有一辆车看到敌人, 另一辆车就过去帮忙, 直到比赛结束
 *************************************************************************/
 
 #include <iostream>
@@ -9,8 +12,11 @@
 
 int main(int argc, char **argv)
 {
-    ros::init(argc, argv, "robo_control_strategy_1");
+    ros::init(argc, argv, "robo_control_strategy_2");
     ros::NodeHandle nh;
+    ros::NodeHandle private_nh("~");
+    int robot_id;
+    private_nh.getParam("robot_id", robot_id);
 
     RoboControl robo_ctl;
     ros::Subscriber sub_armor_info = nh.subscribe("base/armor_info", 1, &RoboControl::cb_armorInfo, &robo_ctl);

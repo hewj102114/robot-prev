@@ -5,8 +5,8 @@
 using namespace std;
 using namespace cv;
 
-#define INF 10000
-#define MAX_VERTEX_COUNT 33
+#define INF 60000
+#define MAX_VERTEX_COUNT 35
 
 
 class Floyd{
@@ -14,7 +14,7 @@ public:
     Mat weight_graph;
     int node_count;
 
-    int arrDis[MAX_VERTEX_COUNT][MAX_VERTEX_COUNT];
+    double arrDis[MAX_VERTEX_COUNT][MAX_VERTEX_COUNT];
     int arrPath[MAX_VERTEX_COUNT][MAX_VERTEX_COUNT];
 
     vector<int> path;

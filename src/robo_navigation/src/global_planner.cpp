@@ -2,7 +2,7 @@
 
 
 void Floyd::loadMatrix(Mat& matrix){
-    matrix.convertTo(weight_graph,CV_32SC1);
+    matrix.convertTo(weight_graph,CV_64FC1);
     node_count=matrix.rows;
     memcpy(arrDis,weight_graph.data,sizeof(arrDis));
 }
@@ -23,6 +23,8 @@ void Floyd::initFloydGraph() {
                     arrPath[i][j] = arrPath[k][j];
                 }
             }
+
+   //cout<<"3-7:"<<arrDis[3][7]<<", 25-14: "<< arrDis[7][3]<<endl;
 }
 
 void Floyd::calcPath(int start, int end) {

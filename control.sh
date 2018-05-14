@@ -1,1 +1,1 @@
-rosrun robo_control control_node
+rosrun robo_control control_strategy_1_node
