@@ -533,7 +533,7 @@ int main(int argc, char **argv)
     RoboNav robo_nav;
     robo_nav.init();
 
-    //robo_nav.go_center();
+    robo_nav.go_center();
 
     ros::Subscriber cb_tar_pose = nh.subscribe("base/goal", 1, &RoboNav::cb_tar_pose, &robo_nav);
     ros::Subscriber cb_cur_pose = nh.subscribe("odom", 1, &RoboNav::cb_cur_pose, &robo_nav);

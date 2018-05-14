@@ -350,6 +350,7 @@ void RoboControl::read_xml_file()
     *************************************************************************/
     cv::FileStorage fs("/home/ubuntu/robot/src/robo_navigation/script/matrix.xml", cv::FileStorage::READ);
     fs["Point"] >> point_list;
+
 }
 
 int RoboControl::find_enemy_self_closest_point(double enemy_x, double enemy_y, double self_x, double self_y)
