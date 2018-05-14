@@ -718,7 +718,7 @@ VelInfo RoboControl::ctl_go_to_point(int mode, float goal_x, float goal_y, float
         {
             goal_yaw = -robo_ukf_enemy_information.orientation.z * 180.0 / PI;
         }
-        target_pose = ctl_track_enemy(goal_x, goal_y, goal_yaw);
+        target_pose = ctl_track_enemy(goal_x, goal_y, 0);
         sent_mcu_vel_result.mode = 1;
     }
     if (mode == 3)

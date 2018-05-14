@@ -147,7 +147,7 @@ void RoboNav::cb_tar_pose(const geometry_msgs::Pose &msg)
             if (first_dis + second_dis < 1.2 * pairwise_dis)
             {
                 path.erase(path.begin());
-                //ROS_INFO("First point erased!!!!!!!!!!!!!!!!");
+                ROS_INFO("First point erased!!!!!!!!!!!!!!!!");
             }
         }
     }
@@ -160,7 +160,7 @@ void RoboNav::cb_cur_pose(const nav_msgs::Odometry &msg)
 {
     cur_pose = msg.pose.pose;
     double dis = sqrt(pow(cur_pose.position.x - cur_goal.position.x, 2) + pow(cur_pose.position.y - cur_goal.position.y, 2));
-    double dyaw = abs(tf::getYaw(cur_pose.orientation) - tf::getYaw(cur_goal.orientation));
+    double dyaw = abs(tf::getYaw(cur_pose.orientation) - tf::getYaw(cur_goal.orientation));  //bug
     if (dis < 0.5 && dyaw < 0.05)
     {
         state.data = true;
@@ -174,16 +174,16 @@ void RoboNav::cb_cur_pose(const nav_msgs::Odometry &msg)
 void RoboNav::cb_enemy_infor(const robo_perception::ObjectList &msg)
 {
     enemy_information = msg;
-    
+
     //update path
     int index = 0, i = 0, j = 0;
-    while (index<enemy_information.num)
+    while (index < enemy_information.num)
     {
         //string::size_type idx;
         //idx = enemy_information.object[index].team.data.find("death");
         //if (idx != string::npos)
         {
-            
+
             double pt_x = enemy_information.object[index].globalpose.position.x;
             double pt_y = enemy_information.object[index].globalpose.position.y;
             vector<float> dis_list;
@@ -194,23 +194,23 @@ void RoboNav::cb_enemy_infor(const robo_perception::ObjectList &msg)
                 float distance = sqrt(dx * dx + dy * dy);
                 dis_list.push_back(distance);
             }
-            
+
             vector<float>::iterator smallest = min_element(dis_list.begin(), dis_list.end());
             int n = distance(dis_list.begin(), smallest);
             double small_dis = *smallest;
-            ROS_INFO("center: %f",dis_list.back());
-            
-            if(center_flag==0&&dis_list.back()<0.25)
+            ROS_INFO("center: %f", dis_list.back());
+
+            if (center_flag == 0 && dis_list.back() < 0.25)
             {
                 ROS_INFO("Enemy on bonus zone, Attack!!!");
-                if(path.size()>0)
-                path.erase(path.begin());
+                if (path.size() > 0)
+                    path.erase(path.begin());
                 state.data = true;
             }
             //too close to a point, all the path related to this point should be invalid
             if (*smallest < 0.25)
             {
-                
+
                 int i = 0;
                 while (i != n)
                 {
@@ -220,24 +220,23 @@ void RoboNav::cb_enemy_infor(const robo_perception::ObjectList &msg)
             }
             else //not too close to a point, find the invalid path
             {
-                
+
                 dis_list.erase(smallest);
                 vector<float>::iterator smallestK = min_element(dis_list.begin(), dis_list.end());
                 int m = distance(dis_list.begin(), smallestK);
                 double pairwise_dis = sqrt(pow(point_list.at<double>(n, 0) - point_list.at<double>(m, 0), 2) + pow(point_list.at<double>(n, 1) - point_list.at<double>(m, 1), 2)) * 1.0 / 100;
                 if (small_dis + *smallestK < pairwise_dis * 1.2)
-                    floyd.updateFloydGraph(i, n, 100);
+                    floyd.updateFloydGraph(i, n, 10000);
             }
         }
         index++;
-        
-        if (index == enemy_information.num - 1)
-        {
-            floyd.initFloydGraph();
-            path_plan(cur_goal);
-        }
+
+        // if (index == enemy_information.num - 1)
+        // {
+        //     floyd.initFloydGraph();
+        //     path_plan(cur_goal);
+        // }
     }
-    
 }
 
 int RoboNav::findClosestPt(double x, double y)
@@ -264,7 +263,7 @@ void RoboNav::get_vel(geometry_msgs::Twist &msg_vel)
     double vel_x = 0;
     double vel_y = 0;
     double vel_yaw = 0;
-     double cur_yaw = tf::getYaw(cur_pose.orientation);
+    double cur_yaw = tf::getYaw(cur_pose.orientation);
 
     if (path.size() > 0)
     {
@@ -283,19 +282,59 @@ void RoboNav::get_vel(geometry_msgs::Twist &msg_vel)
             dx_flag = 1;
         if (abs(dy) < 0.10)
             dy_flag = 1;
-
+        vel_yaw=0;
         if (dx_flag && abs(dy) < 0.10)
         {
-            path.erase(path.begin());
-            dx_flag = 0;
-            dy_flag = 0;
+            //yaw control
+            double dyaw;
+            if (fix_angle > 0 && cur_yaw < 0 && (fix_angle - cur_yaw) > 3.14)
+            {
+                dyaw = -(cur_yaw + 6.28 - fix_angle);
+            }
+            else if (fix_angle < 0 && cur_yaw > 0 && (cur_yaw - fix_angle) > 3.14)
+            {
+                dyaw = fix_angle + 6.28 - cur_yaw;
+            }
+            else
+            {
+                dyaw = fix_angle - cur_yaw;
+            }
+            //ROS_INFO("cur_yaw: %f, dyaw %f ", cur_yaw, dyaw);
+            vel_yaw = pid_yaw.calc(dyaw);
+            if (abs(dyaw) < 0.05)
+            {
+                vel_yaw = 0;
+                path.erase(path.begin());
+                dx_flag = 0;
+                dy_flag = 0;
+            }
         }
 
         if (dy_flag && abs(dx) < 0.10)
         {
-            path.erase(path.begin());
-            dx_flag = 0;
-            dy_flag = 0;
+            //yaw control
+            double dyaw;
+            if (fix_angle > 0 && cur_yaw < 0 && (fix_angle - cur_yaw) > 3.14)
+            {
+                dyaw = -(cur_yaw + 6.28 - fix_angle);
+            }
+            else if (fix_angle < 0 && cur_yaw > 0 && (cur_yaw - fix_angle) > 3.14)
+            {
+                dyaw = fix_angle + 6.28 - cur_yaw;
+            }
+            else
+            {
+                dyaw = fix_angle - cur_yaw;
+            }
+            //ROS_INFO("cur_yaw: %f, dyaw %f ", cur_yaw, dyaw);
+            vel_yaw = pid_yaw.calc(dyaw);
+            if (abs(dyaw) < 0.05)
+            {
+                vel_yaw = 0;
+                path.erase(path.begin());
+                dx_flag = 0;
+                dy_flag = 0;
+            }
         }
 
         {
@@ -321,25 +360,6 @@ void RoboNav::get_vel(geometry_msgs::Twist &msg_vel)
                 vel_y = 0;
         }
     }
-
-//yaw control
-    double dyaw;
-    if (fix_angle > 0 && cur_yaw < 0 && (fix_angle - cur_yaw) > 3.14)
-    {
-        dyaw = -(cur_yaw + 6.28 - fix_angle);
-    }
-    else if (fix_angle < 0 && cur_yaw > 0 && (cur_yaw - fix_angle) > 3.14)
-    {
-        dyaw = fix_angle + 6.28 - cur_yaw;
-    }
-    else
-    {
-        dyaw = fix_angle - cur_yaw;
-    }
-    //ROS_INFO("cur_yaw: %f, dyaw %f ", cur_yaw, dyaw);
-    vel_yaw = pid_yaw.calc(dyaw);
-    if (abs(dyaw) < 0.05)
-        vel_yaw = 0;
 
     msg_vel.linear.x = vel_x;
     msg_vel.linear.y = vel_y;
