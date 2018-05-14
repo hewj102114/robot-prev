@@ -101,7 +101,7 @@ int main(int argc, char **argv)
         ROS_INFO("OK8");
         robo_ctl.sent_mcu_gimbal_msg = robo_ctl.ctl_stack_enemy(); // 云台一直转动, 无论干什么都是一直转动
         ROS_INFO("OK9");
-        robo_ctl.sendMCUMsg(1, robo_ctl.sent_mcu_gimbal_msg.mode,
+        robo_ctl.sendMCUMsg(robo_ctl.sent_mcu_vel_msg.mode, robo_ctl.sent_mcu_gimbal_msg.mode,
                             robo_ctl.sent_mcu_vel_msg.v_x, robo_ctl.sent_mcu_vel_msg.v_y, robo_ctl.sent_mcu_vel_msg.v_yaw,
                             robo_ctl.sent_mcu_gimbal_msg.yaw, robo_ctl.sent_mcu_gimbal_msg.pitch, robo_ctl.sent_mcu_gimbal_msg.global_z);
         ros::spinOnce();
