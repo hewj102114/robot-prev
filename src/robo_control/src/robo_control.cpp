@@ -690,6 +690,23 @@ GambalInfo RoboControl::ctl_stack_enemy()
     return sent_mcu_gimbal_result;
 }
 
+VelInfo RoboControl::ctl_chassis(int mode, float goal_x, float goal_y, float goal_yaw)
+{
+    geometry_msgs::Pose target_pose;
+    target_pose.position.x = 0;
+    target_pose.position.y = 0;
+    target_pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
+    
+    float yaw = ctl_yaw(goal_yaw);
+    VelInfo ctl_go_to_point(mode, goal_x, goal_y);
+}
+
+float RoboControl::ctl_yaw(float goal_yaw)
+{
+
+}
+
+
 VelInfo RoboControl::ctl_go_to_point(int mode, float goal_x, float goal_y, float goal_yaw)
 {
     /*************************************************************************
