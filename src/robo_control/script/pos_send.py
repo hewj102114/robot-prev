@@ -13,6 +13,7 @@ import time
 pos_x = pos_y = pos_yaw = speed_x = speed_y = 0
 remainingHP = bulletCount = 0
 target_global_x = target_global_y = target_rel_x = target_rel_y = 0
+enemy_num = 0
 
 
 def callback_odom(msg):
@@ -35,12 +36,14 @@ def callback_gameinfo(game):
 
 
 def callback_target(target):
-    global target_global_x, target_global_y, target_rel_x, target_rel_y
+    global target_global_x, target_global_y, target_rel_x, target_rel_y,enemy_num
     target_global_x = target.object[0].globalpose.position.x
     target_global_x = target.object[0].globalpose.position.y
 
     target_rel_x = target.object[0].pose.position.x
     target_rel_y = target.object[0].pose.position.y
+
+    enemy_num = np.shape(target.object)[0]
 
 
 
@@ -58,8 +61,8 @@ addr = (ip, 10001)
 rate = rospy.Rate(60)
 while not rospy.is_shutdown():
     
-    data_send = "%f %f %f %f %f %f %f %d %d" % (
-    pos_x, pos_y, pos_yaw, target_global_x, target_global_y, target_rel_x, target_rel_y, remainingHP, bulletCount)
+    data_send = "%f %f %f %f %f %f %f %d %d %d" % (
+    pos_x, pos_y, pos_yaw, target_global_x, target_global_y, target_rel_x, target_rel_y, remainingHP, bulletCount, enemy_num)
 
     s.sendto(data_send.encode(encoding="utf-8"), addr)
     rate.sleep()
