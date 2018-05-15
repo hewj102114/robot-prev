@@ -21,9 +21,10 @@ using namespace std;
 #define DEFFENCE 0.40
 #define DEFF_CORNER 0.50
 
+int local_adj=0; //0 for close local adjustment, 1 for open.
+int update_path=0; //0 for don't update, 1 for update
 int GO_CENTER_S = 1; //0 direct go center; 1: using one other point
-
-int center_flag = 3;
+int center_flag = 1;   //0 for have not go center, 1 have been center
 class RoboNav
 {
   public:
@@ -130,15 +131,14 @@ void RoboNav::path_plan(geometry_msgs::Pose &target)
 void RoboNav::cb_tar_pose(const geometry_msgs::Pose &msg)
 {
     cur_goal = msg;
-    // ROS_INFO("pre-tar %f  %f",pre_goal.position.x - msg->position.x ,pre_goal.position.y - msg->position.y);
     if (cur_pose.position.y == 0 & cur_pose.position.x == 0)
         return;
-    //ROS_INFO("dis: %f", dis);
-    //if ((abs(pre_goal.position.x - msg.position.x) > 0.1) || (abs(pre_goal.position.y - msg.position.y) > 0.1))
+    if ((abs(pre_goal.position.x - msg.position.x) > 0.1) || (abs(pre_goal.position.y - msg.position.y) > 0.1))
     {
         path_plan(cur_goal);
         pre_goal.position.x = msg.position.x;
         pre_goal.position.y = msg.position.y;
+        dyaw_flag=0;   //new goal, rotation first.
         if (path.size() > 1)
         {
             int first_index = path[0], second_index = path[1];
@@ -196,7 +196,7 @@ void RoboNav::cb_enemy_infor(const robo_perception::ObjectList &msg)
 
     //update path
     int index = -1, i = 0, j = 0;
-    while (index > enemy_information.num)
+    while (index < enemy_information.num&&update_path)
     {
         //string::size_type idx;
         //idx = enemy_information.object[index].team.data.find("death");
@@ -286,12 +286,16 @@ void RoboNav::get_vel(geometry_msgs::Twist &msg_vel)
 
     //yaw control
     double dyaw = calyaw(fix_angle, cur_yaw);
-    ROS_INFO("cur_yaw: %f, dyaw %f ", cur_yaw, dyaw);
-    vel_yaw = pid_yaw.calc(dyaw);
-    if (abs(dyaw) < 0.05)
+    ROS_INFO("cur_yaw: %f, fixed_yaw: %f, dyaw %f ", cur_yaw,fix_angle, dyaw);
+
+    if (dyaw_flag == 0)
     {
-        vel_yaw = 0;
-        dyaw_flag = 1;
+        vel_yaw = pid_yaw.calc(dyaw);
+        if (abs(dyaw) < 0.05)
+        {
+            vel_yaw = 0;
+            dyaw_flag = 1;
+        }
     }
 
     if (path.size() > 0 && dyaw_flag)
@@ -313,20 +317,27 @@ void RoboNav::get_vel(geometry_msgs::Twist &msg_vel)
             dy_flag = 1;
         if (dx_flag && abs(dy) < 0.10)
         {
-            path.erase(path.begin());
-            dx_flag = 0;
-            dy_flag = 0;
+            dy_flag = 1;
         }
 
         if (dy_flag && abs(dx) < 0.10)
         {
+            dx_flag = 1;
+        }
+        ROS_INFO("dx_flag: %d  dy_flag : %d",dx_flag,dy_flag);
+        if (dx_flag == 1 && dy_flag == 1)
+        {
             path.erase(path.begin());
             dx_flag = 0;
             dy_flag = 0;
+            vel_x=0;
+            vel_y=0;    //if enter, it could stop. Test!!!!   if not, find which one is not 1...
         }
-
-        vel_x = pid_x.calc(dx);
-        vel_y = pid_y.calc(dy);
+        else
+        {
+            vel_x = pid_x.calc(dx);
+            vel_y = pid_y.calc(dy);
+        }
 
         if (GO_CENTER_S == 1)
             if (center_flag == 0 && path[0] == 32 && dx > 1.8)
@@ -341,11 +352,6 @@ void RoboNav::get_vel(geometry_msgs::Twist &msg_vel)
             else if (center_flag == 0 && path[0] == 32 && dx <= 1.52 && dy > 0.20)
                 vel_x = 0;
         }
-
-        if (abs(dx) < 0.05)
-            vel_x = 0;
-        if (abs(dy) < 0.05)
-            vel_y = 0;
     }
     else
     {
@@ -407,97 +413,99 @@ geometry_msgs::Pose RoboNav::adjustlocalgoal(double yaw)
     double local_goal_x = point_list.at<double>(local_goal_index, 1) * 1.0 / 100;
     local_goal.position.y = point_list.at<double>(local_goal_index, 0) * 1.0 / 100;
     local_goal.position.x = point_list.at<double>(local_goal_index, 1) * 1.0 / 100;
-
-    double dis_x = abs(local_goal_x - cur_pose.position.x);
-    double dis_y = abs(local_goal_y - cur_pose.position.y);
-
-    pid_x.stop = false;
-    pid_y.stop = false;
-
-    if (obs_min[0][0] < 0.34) //front
-        pid_y.stop = true;
-    else if (obs_min[0][0] < DEFFENCE)
+    if (local_adj)   //open or close local adjustment
     {
-        local_goal.position.x = local_goal_x - 0.1 * cos(yaw);
-        local_goal.position.y = local_goal_y - 0.1 * sin(yaw);
-    }
+        double dis_x = abs(local_goal_x - cur_pose.position.x);
+        double dis_y = abs(local_goal_y - cur_pose.position.y);
 
-    if (obs_min[0][1] < 0.45) //front-left
-    {
-        if (dis_x > dis_y)
-            pid_x.stop = true;
-        if (dis_x < dis_y)
+        pid_x.stop = false;
+        pid_y.stop = false;
+
+        if (obs_min[0][0] < 0.34) //front
             pid_y.stop = true;
-    }
-    else if (obs_min[0][1] < DEFF_CORNER)
-    {
-        local_goal.position.x = local_goal_x + 0.1 * (sin(yaw) - cos(yaw));
-        local_goal.position.y = local_goal_y - 0.1 * (cos(yaw) + sin(yaw));
-    }
+        else if (obs_min[0][0] < DEFFENCE)
+        {
+            local_goal.position.x = local_goal_x - 0.1 * cos(yaw);
+            local_goal.position.y = local_goal_y - 0.1 * sin(yaw);
+        }
 
-    if (obs_min[1][0] < 0.28)
-        pid_x.stop = true;
-    else if (obs_min[1][0] < DEFFENCE) //left
-    {
-        local_goal.position.x = local_goal_x + 0.1 * sin(yaw);
-        local_goal.position.y = local_goal_y - 0.1 * cos(yaw);
-    }
+        if (obs_min[0][1] < 0.45) //front-left
+        {
+            if (dis_x > dis_y)
+                pid_x.stop = true;
+            if (dis_x < dis_y)
+                pid_y.stop = true;
+        }
+        else if (obs_min[0][1] < DEFF_CORNER)
+        {
+            local_goal.position.x = local_goal_x + 0.1 * (sin(yaw) - cos(yaw));
+            local_goal.position.y = local_goal_y - 0.1 * (cos(yaw) + sin(yaw));
+        }
 
-    if (obs_min[1][1] < 0.45) //left-back
-    {
-        if (dis_x > dis_y)
+        if (obs_min[1][0] < 0.28)
             pid_x.stop = true;
-        if (dis_x < dis_y)
+        else if (obs_min[1][0] < DEFFENCE) //left
+        {
+            local_goal.position.x = local_goal_x + 0.1 * sin(yaw);
+            local_goal.position.y = local_goal_y - 0.1 * cos(yaw);
+        }
+
+        if (obs_min[1][1] < 0.45) //left-back
+        {
+            if (dis_x > dis_y)
+                pid_x.stop = true;
+            if (dis_x < dis_y)
+                pid_y.stop = true;
+        }
+        else if (obs_min[1][1] < DEFF_CORNER)
+        {
+            local_goal.position.x = local_goal_x + 0.1 * (cos(yaw) + sin(yaw));
+            local_goal.position.y = local_goal_y + 0.1 * (sin(yaw) - cos(yaw));
+        }
+
+        if (obs_min[2][0] < 0.34)
             pid_y.stop = true;
-    }
-    else if (obs_min[1][1] < DEFF_CORNER)
-    {
-        local_goal.position.x = local_goal_x + 0.1 * (cos(yaw) + sin(yaw));
-        local_goal.position.y = local_goal_y + 0.1 * (sin(yaw) - cos(yaw));
-    }
+        else if (obs_min[2][0] < DEFFENCE) //back
+        {
+            local_goal.position.x = local_goal_x + 0.1 * cos(yaw);
+            local_goal.position.y = local_goal_y + 0.1 * sin(yaw);
+        }
 
-    if (obs_min[2][0] < 0.34)
-        pid_y.stop = true;
-    else if (obs_min[2][0] < DEFFENCE) //back
-    {
-        local_goal.position.x = local_goal_x + 0.1 * cos(yaw);
-        local_goal.position.y = local_goal_y + 0.1 * sin(yaw);
-    }
+        if (obs_min[2][1] < 0.45) //back-right
+        {
+            if (dis_x > dis_y)
+                pid_x.stop = true;
+            if (dis_x < dis_y)
+                pid_y.stop = true;
+        }
+        else if (obs_min[2][1] < DEFF_CORNER)
+        {
+            local_goal.position.x = local_goal_x + 0.1 * (cos(yaw) - sin(yaw));
+            local_goal.position.y = local_goal_y + 0.1 * (sin(yaw) + cos(yaw));
+        }
 
-    if (obs_min[2][1] < 0.45) //back-right
-    {
-        if (dis_x > dis_y)
+        if (obs_min[3][0] < 0.28)
             pid_x.stop = true;
-        if (dis_x < dis_y)
-            pid_y.stop = true;
-    }
-    else if (obs_min[2][1] < DEFF_CORNER)
-    {
-        local_goal.position.x = local_goal_x + 0.1 * (cos(yaw) - sin(yaw));
-        local_goal.position.y = local_goal_y + 0.1 * (sin(yaw) + cos(yaw));
+        else if (obs_min[3][0] < DEFFENCE)
+        {
+            local_goal.position.x = local_goal_x - 0.1 * sin(yaw);
+            local_goal.position.y = local_goal_y + 0.1 * cos(yaw);
+        }
+
+        if (obs_min[3][1] < 0.45) //right-front
+        {
+            if (dis_x > dis_y)
+                pid_x.stop = true;
+            if (dis_x < dis_y)
+                pid_y.stop = true;
+        }
+        else if (obs_min[3][1] < DEFF_CORNER)
+        {
+            local_goal.position.x = local_goal_x - 0.1 * (cos(yaw) + sin(yaw));
+            local_goal.position.y = local_goal_y + 0.1 * (cos(yaw) - sin(yaw));
+        }
     }
 
-    if (obs_min[3][0] < 0.28)
-        pid_x.stop = true;
-    else if (obs_min[3][0] < DEFFENCE)
-    {
-        local_goal.position.x = local_goal_x - 0.1 * sin(yaw);
-        local_goal.position.y = local_goal_y + 0.1 * cos(yaw);
-    }
-
-    if (obs_min[3][1] < 0.45) //right-front
-    {
-        if (dis_x > dis_y)
-            pid_x.stop = true;
-        if (dis_x < dis_y)
-            pid_y.stop = true;
-    }
-    else if (obs_min[3][1] < DEFF_CORNER)
-    {
-        local_goal.position.x = local_goal_x - 0.1 * (cos(yaw) + sin(yaw));
-        local_goal.position.y = local_goal_y + 0.1 * (cos(yaw) - sin(yaw));
-    }
-    center_flag=0;
     if (center_flag == 0)
     {
         pid_x.stop = false;
