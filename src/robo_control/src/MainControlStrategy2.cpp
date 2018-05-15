@@ -87,9 +87,6 @@ int main(int argc, char **argv)
             robo_ctl.sent_mcu_vel_msg = robo_ctl.ctl_chassis(1, 1, robo_point1[0], robo_point1[1], robo_point1[2]);
             if (robo_ctl.finish_navigation.data == 1) // 到达指点站位点, 跳转到下一个状态
             {
-                robo_ctl.sent_mcu_vel_msg.v_x = 0;
-                robo_ctl.sent_mcu_vel_msg.v_y = 0;
-                robo_ctl.sent_mcu_vel_msg.v_yaw = 0;
                 stackCenterEnemyStart = ros::Time::now();
                 work_state = 2;
             }
@@ -122,6 +119,24 @@ int main(int argc, char **argv)
         case 3:
         {
             ROS_INFO("Stage 3: Go back home!!!!!!");
+            robo_ctl.sent_mcu_vel_msg = robo_ctl.ctl_chassis(1, 1, robo_point2[0], robo_point2[1], 0);
+            ros::Duration timeout(0.1); // Timeout of 2 seconds
+			while (ros::Time::now() - waitNavigationFlagStart < timeout)
+			{
+				robo_ctl.mustRunInWhile();
+				ros::spinOnce();
+			}
+            if (robo_ctl.finish_navigation.data == 1) // 到达指点站位点, 跳转到下一个状态, 必须完成
+            {
+                waitNavigationFlagStart = ros::Time::now();
+                robo_ctl.finish_navigation.data = 0;
+                work_state = 4;
+            }
+            break;
+        }
+        case 4:
+        {
+            ROS_INFO("Stage 3: Go back home!!!!!!");
             robo_ctl.sent_mcu_vel_msg = robo_ctl.ctl_chassis(1, 1, robo_point2[0], robo_point2[1], robo_point2[2]);
             ros::Duration timeout(0.1); // Timeout of 2 seconds
 			while (ros::Time::now() - waitNavigationFlagStart < timeout)
@@ -131,10 +146,7 @@ int main(int argc, char **argv)
 			}
             if (robo_ctl.finish_navigation.data == 1) // 到达指点站位点, 跳转到下一个状态, 必须完成
             {
-                robo_ctl.sent_mcu_vel_msg.v_x = 0;
-                robo_ctl.sent_mcu_vel_msg.v_y = 0;
-                robo_ctl.sent_mcu_vel_msg.v_yaw = 0;
-                work_state = 4;
+                work_state = 5;
             }
             break;
         }
@@ -143,13 +155,13 @@ int main(int argc, char **argv)
 		*  4. 蹲点, 蹲守基地
 		*
 		*************************************************************************/
-        case 4:
+        case 5:
         {
             ROS_INFO("Stage 4: Stay at home!!!!!!");
             robo_ctl.sent_mcu_vel_msg = robo_ctl.ctl_chassis(1, 1, robo_point2[0], robo_point2[1], robo_point2[2]);
             if (robo_ctl.last_enemy_target.red_num == 1) // 看到敌人, 冲上去打
             {
-                work_state = 5;
+                work_state = 6;
             }
             break;
         }
@@ -158,17 +170,17 @@ int main(int argc, char **argv)
 		*  5. 检测到敌人, 跟着打
 		*
 		*************************************************************************/
-        case 5:
+        case 6:
         {
             ROS_INFO("Stage 5: Tracking and stacking enemy!!!!!!");
             robo_ctl.sent_mcu_vel_msg = robo_ctl.ctl_chassis(2, 1, robo_ctl.last_enemy_target_pose.position.x, robo_ctl.last_enemy_target_pose.position.y, 0);
             if (robo_ctl.last_enemy_target.red_num == 0)
             {
-                work_state = 4;
+                work_state = 5;
             }
             break;
         }
-        case 6:
+        case 7:
         {
             ROS_INFO("Case for test!");
             break;

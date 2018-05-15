@@ -69,6 +69,11 @@ void RoboControl::cb_front_dis(const std_msgs::Float64 &msg)
     front_dis = msg.data;
 }
 
+void RoboControl::cb_team_info(const robo_control::TeamInfo &msg)
+{
+    team_info = msg;
+}
+
 void RoboControl::main_control_init()
 {
     // init sent_mcu_gimbal_msg
@@ -143,9 +148,7 @@ void RoboControl::readMCUData()
     uwb_odom_msg.child_frame_id = "base_link";
     uwb_odom_msg.pose.pose.position.x = msg_frommcu.uwb_x * 1.0 / 100;
     uwb_odom_msg.pose.pose.position.y = msg_frommcu.uwb_y * 1.0 / 100;
-    uwb_odom_msg.pose.pose.orientation =
-        tf::createQuaternionMsgFromRollPitchYaw(
-            0, 0, (msg_frommcu.uwb_yaw * 1.0 / 100) * PI * 2 / 360);
+    uwb_odom_msg.pose.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, (msg_frommcu.uwb_yaw * 1.0 / 100) * PI * 2 / 360);
     //     uwb_odom_msg.twist.twist.linear.x = msg_frommcu.wheel_odom_x
     //     * 1.0 / 10000; uwb_odom_msg.twist.twist.linear.y =
     //     msg_frommcu.wheel_odom_y * 1.0 / 10000;
@@ -206,9 +209,9 @@ void RoboControl::sendMCUMsg(int _chassis_mode, int _gimbal_mode,
 
 void RoboControl::sendNavGoal(geometry_msgs::Pose &target_pose)
 {
-    target_pose.position.x = 2.6;
-    target_pose.position.y = 3.1;
-    target_pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, 1.57);
+    // target_pose.position.x = 2.6;
+    // target_pose.position.y = 3.1;
+    // target_pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, 1.57);
     ROS_INFO("tar: %f  %f  %f  %f", target_pose.position.x,
              target_pose.position.y, nav_current_goal.position.x,
              nav_current_goal.position.y);
@@ -395,6 +398,19 @@ float RoboControl::calculator_enemy_angle(double enemy_x, double enemy_y, double
 void RoboControl::cb_ukf_enemy_information(const nav_msgs::Odometry &msg)
 {
     robo_ukf_enemy_information = msg.pose.pose;
+
+    if (robo_ukf_enemy_information.position.z != 999)
+    {
+        SELF_ENEMY_TARGET_DISTANCE = robo_ukf_enemy_information.position.z;
+    }
+    if (robo_ukf_enemy_information.orientation.z != 999)
+    {
+        ENEMY_REALSENSE_ANGLE = -robo_ukf_enemy_information.orientation.z * 180.0 / PI;
+    }
+    if (robo_ukf_enemy_information.orientation.y != 999)
+    {
+        ENEMY_GLOBAL_ANGLE = robo_ukf_enemy_information.orientation.y * 180.0 / PI;
+    }
 }
 
 robo_perception::ObjectList RoboControl::sendEnemyTarget(const robo_perception::ObjectList &msg, robo_perception::ObjectList &last_enemy_target_msg)
@@ -449,32 +465,48 @@ robo_perception::ObjectList RoboControl::sendEnemyTarget(const robo_perception::
         if (armor_info_target.armor_count == 0)
         {
             // 此 if 表明 realsense 和 armor 都没有检测到
-            if (fishcam_msg.size == 10000)
+            if (fishcam_msg.size == 0)
             {
                 // realsense, armor 和 fishcam 都没有检测到, 读取队友的 enemytarget
-                // if ()
-                // {
-                //     // 队友有发布 enemytrget, 将这个 enemytarget 作为自己的 enemytarget 发布
-                    
-                // }   
-                // else
-                // {
-                //     // 队友没有发布 enemytarget, 发布 Nothing
-                //     temp_object.team.data = "Nothing";
-                //     temp_object.basepose.position.x = 0;
-                //     temp_object.basepose.position.y = 0;
-                //     temp_object.basepose.position.z = 0;
+                if (team_info.enemyNum == 1)
+                {
+                    // 队友有发布 enemytrget, 将这个 enemytarget 作为自己的 enemytarget 发布
+                    enemy_odom_target_msg.num = 1;
+                    enemy_odom_target_msg.red_num = 1;
+                    temp_object.team.data = "red0";
+                    temp_object.basepose.position.x = team_info.targetRelative.position.x;
+                    temp_object.basepose.position.y = team_info.targetRelative.position.y;
+                    temp_object.basepose.position.z = 0;
 
-                //     temp_object.globalpose.position.x = 0;
-                //     temp_object.globalpose.position.y = 0;
-                //     temp_object.globalpose.position.z = 0;
-                //     ROS_INFO("OK16");
+                    temp_object.globalpose.position.x = team_info.targetGlobal.position.x;
+                    temp_object.globalpose.position.y = team_info.targetGlobal.position.y;
+                    temp_object.globalpose.position.z = 0;
 
-                //     result_enemy_target.object.push_back(temp_object);
-                //     enemy_odom_target_msg = result_enemy_target;
-                //     pub_enemy_target.publish(enemy_odom_target_msg);
-                //     return result_enemy_target;
-                // }
+                    result_enemy_target.object.push_back(temp_object);
+                    enemy_odom_target_msg = result_enemy_target;
+                    enemy_odom_target_msg.object[0].pose.orientation.w = 1;
+                    enemy_odom_target_msg.object[0].globalpose.orientation.w = 1;
+                    pub_enemy_target.publish(enemy_odom_target_msg);
+                    return result_enemy_target;
+                }
+                else
+                {
+                    // 队友没有发布 enemytarget, 发布 Nothing
+                    temp_object.team.data = "Nothing";
+                    temp_object.basepose.position.x = 0;
+                    temp_object.basepose.position.y = 0;
+                    temp_object.basepose.position.z = 0;
+
+                    temp_object.globalpose.position.x = 0;
+                    temp_object.globalpose.position.y = 0;
+                    temp_object.globalpose.position.z = 0;
+                    ROS_INFO("OK16");
+
+                    result_enemy_target.object.push_back(temp_object);
+                    enemy_odom_target_msg = result_enemy_target;
+                    pub_enemy_target.publish(enemy_odom_target_msg);
+                    return result_enemy_target;
+                }
             }
             else
             {
@@ -643,6 +675,28 @@ GambalInfo RoboControl::ctl_stack_enemy()
     int realsense_max_lost_num = 20; // realsense detection 最大允许的丢帧数量
                                      // 2. realsense和armor都没有看到的时候, 并且丢帧数量小于 400, 维持云台角度
     ROS_INFO("armor_lost_counter: %d", armor_lost_counter);
+
+    if (armor_info_msg.mode == 3)
+    {
+        if (SELF_ENEMY_TARGET_DISTANCE > 2.5 || SELF_ENEMY_TARGET_DISTANCE == 0)
+        {
+            sent_mcu_gimbal_result.mode = 6; // 低速
+        }
+        else if (SELF_ENEMY_TARGET_DISTANCE > 1.5)
+        {
+            sent_mcu_gimbal_result.mode = 7; // 中速
+        }
+        else
+        {
+            sent_mcu_gimbal_result.mode = 8; // 高速
+        }
+
+        sent_mcu_gimbal_result.yaw = armor_info_msg.yaw + robo_ukf_enemy_information.orientation.w;
+        sent_mcu_gimbal_result.pitch = armor_info_msg.pitch;
+        sent_mcu_gimbal_result.global_z = armor_info_msg.global_z * 100;
+        return sent_mcu_gimbal_result;
+    }
+
     if (enemy_information.red_num == 0)
     {
         // realsense 没有检测到, 计数
@@ -803,16 +857,14 @@ float RoboControl::ctl_yaw(int mode, float goal_yaw)
             {
                 yaw = yaw * PI / 180.0;
                 last_yaw = yaw;
-                // return yaw;
-                return 0;
+                return yaw;
             }
         }
         if (fishcam_msg.size > 0)
         {
             // 鱼眼相机发现目标
             yaw = fishcam_msg.target[0].z;
-            // return yaw;
-            return 0;
+            return yaw;
         }
         //return goal_yaw;
     }
@@ -821,7 +873,7 @@ float RoboControl::ctl_yaw(int mode, float goal_yaw)
         // 没有子弹. 永不转身
     }
     // return last_yaw;
-    return 0;
+    return goal_yaw;
 }
 
 PointInfo RoboControl::ctl_go_to_point(int mode, float goal_x, float goal_y)

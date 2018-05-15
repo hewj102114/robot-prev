@@ -31,6 +31,7 @@
 #include "robo_vision/ArmorInfo.h"
 #include "robo_vision/FishCamInfo.h"
 #include "robo_control/GameInfo.h"
+#include "robo_control/TeamInfo.h"
 #include "robo_perception/ObjectList.h"
 #include "robo_perception/Object.h"
 
@@ -149,6 +150,7 @@ class RoboControl
     PointInfo ctl_go_to_point(int mode, float goal_x, float goal_y);
     VelInfo ctl_chassis(int xy_mode, int yaw_mode, float goal_x, float goal_y, float goal_yaw);
     void mustRunInWhile();
+    void cb_team_info(const robo_control::TeamInfo &msg);
 
     ros::NodeHandle *pnh;
 
@@ -241,6 +243,13 @@ class RoboControl
 
     robo_vision::FishCamInfo fishcam_msg;
     float last_yaw;
+
+    float SELF_ENEMY_TARGET_DISTANCE = 0;
+    float ENEMY_REALSENSE_ANGLE = 0;
+    float ENEMY_GLOBAL_ANGLE = 0;
+
+    robo_control::TeamInfo team_info;
+
 
     // yaw: 1 -> 2
     KeyPoint KEY_POINT[30] = {

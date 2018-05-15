@@ -21,7 +21,7 @@ add_message_files(
   FILES
   GameInfo.msg
   TeamInfo.msg
-)
+) 
 
 generate_messages(
   DEPENDENCIES

@@ -21,7 +21,7 @@ using namespace std;
 #define DEFFENCE 0.40
 #define DEFF_CORNER 0.50
 
-int local_adj=0; //0 for close local adjustment, 1 for open.
+int local_adj=1; //0 for close local adjustment, 1 for open.
 int update_path=0; //0 for don't update, 1 for update
 int GO_CENTER_S = 1; //0 direct go center; 1: using one other point
 int center_flag = 1;   //0 for have not go center, 1 have been center
@@ -180,8 +180,8 @@ void RoboNav::cb_cur_pose(const nav_msgs::Odometry &msg)
     cur_pose = msg.pose.pose;
     
     double dis = sqrt(pow(cur_pose.position.x - cur_goal.position.x, 2) + pow(cur_pose.position.y - cur_goal.position.y, 2));
-    //double dyaw = abs(calyaw(fix_angle, tf::getYaw(cur_pose.orientation)));  
-    if (dis < 0.5) // && dyaw < 0.05)
+    double dyaw = abs(calyaw(fix_angle, tf::getYaw(cur_pose.orientation)));  
+    if (dis < 0.5 && dyaw < 0.05)
     {
         state.data = true;
         center_flag = 1; //first time use
@@ -289,7 +289,7 @@ void RoboNav::get_vel(geometry_msgs::Twist &msg_vel)
     double dyaw = calyaw(fix_angle, cur_yaw);
     ROS_INFO("cur_yaw: %f, fixed_yaw: %f, dyaw %f ", cur_yaw,fix_angle, dyaw);
 
-    if (dyaw_flag == 0)
+    //if (dyaw_flag == 0)
     {
         vel_yaw = pid_yaw.calc(dyaw);
         if (abs(dyaw) < 0.05)
@@ -304,6 +304,7 @@ void RoboNav::get_vel(geometry_msgs::Twist &msg_vel)
     if (path.size() > 0 && dyaw_flag)
     {
         //obstacle
+        vel_yaw=0.0;
         geometry_msgs::Pose cur_local_goal = adjustlocalgoal(cur_yaw);
         double cur_local_goal_y = cur_local_goal.position.y;
         double cur_local_goal_x = cur_local_goal.position.x;
@@ -361,7 +362,7 @@ void RoboNav::get_vel(geometry_msgs::Twist &msg_vel)
         vel_x=0;
         vel_y=0;
     }
-    ROS_INFO("vel_x: %f, vel_y: %f", vel_x, vel_y);
+    ROS_INFO("vel_x: %f, vel_y: %f，vel_yaw: %f", vel_x, vel_y,vel_yaw);
 
     msg_vel.linear.x = vel_x;
     msg_vel.linear.y = vel_y;
