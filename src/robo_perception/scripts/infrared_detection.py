@@ -172,7 +172,6 @@ def filter_min_max(xmin, xmax, ymin, ymax):
             ymax = ymax + 1
     return xmin, xmax, ymin, ymax
 
-# TODO: 检测结果不稳定, 1. 通过装甲板的颜色识别. 2. 通过车身整体颜色识别
 def enemy_self_identify(rgb_image, robo_bboxes, show_image=False, save_image = False):
     enemy = []
     for robo_bbox in robo_bboxes:
@@ -316,6 +315,9 @@ def TsDet_callback(infrared_image, pointcloud):
             robo_idx = robot_final_idx[0, _]
             robo_bbox = final_boxes[robo_idx, :]
             cx, cy, w, h = robo_bbox[0], robo_bbox[1], robo_bbox[2], robo_bbox[3]   # 获取车bbox的坐标, 宽度和高度
+            if cx < 106 || cx > 723 || cy < 65 || cy > 373:
+                print("this robot bbox is illegal, over edge!!!")
+                continue
 
             armor_bbox = judge_armor(robo_bbox, final_boxes, armor_idx)
 
@@ -323,6 +325,10 @@ def TsDet_callback(infrared_image, pointcloud):
             t_some_start = time.time()
             # armor_bbox = robo_bbox
             armor_cx, armor_cy, armor_w, armor_h = armor_bbox[0], armor_bbox[1], armor_bbox[2], armor_bbox[3]
+            if armor_cx < 106 || armor_cx > 723 || armor_cy < 65 || armor_cy > 373:
+                print("this armor bbox is illegal, over edge!!!")
+                continue
+            
             robo_bboxes.append(robo_bbox)
             armor_bboxes.append(armor_bbox)
             # 用于提取点云的范围大小
@@ -416,7 +422,7 @@ def TsDet_callback(infrared_image, pointcloud):
             #0.22 means rs_relative_distance_to_base_link = 22CM
             global_x = np.cos(theta + odom_yaw)*np.sqrt(rs_x**2 +rs_y**2) + 0.22*np.cos(odom_yaw) + odom_pos_x
             global_y = np.sin(theta + odom_yaw)*np.sqrt(rs_x**2 +rs_y**2) + 0.22*np.sin(odom_yaw) + odom_pos_y                
-            #print rs_global_x,rs_global_y,'odom_yaw',odom_yaw,'theta',theta,'odom_pos_x',odom_pos_x,'odom_pos_y',odom_pos_y
+            #print rs_global_x,rs_global_y,'odom_yaw',odom_yaw,'theta',theta,'odom_pos_x',odom_pos_x,' odom_pos_y',odom_pos_y
 
             #append target relative and global position
             enemy = Object()
