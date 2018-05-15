@@ -446,20 +446,51 @@ robo_perception::ObjectList RoboControl::sendEnemyTarget(const robo_perception::
         if (armor_info_target.armor_count == 0)
         {
             // 此 if 表明 realsense 和 armor 都没有检测到
-            temp_object.team.data = "Nothing";
-            temp_object.basepose.position.x = 0;
-            temp_object.basepose.position.y = 0;
-            temp_object.basepose.position.z = 0;
+            if (fishcam_msg.size == 0)
+            {
+                // realsense, armor 和 fishcam 都没有检测到, 读取队友的 enemytarget
+                if ()
+                {
+                    // 队友有发布 enemytrget, 将这个 enemytarget 作为自己的 enemytarget 发布
+                    
+                }   
+                else
+                {
+                    // 队友没有发布 enemytarget, 发布 Nothing
+                    temp_object.team.data = "Nothing";
+                    temp_object.basepose.position.x = 0;
+                    temp_object.basepose.position.y = 0;
+                    temp_object.basepose.position.z = 0;
 
-            temp_object.globalpose.position.x = 0;
-            temp_object.globalpose.position.y = 0;
-            temp_object.globalpose.position.z = 0;
-            ROS_INFO("OK16");
+                    temp_object.globalpose.position.x = 0;
+                    temp_object.globalpose.position.y = 0;
+                    temp_object.globalpose.position.z = 0;
+                    ROS_INFO("OK16");
 
-            result_enemy_target.object.push_back(temp_object);
-            enemy_odom_target_msg = result_enemy_target;
-            pub_enemy_target.publish(enemy_odom_target_msg);
-            return result_enemy_target;
+                    result_enemy_target.object.push_back(temp_object);
+                    enemy_odom_target_msg = result_enemy_target;
+                    pub_enemy_target.publish(enemy_odom_target_msg);
+                    return result_enemy_target;
+                }
+            }
+            else
+            {
+                // realsense, armor 没有检测到, 鱼眼检测到, 发布 Nothing
+                temp_object.team.data = "Nothing";
+                temp_object.basepose.position.x = 0;
+                temp_object.basepose.position.y = 0;
+                temp_object.basepose.position.z = 0;
+
+                temp_object.globalpose.position.x = 0;
+                temp_object.globalpose.position.y = 0;
+                temp_object.globalpose.position.z = 0;
+                ROS_INFO("OK16");
+
+                result_enemy_target.object.push_back(temp_object);
+                enemy_odom_target_msg = result_enemy_target;
+                pub_enemy_target.publish(enemy_odom_target_msg);
+                return result_enemy_target;
+            }
         }
         else
         {

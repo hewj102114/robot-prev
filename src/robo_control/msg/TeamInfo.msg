@@ -2,6 +2,7 @@ Header header
 int16 connection
 int16 remainingHP
 int16 bulletCount
+int16 enemyNum
 geometry_msgs/Pose pose
 geometry_msgs/Pose setting
 geometry_msgs/Pose targetRelative
