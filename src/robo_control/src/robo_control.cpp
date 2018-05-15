@@ -206,6 +206,9 @@ void RoboControl::sendMCUMsg(int _chassis_mode, int _gimbal_mode,
 
 void RoboControl::sendNavGoal(geometry_msgs::Pose &target_pose)
 {
+    target_pose.position.x = 2.6;
+    target_pose.position.y = 3.1;
+    target_pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, 1.57);
     ROS_INFO("tar: %f  %f  %f  %f", target_pose.position.x,
              target_pose.position.y, nav_current_goal.position.x,
              nav_current_goal.position.y);
