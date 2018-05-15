@@ -8,7 +8,7 @@ import socket
 import time
 
 
-RECV_LEN = 9
+RECV_LEN = 10
 lost_counter = 0
 LOST_TRESH = 50
 
