@@ -350,7 +350,6 @@ void RoboControl::read_xml_file()
     *************************************************************************/
     cv::FileStorage fs("/home/ubuntu/robot/src/robo_navigation/script/matrix.xml", cv::FileStorage::READ);
     fs["Point"] >> point_list;
-
 }
 
 int RoboControl::find_enemy_self_closest_point(double enemy_x, double enemy_y, double self_x, double self_y)
@@ -606,9 +605,28 @@ GambalInfo RoboControl::ctl_stack_enemy()
     *  函数返回：云台控制模式和角度 result -> mode, yaw, pitch, global_z
     *  TODO: 1. 添加摇头功能, 2. 考虑打击标志位如何放置, 理论上 armor mode = 3 时就应该开枪, 优先级高于一切
     *************************************************************************/
-    int armor_max_lost_num = 5; // armor detection 最大允许的丢帧数量
-                                // 2. realsense和armor都没有看到的时候, 并且丢帧数量小于 400, 维持云台角度
+    int armor_max_lost_num = 5;      // armor detection 最大允许的丢帧数量
+    int realsense_max_lost_num = 20; // realsense detection 最大允许的丢帧数量
+                                     // 2. realsense和armor都没有看到的时候, 并且丢帧数量小于 400, 维持云台角度
     ROS_INFO("armor_lost_counter: %d", armor_lost_counter);
+    if (enemy_information.red_num == 0)
+    {
+        // realsense 没有检测到, 计数
+        realsense_lost_counter++;
+    }
+    else
+    {
+        // 一旦 realsense 检测到, 清零
+        realsense_lost_counter = 0;
+    }
+    if (armor_lost_counter > armor_max_lost_num && realsense_lost_counter > realsense_max_lost_num)
+    {
+        ROS_INFO("mode = 1");
+        sent_mcu_gimbal_result.mode = 1;
+        sent_mcu_gimbal_result.yaw = 0;
+        sent_mcu_gimbal_result.pitch = 0;
+        sent_mcu_gimbal_result.global_z = 0;
+    }
 
     if (armor_lost_counter > armor_max_lost_num && armor_info_msg.mode == 1)
     {
@@ -623,7 +641,6 @@ GambalInfo RoboControl::ctl_stack_enemy()
 
         //     first_in_realsense_flag = true;
         // }
-        ROS_INFO("OK23");
 
         if (enemy_information.red_num > 0 && first_in_realsense_flag == true)
         {
@@ -687,6 +704,7 @@ GambalInfo RoboControl::ctl_stack_enemy()
             sent_mcu_gimbal_result.global_z = armor_info_msg.global_z * 100;
 
             armor_lost_counter = 0;
+            realsense_lost_counter = 0;
             detected_armor_flag = true;
             first_in_armor_flag = false;
         }
@@ -892,4 +910,16 @@ geometry_msgs::Point RoboControl::ctl_track_enemy(double enemy_x, double enemy_y
     target_pose.x = point_list.at<double>(n, 1) / 100.0;
     target_pose.y = point_list.at<double>(n, 0) / 100.0;
     return target_pose;
+}
+
+void RoboControl::mustRunInWhile()
+{
+    readMCUData();
+    last_enemy_target = sendEnemyTarget(enemy_information, last_enemy_target); // 目标会一直发送, 通过 'Nothing' 来判断有没有敌人
+    last_enemy_target_pose.position.x = last_enemy_target.object[0].globalpose.position.x;
+    last_enemy_target_pose.position.y = last_enemy_target.object[0].globalpose.position.y;
+    sent_mcu_gimbal_msg = ctl_stack_enemy(); // 云台一直转动, 无论干什么都是一直转动
+    sendMCUMsg(1, sent_mcu_gimbal_msg.mode,
+               sent_mcu_vel_msg.v_x, sent_mcu_vel_msg.v_y, sent_mcu_vel_msg.v_yaw,
+               sent_mcu_gimbal_msg.yaw, sent_mcu_gimbal_msg.pitch, sent_mcu_gimbal_msg.global_z);
 }

@@ -78,9 +78,26 @@ target_link_libraries(control_node
   ${catkin_LIBRARIES}
 )
 
+add_executable(control_strategy_1_node src/MainControlStrategy1.cpp src/robo_control.cpp src/serial.cpp)
+add_dependencies(control_strategy_1_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(control_strategy_1_node
+  ${catkin_LIBRARIES}
+)
 
 add_executable(control_strategy_2_node src/MainControlStrategy2.cpp src/robo_control.cpp src/serial.cpp)
 add_dependencies(control_strategy_2_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(control_strategy_2_node
+  ${catkin_LIBRARIES}
+)
+
+add_executable(control_strategy_3_node src/MainControlStrategy3.cpp src/robo_control.cpp src/serial.cpp)
+add_dependencies(control_strategy_3_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(control_strategy_3_node
+  ${catkin_LIBRARIES}
+)
+
+add_executable(control_strategy_4_node src/MainControlStrategy4.cpp src/robo_control.cpp src/serial.cpp)
+add_dependencies(control_strategy_4_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(control_strategy_4_node
   ${catkin_LIBRARIES}
 )

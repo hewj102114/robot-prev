@@ -1,5 +1,5 @@
 <launch>
-<!-- <node pkg="robo_vision" type="read_camera" name="read_usbcamera" output="screen">
+<node pkg="robo_vision" type="read_camera" name="read_usbcamera" output="screen">
     <param name="image_topic" value="/usbcamera/image"/>
     <param name="dev_name" value="/dev/ttyVideo0"/>
     <param name="image_width" value="640"/>
@@ -10,7 +10,7 @@
     <param name="intrinsic_file" value="/home/ubuntu/robot/src/robo_vision/param/camera-02-640.xml"/>
     <param name="offset_anlge_x" value="-2.0"/>
     <param name="offset_anlge_y" value="-0.7"/>
-</node> -->
+</node>
 <node pkg="robo_vision" type="read_camera" name="read_fisheye_left" output="screen">
     <param name="image_topic" value="/fishcamera/left/image"/>
     <param name="dev_name" value="/dev/ttyVideoL"/>
