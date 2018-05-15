@@ -78,7 +78,7 @@ list(APPEND SOURCEFILES
 )
 
 add_executable(${PROJECT_NAME}
-    src/nav_testt.cpp
+    src/robo_navigation_node.cpp
     ${SOURCEFILES}
 )
 

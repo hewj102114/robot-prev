@@ -178,7 +178,7 @@ double calyaw(double set_yaw, double cur_yaw)
 void RoboNav::cb_cur_pose(const nav_msgs::Odometry &msg)
 {
     cur_pose = msg.pose.pose;
-    ROS_INFO("SUB %f %f",cur_pose.position.x,cur_pose.position.y);
+    
     double dis = sqrt(pow(cur_pose.position.x - cur_goal.position.x, 2) + pow(cur_pose.position.y - cur_goal.position.y, 2));
     //double dyaw = abs(calyaw(fix_angle, tf::getYaw(cur_pose.orientation)));  
     if (dis < 0.5) // && dyaw < 0.05)
@@ -296,6 +296,8 @@ void RoboNav::get_vel(geometry_msgs::Twist &msg_vel)
         {
             vel_yaw = 0;
             dyaw_flag = 1;
+            dx_flag=0;
+            dy_flag=0;
         }
     }
 
@@ -403,8 +405,6 @@ void RoboNav::cb_scan(const sensor_msgs::LaserScan::ConstPtr &scan)
         obs_min[i][0] = Filter_ScanData(index, scan);
         obs_min[i][1] = Filter_ScanData(indexC, scan);
     }
-    //ROS_INFO("min Front: %f ", obs_min[0][0]);
-    //ROS_INFO("min corner Front: %f, Left: %f  Behind: %f, Right: %f ", obs_min[0][1], obs_min[1][1], obs_min[2][1], obs_min[3][1]);
 }
 
 geometry_msgs::Pose RoboNav::adjustlocalgoal(double yaw)

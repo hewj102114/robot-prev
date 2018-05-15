@@ -119,7 +119,7 @@ def UKFinit():
     ukf.R = np.diag([p_std_x, v_std_x, a_std_x, p_std_y, v_std_y, a_std_y])
     ukf.Q[0:3, 0:3] = Q_discrete_white_noise(3, dt=dt, var=0.2)
     ukf.Q[3:6, 3:6] = Q_discrete_white_noise(3, dt=dt, var=0.2)
-    ukf.P = np.diag([8, 1.2, 0.5, 5, 1.2,0.5])
+    ukf.P = np.diag([8, 1.6, 0.5, 5, 1.6,0.5])
 
 
 def callback_imu(imu):
@@ -212,10 +212,12 @@ def callback_wheel(wheel):
     # print 'before',vel_wheel_x_ori, vel_wheel_y_ori
 
     # project to the map link
-    vel_wheel_x = vel_wheel_x_ori * \
-        np.cos(ukf_yaw) + vel_wheel_y_ori * np.sin(ukf_yaw)
-    vel_wheel_y = vel_wheel_x_ori * \
-        np.sin(ukf_yaw) + vel_wheel_y_ori * np.cos(ukf_yaw)
+    vel_wheel_x = vel_wheel_x_ori * np.cos(ukf_yaw) - vel_wheel_y_ori * np.sin(ukf_yaw)
+    vel_wheel_y = vel_wheel_x_ori * np.sin(ukf_yaw) + vel_wheel_y_ori * np.cos(ukf_yaw)
+    
+    # print 'vel_wheel_x_ori',vel_wheel_x_ori,'vel_wheel_y_ori',vel_wheel_y_ori
+    # print 'vel_wheel_x',vel_wheel_x,'vel_wheel_y', vel_wheel_y,'ukf_yaw',ukf_yaw
+
     # if vel_wheel_x != 0 and vel_wheel_y!=0:
     # print 'after',vel_wheel_x,  vel_wheel_y ,'yaw',ukf_yaw
 
@@ -240,7 +242,7 @@ subwheel = rospy.Subscriber(
 subyaw = rospy.Subscriber('ukf/yaw', Odometry, callback_yaw)
 
 pub_ukf_pos = rospy.Publisher('ukf/pos', Odometry, queue_size=1)
-pub_odom = rospy.Publisher('odom', Odometry, queue_size=10)
+pub_odom = rospy.Publisher('odom', Odometry, queue_size=1)
 
 rate = rospy.Rate(80)  # 80hz
 while not rospy.is_shutdown():
@@ -252,7 +254,7 @@ while not rospy.is_shutdown():
     ukf_vel_x = ukf.x[1]
     ukf_out_pos_y = ukf.x[3]
     ukf_vel_y = ukf.x[4]
-    # print ukf.x
+
     print 'UWB x:', pos_uwb_x, 'UWB y:', pos_uwb_y
     print 'FUSE x', pos_fuse_x, 'FUSE y', pos_fuse_y
     print 'KALMAN x', ukf_out_pos_x, 'KALMAN y', ukf_out_pos_y

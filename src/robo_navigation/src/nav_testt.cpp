@@ -12,19 +12,19 @@ public:
 };
 
 void NN::cb_odom(const nav_msgs::Odometry &msg){
-    ROS_INFO("SUB  %f  %f",msg.pose.pose.position.x,msg.pose.pose.position.y);
+    ROS_INFO("SUB  %lf  %f  %f",msg.header.stamp,msg.pose.pose.position.x,msg.pose.pose.position.y);
 }
 
 void cc(const nav_msgs::Odometry &msg){
-    ROS_INFO("SUB  %f  %f",msg.pose.pose.position.x,msg.pose.pose.position.y);
+    ROS_INFO("SUB %lf  %f  %f",msg.header.stamp.toSec(),msg.pose.pose.position.x,msg.pose.pose.position.y);
 }
 
 int main(int argc,char** argv){
     ros::init(argc,argv,"nav_test");
     ros::NodeHandle nh;
 
-    NN n(&nh);
-    ros::Subscriber cb_tar_pose = nh.subscribe("odom", 10,&cc);
+    // NN n(&nh);
+    ros::Subscriber cb_tar_pose = nh.subscribe("odom", 1,&cc);
 
     ros::spin();
 }
