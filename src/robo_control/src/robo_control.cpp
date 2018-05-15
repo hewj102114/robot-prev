@@ -449,7 +449,7 @@ robo_perception::ObjectList RoboControl::sendEnemyTarget(const robo_perception::
         if (armor_info_target.armor_count == 0)
         {
             // 此 if 表明 realsense 和 armor 都没有检测到
-            if (fishcam_msg.size == 0)
+            if (fishcam_msg.size == 10000)
             {
                 // realsense, armor 和 fishcam 都没有检测到, 读取队友的 enemytarget
                 // if ()

@@ -240,7 +240,7 @@ subwheel = rospy.Subscriber(
 subyaw = rospy.Subscriber('ukf/yaw', Odometry, callback_yaw)
 
 pub_ukf_pos = rospy.Publisher('ukf/pos', Odometry, queue_size=1)
-pub_odom = rospy.Publisher('odom', Odometry, queue_size=1)
+pub_odom = rospy.Publisher('odom', Odometry, queue_size=10)
 
 rate = rospy.Rate(80)  # 80hz
 while not rospy.is_shutdown():

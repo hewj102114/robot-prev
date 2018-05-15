@@ -78,7 +78,7 @@ list(APPEND SOURCEFILES
 )
 
 add_executable(${PROJECT_NAME}
-    src/${PROJECT_NAME}_node.cpp
+    src/nav_testt.cpp
     ${SOURCEFILES}
 )
 

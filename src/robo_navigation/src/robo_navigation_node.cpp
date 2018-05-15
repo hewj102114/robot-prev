@@ -53,7 +53,7 @@ class RoboNav
     double obs_min[4][2]; //90,+-60
     int dx_flag, dy_flag, dyaw_flag;
 
-    RoboNav();
+    RoboNav(ros::NodeHandle* _pnh);
     void init();
     void cb_tar_pose(const geometry_msgs::Pose &msg);
     void cb_cur_pose(const nav_msgs::Odometry &msg);
@@ -67,10 +67,10 @@ class RoboNav
     geometry_msgs::Pose adjustlocalgoal(double yaw);
 };
 
-RoboNav::RoboNav()
+RoboNav::RoboNav(ros::NodeHandle* _pnh)
 {
     obs_min[4][2] = {0};
-    pnh = new ros::NodeHandle("");
+    pnh = _pnh;
     pub_local_goal_pose = pnh->advertise<geometry_msgs::PoseStamped>("nav/local_goal", 1);
     tf_ = new tf::TransformListener();
 }
@@ -178,6 +178,7 @@ double calyaw(double set_yaw, double cur_yaw)
 void RoboNav::cb_cur_pose(const nav_msgs::Odometry &msg)
 {
     cur_pose = msg.pose.pose;
+    ROS_INFO("SUB %f %f",cur_pose.position.x,cur_pose.position.y);
     double dis = sqrt(pow(cur_pose.position.x - cur_goal.position.x, 2) + pow(cur_pose.position.y - cur_goal.position.y, 2));
     //double dyaw = abs(calyaw(fix_angle, tf::getYaw(cur_pose.orientation)));  
     if (dis < 0.5) // && dyaw < 0.05)
@@ -539,7 +540,7 @@ int main(int argc, char **argv)
     ros::init(argc, argv, "robo_navigation");
     ros::NodeHandle nh;
 
-    RoboNav robo_nav;
+    RoboNav robo_nav(&nh);
     robo_nav.init();
 
     robo_nav.go_center();
@@ -552,7 +553,7 @@ int main(int argc, char **argv)
     ros::Publisher pub_vel = nh.advertise<geometry_msgs::Twist>("cmd_vel", 1);
     ros::Publisher pub_state = nh.advertise<std_msgs::Bool>("nav_state", 1);
     ros::Publisher pub_front = nh.advertise<std_msgs::Float64>("front_dis", 1);
-    ros::Rate rate(50);
+    ros::Rate rate(80);
 
     while (ros::ok())
     {

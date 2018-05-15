@@ -43,7 +43,7 @@ def kitti_squeezeDet_config():
   mc.VISUAL = True
   mc.DRAW_BOX = False
   mc.DRAW_Video = False
-  mc.SHOW = False
+  mc.SHOW = True
   
   mc.DEBUG = False
   
