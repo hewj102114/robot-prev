@@ -52,8 +52,10 @@ bool Serial::ReadData(struct RobotMsgFromMCU& msg) {
     if (data_start) {
       *ptr = tmp[0];
       ptr++;
-      // printf("%X\n",tmp[0]);
+       
+       //printf("size %d\n",sizeof(msg));
       if (tmp[0] == 0x7E) {
+        //printf("%X %X\n",tmp[0],buf[sizeof(msg)+1]);
         if (buf[sizeof(msg)+1] == 0x7E) {
           //printf("ready\n");
           // printf ("%X %X%X %X%X %X%X %X%X %X%X %X%X %X%X

@@ -2,7 +2,7 @@
 *** 程序开启顺序
 1. control. 根据策略选择 launch 文件, 如果想要查找段错误, 使用 rosrun
 2. odom. 
-3. navigation.
+3. navigation. 必须等 odom 的数据稳定之后才能开启, 注意看规划的路径对不对
 4. realsense. 如果杀掉本程序, 需要重新插拔 realsense
 5. infrared_detection.
 6. vision. 

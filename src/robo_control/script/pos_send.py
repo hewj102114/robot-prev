@@ -8,6 +8,7 @@ from robo_perception.msg import ObjectList
 from tf.transformations import quaternion_from_euler, euler_from_quaternion
 import socket
 import time
+import numpy as np
 
 
 pos_x = pos_y = pos_yaw = speed_x = speed_y = 0

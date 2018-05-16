@@ -16,6 +16,7 @@
 #include "sensor_msgs/LaserScan.h"
 #include "robo_navigation/PID.h"
 #include "robo_perception/ObjectList.h"
+#include "robo_control/TeamInfo.h"
 using namespace std;
 #define OFFSET 0 //rplidar front offset
 #define DEFFENCE 0.40
@@ -33,7 +34,7 @@ class RoboNav
     Floyd floyd;
     Mat arrArcs, point_list;
     vector<int> path;
-    geometry_msgs::Pose cur_pose;
+    geometry_msgs::Pose cur_pose,team_pose;
     geometry_msgs::Pose pre_goal, cur_goal;
     double fix_angle;
     PIDctrl pid_x;
@@ -57,6 +58,7 @@ class RoboNav
     void init();
     void cb_tar_pose(const geometry_msgs::Pose &msg);
     void cb_cur_pose(const nav_msgs::Odometry &msg);
+    void cb_teaminfo(const robo_control::TeamInfo &msg);
     int findClosestPt(double x, double y);
     void path_plan(geometry_msgs::Pose &target);
     void get_vel(geometry_msgs::Twist &msg_vel);
@@ -188,6 +190,14 @@ void RoboNav::cb_cur_pose(const nav_msgs::Odometry &msg)
     }
     else
         state.data = false;
+}
+
+
+void RoboNav::cb_teaminfo(const robo_control::TeamInfo &msg)
+{
+    team_pose = msg.pose;
+   // ROS_INFO("recv");
+
 }
 
 // obstable avoidance
@@ -547,6 +557,7 @@ int main(int argc, char **argv)
 
     ros::Subscriber cb_tar_pose = nh.subscribe("base/goal", 1, &RoboNav::cb_tar_pose, &robo_nav);
     ros::Subscriber cb_cur_pose = nh.subscribe("odom", 1, &RoboNav::cb_cur_pose, &robo_nav);
+    ros::Subscriber cb__teaminfo = nh.subscribe("team/info", 1, &RoboNav::cb_teaminfo, &robo_nav);
     ros::Subscriber sub = nh.subscribe<sensor_msgs::LaserScan>("scan", 1, &RoboNav::cb_scan, &robo_nav);
     ros::Subscriber sub_enemy_info = nh.subscribe("infrared_detection/enemy_position", 1, &RoboNav::cb_enemy_infor, &robo_nav);
 

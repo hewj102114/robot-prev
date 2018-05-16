@@ -140,6 +140,7 @@ void RoboControl::readMCUData()
     game_msg.gimbalAngleYaw = msg_frommcu.gimbal_chassis_angle * 1.0 / 100;
     game_msg.gimbalAnglePitch = -msg_frommcu.gimbal_pitch_angle * 1.0 / 100;
     game_msg.bulletSpeed = msg_frommcu.bullet_speed * 1.0 / 1000;
+    game_msg.RFID = msg_frommcu.rfid_flag;
     pub_game_info.publish(game_msg);
 
     nav_msgs::Odometry uwb_odom_msg;
@@ -677,27 +678,27 @@ GambalInfo RoboControl::ctl_stack_enemy()
                                      // 2. realsense和armor都没有看到的时候, 并且丢帧数量小于 400, 维持云台角度
     ROS_INFO("armor_lost_counter: %d", armor_lost_counter);
 
-    // if (armor_info_msg.mode == 3)
-    // {
-    //     ROS_INFO("mode=3, stacking enemy");
-    //     if (SELF_ENEMY_TARGET_DISTANCE > 2 || SELF_ENEMY_TARGET_DISTANCE == 0)
-    //     {
-    //         sent_mcu_gimbal_result.mode = 6; // 低速
-    //     }
-    //     else if (SELF_ENEMY_TARGET_DISTANCE > 1.5)
-    //     {
-    //         sent_mcu_gimbal_result.mode = 7; // 中速
-    //     }
-    //     else
-    //     {
-    //         sent_mcu_gimbal_result.mode = 8; // 高速
-    //     }
+    if (armor_info_msg.mode == 3)
+    {
+        ROS_INFO("mode=3, stacking enemy");
+        if (SELF_ENEMY_TARGET_DISTANCE > 2 || SELF_ENEMY_TARGET_DISTANCE == 0)
+        {
+            sent_mcu_gimbal_result.mode = 6; // 低速
+        }
+        else if (SELF_ENEMY_TARGET_DISTANCE > 1.5)
+        {
+            sent_mcu_gimbal_result.mode = 7; // 中速
+        }
+        else
+        {
+            sent_mcu_gimbal_result.mode = 8; // 高速
+        }
 
-    //     sent_mcu_gimbal_result.yaw = armor_info_msg.yaw + robo_ukf_enemy_information.orientation.w;
-    //     sent_mcu_gimbal_result.pitch = armor_info_msg.pitch;
-    //     sent_mcu_gimbal_result.global_z = armor_info_msg.global_z * 100;
-    //     return sent_mcu_gimbal_result;
-    // }
+        sent_mcu_gimbal_result.yaw = armor_info_msg.yaw + robo_ukf_enemy_information.orientation.w;
+        sent_mcu_gimbal_result.pitch = armor_info_msg.pitch;
+        sent_mcu_gimbal_result.global_z = armor_info_msg.global_z * 100;
+        return sent_mcu_gimbal_result;
+    }
 
     if (enemy_information.red_num == 0)
     {
@@ -730,18 +731,6 @@ GambalInfo RoboControl::ctl_stack_enemy()
 
     if (armor_lost_counter > armor_max_lost_num && armor_info_msg.mode == 1)
     {
-        // realsense 和 armor 都没有看到的时候, 并且丢帧数量大于 400, 开始摇头
-        // if (enemy_information.red_num == 0 && armor_info_msg.mode == 1)
-        // {
-        //     ROS_INFO("mode = 1");
-        //     sent_mcu_gimbal_result.mode = 1;
-        //     sent_mcu_gimbal_result.yaw = 0;
-        //     sent_mcu_gimbal_result.pitch = 0;
-        //     sent_mcu_gimbal_result.global_z = 0;
-
-        //     first_in_realsense_flag = true;
-        // }
-
         if (enemy_information.red_num > 0 && first_in_realsense_flag == true)
         {
             // realsense看到, armor没看到, 并且丢帧数量大于400帧, realsense引导云台转动
@@ -875,22 +864,18 @@ float RoboControl::ctl_yaw(int mode, float goal_yaw)
                 return yaw;
             }
         }
-        // if()
-        // {
-            
-        // }
         ros::Duration timeout(3);
         if (fishcam_msg.size > 0 && ros::Time::now() - fishCamRotateStart > timeout)
         {
             if (fishcam_msg.size == 2)
             {
-                if(fishcam_msg.target[0].z > fishcam_msg.target[1].z)
+                if (fishcam_msg.target[0].z > fishcam_msg.target[1].z)
                 {
                     yaw_index = 0;
                 }
                 else
                 {
-                    yaw_index = 1;                    
+                    yaw_index = 1;
                 }
             }
             else

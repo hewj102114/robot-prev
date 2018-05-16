@@ -5,3 +5,4 @@ int16 bulletCount
 float32 gimbalAngleYaw
 float32 gimbalAnglePitch
 float32 bulletSpeed
+int16 RFID
