@@ -672,9 +672,9 @@ GambalInfo RoboControl::ctl_stack_enemy()
     *  函数返回：云台控制模式和角度 result -> mode, yaw, pitch, global_z
     *  TODO: 1. 添加摇头功能, 2. 考虑打击标志位如何放置, 理论上 armor mode = 3 时就应该开枪, 优先级高于一切
     *************************************************************************/
-    int armor_max_lost_num = 70; // armor detection 最大允许的丢帧数量
-    int armor_around_max_lost_num = 140;
-    int realsense_max_lost_num = 80; // realsense detection 最大允许的丢帧数量
+    int armor_max_lost_num = 150; // armor detection 最大允许的丢帧数量
+    int armor_around_max_lost_num = 150;
+    int realsense_max_lost_num = 150; // realsense detection 最大允许的丢帧数量
                                      // 2. realsense和armor都没有看到的时候, 并且丢帧数量小于 400, 维持云台角度
     ROS_INFO("armor_lost_counter: %d", armor_lost_counter);
 

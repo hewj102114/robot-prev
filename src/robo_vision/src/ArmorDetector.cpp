@@ -137,7 +137,7 @@ void ArmorDetector::findContourInEnemyColor(vector<RotatedRect> &contours_rect)
 		RotatedRect rect = minAreaRect(*it);
 
 		rect = adjustRRect(rect);
-		cout<<"contour : h:"<<rect.size.height<< "w:"<<rect.size.width<<endl;
+		//cout<<"contour : h:"<<rect.size.height<< "w:"<<rect.size.width<<endl;
 		//The smallest height of light bar
 		if (rect.size.height < _para.min_light_height || rect.size.width < _para.min_light_width)
 		{
@@ -147,7 +147,7 @@ void ArmorDetector::findContourInEnemyColor(vector<RotatedRect> &contours_rect)
 			rect.points(vertices);
 			for (int i = 0; i < 4; i++)
 			{
-				line(tt, vertices[i], vertices[(i + 1) % 4], CV_RGB(0, 255, 0), 1);//green
+				line(tt, vertices[i], vertices[(i + 1) % 4], CV_RGB(0, 255, 0), 2);//green
 			}
 			cout<<"contour refused 0: h:"<<rect.size.height<< "w:"<<rect.size.width<<endl;
 #endif
@@ -206,7 +206,7 @@ void ArmorDetector::findContourInEnemyColor(vector<RotatedRect> &contours_rect)
 		//color
 		if (1.0 * sum_color / it->size() / 5 < _para.color_threshold)
 		{
-			//cout<<"color  "<<sum_color<<"    "<<it->size()<<"     "<<1.0*sum_color/it->size()/5<<endl;
+			cout<<"contour refused color  "<<sum_color<<"    "<<it->size()<<"     "<<1.0*sum_color/it->size()/5<<endl;
 			++it;
 			continue;
 		}
@@ -214,7 +214,7 @@ void ArmorDetector::findContourInEnemyColor(vector<RotatedRect> &contours_rect)
 		Rect rect2 = rect.boundingRect();
 		makeRectSafe(rect2, _src.size());
 		vector<vector<Point2i>> contours;
-		findContours(_max_color(rect2), contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
+		findContours(_g(rect2), contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
 
 		if (contours.size() == 1)
 		{
