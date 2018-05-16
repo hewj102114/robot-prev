@@ -600,7 +600,7 @@ while not rospy.is_shutdown():
         predict_xy_distance = np.sqrt(ukf_out_pos_x**2 +ukf_out_pos_y**2)
         predict_distance_to_enemy = np.sqrt(predict_xy_distance **2 + GUN_ARMOR_HEIGHT **2)
         #计算子弹飞行时间
-        T_FLY = distance_to_enemy / (BULLET_SPEED + BULLET_FRICTION)
+        T_FLY = rs_distance_to_enemy / (BULLET_SPEED + BULLET_FRICTION)
         PREDICT_T_FLY = predict_distance_to_enemy / (BULLET_SPEED + BULLET_FRICTION)
         #反解算出需要的预瞄角度
         verticle_angle = np.arctan(V_verticle * (T_RS_DELAY + T_FLY) / rs_distance_to_enemy)
@@ -635,7 +635,7 @@ while not rospy.is_shutdown():
         predict_distance_to_enemy = np.sqrt(predict_xy_distance **2 + GUN_ARMOR_HEIGHT **2)
 
         #计算子弹飞行时间
-        T_FLY = distance_to_enemy / (BULLET_SPEED + BULLET_FRICTION)
+        T_FLY = pnp_distance_to_enemy / (BULLET_SPEED + BULLET_FRICTION)
         PREDICT_T_FLY = predict_distance_to_enemy / (BULLET_SPEED + BULLET_FRICTION)
         #反解算出需要的预瞄角度
         verticle_angle = np.arctan(V_verticle * (T_PNP_DELAY + T_FLY) / pnp_distance_to_enemy)
