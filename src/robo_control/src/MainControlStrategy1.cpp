@@ -63,10 +63,10 @@ int main(int argc, char **argv)
         {
             ROS_INFO("Stage 1: Go to certain point!!!!!!");
             // point 1: (2.6, 3.1)
-            robo_ctl.sent_mcu_vel_msg = robo_ctl.ctl_chassis(1, 1, 2.6, 3.1, 0);
+            robo_ctl.sent_mcu_vel_msg = robo_ctl.ctl_chassis(1, 1, 8.0 - 3.3, 5.0 - 3.2, 0);
             if (robo_ctl.last_enemy_target.red_num == 1)
             {
-                work_state = 2;
+                work_state = 1;
             }
             break;
         }

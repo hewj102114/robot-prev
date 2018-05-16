@@ -287,7 +287,7 @@ void RoboNav::get_vel(geometry_msgs::Twist &msg_vel)
 
     //yaw control
     double dyaw = calyaw(fix_angle, cur_yaw);
-    ROS_INFO("cur_yaw: %f, fixed_yaw: %f, dyaw %f ", cur_yaw,fix_angle, dyaw);
+    //ROS_INFO("cur_yaw: %f, fixed_yaw: %f, dyaw %f ", cur_yaw,fix_angle, dyaw);
 
     //if (dyaw_flag == 0)
     {
@@ -300,6 +300,7 @@ void RoboNav::get_vel(geometry_msgs::Twist &msg_vel)
             dy_flag=0;
         }
     }
+    ROS_INFO(" cur_x %f , cur_y %f", cur_pose.position.x, cur_pose.position.y);
 
     if (path.size() > 0 && dyaw_flag)
     {
@@ -312,9 +313,7 @@ void RoboNav::get_vel(geometry_msgs::Twist &msg_vel)
         double dx = (cur_local_goal_x - cur_pose.position.x) * cos(cur_yaw) + (cur_local_goal_y - cur_pose.position.y) * sin(cur_yaw);
         double dy = -(cur_local_goal_x - cur_pose.position.x) * sin(cur_yaw) + (cur_local_goal_y - cur_pose.position.y) * cos(cur_yaw);
 
-        //ROS_INFO("angle: %f  fix angle : %f   dyaw %f",cur_yaw,fix_angle,dyaw);
-        ROS_INFO(" tar_x %f, tar_y %f,cur_x %f , cur_y %f, diff_x %f, diff_y %f", cur_local_goal_x, cur_local_goal_y,
-                 cur_pose.position.x, cur_pose.position.y, dx, dy);
+  
         if (abs(dx) < 0.10)
             dx_flag = 1;
         if (abs(dy) < 0.10)

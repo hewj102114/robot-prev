@@ -52,15 +52,15 @@ void cb_enemy(const robo_perception::ObjectList &msg)
     if (msg.object.size())
     {
 
-        if (msg.object[0].pose.position.x == 0)
+        if (msg.object[0].basepose.position.x == 0)
         {
             enemy_pose.x = 0;
             enemy_pose.y = 0;
         }
         else
         {
-            enemy_pose.x = msg.object[0].pose.position.x + 0.2;
-            enemy_pose.y = msg.object[0].pose.position.y;
+            enemy_pose.x = msg.object[0].basepose.position.x ;
+            enemy_pose.y = msg.object[0].basepose.position.y;
         }
     }
     else
@@ -189,6 +189,7 @@ int main(int argc, char *argv[])
                     angle_solver.position_in_camera.at<double>(2, 0) / 100.0;
                 armor_msg.angle.x = (angle_x + offset_anlge_x) * 100.0;
                 armor_msg.angle.y = (angle_y + offset_anlge_y) * 100.0;
+                ROS_INFO("Angle %f %f ",angle_x,angle_y);
 
                 tf::Stamped<tf::Pose> ident(tf::Transform(tf::createIdentityQuaternion(),
                                                           tf::Vector3(armor_msg.pose.x, armor_msg.pose.y, armor_msg.pose.z)),

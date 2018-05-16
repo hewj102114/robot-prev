@@ -219,6 +219,7 @@ class RoboControl
     int realsense_lost_counter = 0;     // realsense 丢帧数量
     bool armor_detction_state = false;      // armor 检测状态
     int armor_lost_counter = 0;             // armor 丢帧数量
+    int armor_around_lost_counter = 0; 
     bool armor_lost_state = false;          // armor 丢帧状态
 
     bool detected_armor_flag = false;
@@ -242,7 +243,7 @@ class RoboControl
     robo_vision::ArmorInfo armor_info_target;
 
     robo_vision::FishCamInfo fishcam_msg;
-    float last_yaw;
+    float last_yaw = -3.10;
 
     float SELF_ENEMY_TARGET_DISTANCE = 0;
     float ENEMY_REALSENSE_ANGLE = 0;

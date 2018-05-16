@@ -644,7 +644,12 @@ while not rospy.is_shutdown():
 
     if TARGET_RECETIVED == True: 
         #dyaw between target and gimbal
-        gimbal_dtheta = aimtheta - global_gimbal_yaw
+        gimbal_dtheta = global_aimtheta - global_gimbal_yaw
+        if gimbal_dtheta < -np.pi:
+            gimbal_dtheta = gimbal_dtheta + 2 * np.pi
+        if gimbal_dtheta > np.pi:
+            gimbal_dtheta = gimbal_dtheta - 2 * np.pi
+
         predict_pos.pose.pose.position.z = aim_relative_distance
         predict_pos.pose.pose.orientation.y = global_aimtheta
         #print 'gimbal_dtheta',gimbal_dtheta/np.pi*180,'aimtheta', aimtheta, 'global_gimbal_yaw',global_gimbal_yaw/np.pi*180

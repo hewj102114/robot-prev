@@ -11,7 +11,7 @@
     <param name="offset_anlge_x" value="-2.0"/>
     <param name="offset_anlge_y" value="-0.7"/>
 </node>
-<node pkg="robo_vision" type="read_camera" name="read_fisheye_left" output="screen">
+<node pkg="robo_vision" type="read_camera" name="read_fisheye_left">
     <param name="image_topic" value="/fishcamera/left/image"/>
     <param name="dev_name" value="/dev/ttyVideoL"/>
     <param name="image_width" value="1280"/>
@@ -19,7 +19,7 @@
     <param name="exposure_time" value="64"/>
 </node>
 
-<node pkg="robo_vision" type="read_camera" name="read_fisheye_right" output="screen">
+<node pkg="robo_vision" type="read_camera" name="read_fisheye_right" >
     <param name="image_topic" value="/fishcamera/right/image"/>
     <param name="dev_name" value="/dev/ttyVideoR"/>
     <param name="image_width" value="1280"/>
@@ -27,7 +27,7 @@
     <param name="exposure_time" value="64"/>
 </node>
 
-<node pkg="robo_vision" type="fishcamera_detect" name="fishcamera_detect" output="screen">
+<node pkg="robo_vision" type="fishcamera_detect" name="fishcamera_detect">
 <param name="cam_left_center" value="628"/>
 <param name="cam_left_radius" value="490"/>
 <param name="cam_left_up" value="235"/>

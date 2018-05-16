@@ -672,30 +672,32 @@ GambalInfo RoboControl::ctl_stack_enemy()
     *  TODO: 1. 添加摇头功能, 2. 考虑打击标志位如何放置, 理论上 armor mode = 3 时就应该开枪, 优先级高于一切
     *************************************************************************/
     int armor_max_lost_num = 5;      // armor detection 最大允许的丢帧数量
-    int realsense_max_lost_num = 20; // realsense detection 最大允许的丢帧数量
+    int armor_around_max_lost_num = 50;
+    int realsense_max_lost_num = 80; // realsense detection 最大允许的丢帧数量
                                      // 2. realsense和armor都没有看到的时候, 并且丢帧数量小于 400, 维持云台角度
     ROS_INFO("armor_lost_counter: %d", armor_lost_counter);
 
-    if (armor_info_msg.mode == 3)
-    {
-        if (SELF_ENEMY_TARGET_DISTANCE > 2.5 || SELF_ENEMY_TARGET_DISTANCE == 0)
-        {
-            sent_mcu_gimbal_result.mode = 6; // 低速
-        }
-        else if (SELF_ENEMY_TARGET_DISTANCE > 1.5)
-        {
-            sent_mcu_gimbal_result.mode = 7; // 中速
-        }
-        else
-        {
-            sent_mcu_gimbal_result.mode = 8; // 高速
-        }
+    // if (armor_info_msg.mode == 3)
+    // {
+    //     ROS_INFO("mode=3, stacking enemy");
+    //     if (SELF_ENEMY_TARGET_DISTANCE > 2 || SELF_ENEMY_TARGET_DISTANCE == 0)
+    //     {
+    //         sent_mcu_gimbal_result.mode = 6; // 低速
+    //     }
+    //     else if (SELF_ENEMY_TARGET_DISTANCE > 1.5)
+    //     {
+    //         sent_mcu_gimbal_result.mode = 7; // 中速
+    //     }
+    //     else
+    //     {
+    //         sent_mcu_gimbal_result.mode = 8; // 高速
+    //     }
 
-        sent_mcu_gimbal_result.yaw = armor_info_msg.yaw + robo_ukf_enemy_information.orientation.w;
-        sent_mcu_gimbal_result.pitch = armor_info_msg.pitch;
-        sent_mcu_gimbal_result.global_z = armor_info_msg.global_z * 100;
-        return sent_mcu_gimbal_result;
-    }
+    //     sent_mcu_gimbal_result.yaw = armor_info_msg.yaw + robo_ukf_enemy_information.orientation.w;
+    //     sent_mcu_gimbal_result.pitch = armor_info_msg.pitch;
+    //     sent_mcu_gimbal_result.global_z = armor_info_msg.global_z * 100;
+    //     return sent_mcu_gimbal_result;
+    // }
 
     if (enemy_information.red_num == 0)
     {
@@ -707,7 +709,17 @@ GambalInfo RoboControl::ctl_stack_enemy()
         // 一旦 realsense 检测到, 清零
         realsense_lost_counter = 0;
     }
-    if (armor_lost_counter > armor_max_lost_num && realsense_lost_counter > realsense_max_lost_num)
+    if (armor_info_msg.mode == 1)
+    {
+        // realsense 没有检测到, 计数
+        armor_around_lost_counter++;
+    }
+    else
+    {
+        // 一旦 realsense 检测到, 清零
+        armor_around_lost_counter = 0;
+    }
+    if (armor_around_lost_counter > armor_around_max_lost_num && realsense_lost_counter > realsense_max_lost_num)
     {
         ROS_INFO("mode = 1");
         sent_mcu_gimbal_result.mode = 1;
@@ -776,7 +788,7 @@ GambalInfo RoboControl::ctl_stack_enemy()
             {
                 sent_mcu_gimbal_result.mode = 2;
                 sent_mcu_gimbal_result.yaw = 0;
-                sent_mcu_gimbal_result.pitch = 25;
+                sent_mcu_gimbal_result.pitch = 32760;
                 sent_mcu_gimbal_result.global_z = 0;
             }
         }
@@ -845,35 +857,34 @@ float RoboControl::ctl_yaw(int mode, float goal_yaw)
     * TODO: 1. 测试, 2. 改回原来的返回值
     *************************************************************************/
     float yaw = 0;
-    float DEATH_AREA = 20;
+    float DEATH_AREA = 40;
     if (mode == 1)
     {
         // 正常模式
-        if (robo_ukf_enemy_information.orientation.y != 999)
-        {
-            // 有目标的时候才转
-            yaw = robo_ukf_enemy_information.orientation.y * 180.0 / PI;
-            if (abs(yaw - tf::getYaw(robo_ukf_pose.orientation)) > DEATH_AREA)
-            {
-                yaw = yaw * PI / 180.0;
-                last_yaw = yaw;
-                return yaw;
-            }
-        }
+        // if (robo_ukf_enemy_information.orientation.y != 999)
+        // {
+        //     // 有目标的时候才转
+        //     yaw = robo_ukf_enemy_information.orientation.y * 180.0 / PI;
+        //     if (abs(yaw - tf::getYaw(robo_ukf_pose.orientation)) > DEATH_AREA)
+        //     {
+        //         yaw = yaw * PI / 180.0;
+        //         last_yaw = yaw;
+        //         return yaw;
+        //     }
+        // }
         if (fishcam_msg.size > 0)
         {
             // 鱼眼相机发现目标
             yaw = fishcam_msg.target[0].z;
             return yaw;
         }
-        //return goal_yaw;
     }
     if (mode == 2)
     {
         // 没有子弹. 永不转身
     }
-    // return last_yaw;
-    return goal_yaw;
+    return last_yaw;
+    // return goal_yaw;
 }
 
 PointInfo RoboControl::ctl_go_to_point(int mode, float goal_x, float goal_y)
@@ -920,12 +931,14 @@ geometry_msgs::Point RoboControl::ctl_track_enemy(double enemy_x, double enemy_y
     *************************************************************************/
     float x_coefficient = 0.4, y_coefficient = 0.6;
     float self_coefficient = 0.4, enemy_coefficient = 0.6;
-    float min_distance = 0.7;
+    float min_distance = 0.6;
 
     float self_x = robo_ukf_pose.position.x;
     float self_y = robo_ukf_pose.position.y;
 
     geometry_msgs::Point target_pose;
+
+    // 小于 0.7m, 后退, 大于 0.7m 前进
 
     if (robo_ukf_enemy_information.position.z < min_distance)
     {
@@ -961,41 +974,44 @@ geometry_msgs::Point RoboControl::ctl_track_enemy(double enemy_x, double enemy_y
         }
         return target_pose;
     }
-
-    vector<float> dis_list;
-    ROS_INFO("OK24");
-
-    for (int i = 0; i < point_list.rows; i++)
+    else
     {
-        ROS_INFO("find_enemy_self_closest_point_start: %d", i);
-        float d_enemy_y = enemy_y - point_list.at<double>(i, 0) * 1.0 / 100;
-        float d_enemy_x = enemy_x - point_list.at<double>(i, 1) * 1.0 / 100;
+        vector<float> dis_list;
+        ROS_INFO("OK24");
 
-        float d_self_y = self_y - point_list.at<double>(i, 0) * 1.0 / 100;
-        float d_self_x = self_x - point_list.at<double>(i, 1) * 1.0 / 100;
-
-        float distance_enemy = sqrt(x_coefficient * d_enemy_x * d_enemy_x + y_coefficient * d_enemy_y * d_enemy_y);
-        float distance_self = sqrt(x_coefficient * d_self_x * d_self_x + y_coefficient * d_self_y * d_self_y);
-
-        if (distance_enemy < 0.5 || distance_enemy > 2.0)
+        for (int i = 0; i < point_list.rows; i++)
         {
-            distance_enemy = 1000.0;
+            ROS_INFO("find_enemy_self_closest_point_start: %d", i);
+            float d_enemy_y = enemy_y - point_list.at<double>(i, 0) * 1.0 / 100;
+            float d_enemy_x = enemy_x - point_list.at<double>(i, 1) * 1.0 / 100;
+
+            float d_self_y = self_y - point_list.at<double>(i, 0) * 1.0 / 100;
+            float d_self_x = self_x - point_list.at<double>(i, 1) * 1.0 / 100;
+
+            float distance_enemy = sqrt(x_coefficient * d_enemy_x * d_enemy_x + y_coefficient * d_enemy_y * d_enemy_y);
+            float distance_self = sqrt(x_coefficient * d_self_x * d_self_x + y_coefficient * d_self_y * d_self_y);
+
+            if (distance_enemy < 0.7 || distance_enemy > 2.0)
+            {
+                distance_enemy = 1000.0;
+            }
+
+            dis_list.push_back(self_coefficient * distance_self + enemy_coefficient * distance_enemy);
+            ROS_INFO("find_enemy_self_closest_point_end: %d", i);
         }
+        ROS_INFO("OK25");
 
-        dis_list.push_back(self_coefficient * distance_self + enemy_coefficient * distance_enemy);
-        ROS_INFO("find_enemy_self_closest_point_end: %d", i);
+        vector<float>::iterator smallest = min_element(dis_list.begin(), dis_list.end());
+        ROS_INFO("OK26");
+
+        int n = distance(dis_list.begin(), smallest);
+        ROS_INFO("OK27");
+
+        target_pose.x = point_list.at<double>(n, 1) / 100.0;
+        target_pose.y = point_list.at<double>(n, 0) / 100.0;
+        return target_pose;
     }
-    ROS_INFO("OK25");
-
-    vector<float>::iterator smallest = min_element(dis_list.begin(), dis_list.end());
-    ROS_INFO("OK26");
-
-    int n = distance(dis_list.begin(), smallest);
-    ROS_INFO("OK27");
-
-    target_pose.x = point_list.at<double>(n, 1) / 100.0;
-    target_pose.y = point_list.at<double>(n, 0) / 100.0;
-    return target_pose;
+    
 }
 
 void RoboControl::mustRunInWhile()
