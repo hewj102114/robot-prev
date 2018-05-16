@@ -20,7 +20,7 @@ public:
     vector<int> path;
 
     Floyd(){};
-    void loadMatrix(Mat& matrix);
+    void loadMatrix(const Mat& matrix);
     void initFloydGraph();
     void calcPath(int start,int endl);
     void updateFloydGraph(int i,int j,int value);

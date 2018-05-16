@@ -23,7 +23,7 @@
 #include <ros/ros.h>
 
 #ifndef SHOW_DEBUG_IMG
-#define SHOW_DEBUG_IMG
+//#define SHOW_DEBUG_IMG
 #endif
 
 #ifndef COUT_LOG
@@ -137,6 +137,7 @@ void ArmorDetector::findContourInEnemyColor(vector<RotatedRect> &contours_rect)
 		RotatedRect rect = minAreaRect(*it);
 
 		rect = adjustRRect(rect);
+		cout<<"contour : h:"<<rect.size.height<< "w:"<<rect.size.width<<endl;
 		//The smallest height of light bar
 		if (rect.size.height < _para.min_light_height || rect.size.width < _para.min_light_width)
 		{
@@ -248,7 +249,7 @@ void ArmorDetector::findContourInEnemyColor(vector<RotatedRect> &contours_rect)
 				line(tt, vertices[i], vertices[(i + 1) % 4], CV_RGB(255, 0, 0), 2);
 			}
 			char str[30];
-			sprintf(str, "%.1f, %.1f, %.1f, %.1f", 1.0 * sum_color / it->size(), contours_rect[i].size.width, contours_rect[i].size.height, contours_rect[i].angle);
+			sprintf(str, "%.1f, %.1f, %.1f",  contours_rect[i].size.width, contours_rect[i].size.height, contours_rect[i].angle);
 			putText(tt, str, contours_rect[i].center, CV_FONT_HERSHEY_COMPLEX_SMALL, 0.5, CV_RGB(255, 255, 255), 1);
 		}
 #endif
