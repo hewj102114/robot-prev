@@ -789,7 +789,8 @@ GambalInfo RoboControl::ctl_stack_enemy()
             ROS_INFO("detected armor");
             sent_mcu_gimbal_result.mode = 2;
             sent_mcu_gimbal_result.yaw = armor_info_msg.yaw + robo_ukf_enemy_information.orientation.w;
-            sent_mcu_gimbal_result.pitch = armor_info_msg.pitch;
+            // sent_mcu_gimbal_result.pitch = armor_info_msg.pitch;
+            sent_mcu_gimbal_result.pitch = 5;            
             sent_mcu_gimbal_result.global_z = armor_info_msg.global_z * 100;
 
             armor_lost_counter = 0;
