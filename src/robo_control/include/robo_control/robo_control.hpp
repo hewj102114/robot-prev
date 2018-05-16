@@ -243,7 +243,7 @@ class RoboControl
     robo_vision::ArmorInfo armor_info_target;
 
     robo_vision::FishCamInfo fishcam_msg;
-    float last_yaw = -3.10;
+    float last_yaw = 0;
 
     float SELF_ENEMY_TARGET_DISTANCE = 0;
     float ENEMY_REALSENSE_ANGLE = 0;

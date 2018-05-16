@@ -27,6 +27,8 @@ int main(int argc, char **argv)
     ros::Subscriber sub_ukf_enemy_information = nh.subscribe("ukf/enemy", 1, &RoboControl::cb_ukf_enemy_information, &robo_ctl);
     ros::Subscriber sub_front_dis = nh.subscribe("front_dis", 1, &RoboControl::cb_front_dis, &robo_ctl);
     ros::Subscriber sub_team_info = nh.subscribe("team/info", 1, &RoboControl::cb_team_info, &robo_ctl);
+    ros::Subscriber sub_fishcam_info = nh.subscribe("/base/fishcam_info", 1, &RoboControl::cb_fishcam_info, &robo_ctl);
+    
 
     robo_ctl.main_control_init(); // init main contol function
 
@@ -63,7 +65,7 @@ int main(int argc, char **argv)
         {
             ROS_INFO("Stage 1: Go to certain point!!!!!!");
             // point 1: (2.6, 3.1)
-            robo_ctl.sent_mcu_vel_msg = robo_ctl.ctl_chassis(1, 1, 8.0 - 3.3, 5.0 - 3.2, 0);
+            robo_ctl.sent_mcu_vel_msg = robo_ctl.ctl_chassis(1, 1, 3.3, 3.2, 0);
             if (robo_ctl.last_enemy_target.red_num == 1)
             {
                 work_state = 1;
