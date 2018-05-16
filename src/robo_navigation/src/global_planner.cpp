@@ -1,7 +1,7 @@
 #include "robo_navigation/global_planner.hpp"
 
 
-void Floyd::loadMatrix(Mat& matrix){
+void Floyd::loadMatrix(const Mat& matrix){
     matrix.convertTo(weight_graph,CV_64FC1);
     node_count=matrix.rows;
     memcpy(arrDis,weight_graph.data,sizeof(arrDis));

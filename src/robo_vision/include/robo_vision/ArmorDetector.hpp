@@ -30,9 +30,9 @@
 enum EnemyColor { RED = 0, BLUE = 1 };
 
 struct ArmorParam {
-  uchar min_light_gray;    // 灯条最小灰度值 g
-  uchar min_light_height;  // 板灯最小高度值 g
-  uchar min_light_width;
+  float min_light_gray;    // 灯条最小灰度值 g
+  float min_light_height;  // 板灯最小高度值 g
+  float min_light_width;
   float min_light_ratio;
   uchar color_threshold;  // g
   int max_light_delta_w;  // 左右灯柱在水平位置上的最大差值，像素单位 g
