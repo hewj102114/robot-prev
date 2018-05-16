@@ -671,8 +671,8 @@ GambalInfo RoboControl::ctl_stack_enemy()
     *  函数返回：云台控制模式和角度 result -> mode, yaw, pitch, global_z
     *  TODO: 1. 添加摇头功能, 2. 考虑打击标志位如何放置, 理论上 armor mode = 3 时就应该开枪, 优先级高于一切
     *************************************************************************/
-    int armor_max_lost_num = 5; // armor detection 最大允许的丢帧数量
-    int armor_around_max_lost_num = 50;
+    int armor_max_lost_num = 70; // armor detection 最大允许的丢帧数量
+    int armor_around_max_lost_num = 140;
     int realsense_max_lost_num = 80; // realsense detection 最大允许的丢帧数量
                                      // 2. realsense和armor都没有看到的时候, 并且丢帧数量小于 400, 维持云台角度
     ROS_INFO("armor_lost_counter: %d", armor_lost_counter);
@@ -858,25 +858,47 @@ float RoboControl::ctl_yaw(int mode, float goal_yaw)
     *************************************************************************/
     float yaw = 0;
     float fish_yaw = 0;
-    float DEATH_AREA = 40;
+    float DEATH_AREA = 10;
+    float yaw_index = 0;
     if (mode == 1)
     {
         // 正常模式
-        // if (robo_ukf_enemy_information.orientation.y != 999)
-        // {
-        //     // 有目标的时候才转
-        //     yaw = robo_ukf_enemy_information.orientation.y * 180.0 / PI;
-        //     if (abs(yaw - tf::getYaw(robo_ukf_pose.orientation) * 180 / PI) > DEATH_AREA)
-        //     {
-        //         yaw = yaw * PI / 180.0;
-        //         last_yaw = yaw;
-        //         return yaw;
-        //     }
-        // }
-        if (fishcam_msg.size > 0)
+        if (robo_ukf_enemy_information.orientation.y != 999)
         {
+            // 有目标的时候才转
+            yaw = robo_ukf_enemy_information.orientation.y * 180.0 / PI;
+            if (abs(yaw - tf::getYaw(robo_ukf_pose.orientation) * 180 / PI) > DEATH_AREA)
+            {
+                first_in_fishcam_yaw = true;
+                yaw = yaw * PI / 180.0;
+                last_yaw = yaw;
+                return yaw;
+            }
+        }
+        // if()
+        // {
+            
+        // }
+        ros::Duration timeout(3);
+        if (fishcam_msg.size > 0 && ros::Time::now() - fishCamRotateStart > timeout)
+        {
+            if (fishcam_msg.size == 2)
+            {
+                if(fishcam_msg.target[0].z > fishcam_msg.target[1].z)
+                {
+                    yaw_index = 0;
+                }
+                else
+                {
+                    yaw_index = 1;                    
+                }
+            }
+            else
+            {
+                yaw_index = 0;
+            }
             // 鱼眼相机发现目标
-            fish_yaw = fishcam_msg.target[0].z * PI / 180;
+            fish_yaw = fishcam_msg.target[yaw_index].x * PI / 180;
             fish_yaw = tf::getYaw(robo_ukf_pose.orientation) + fish_yaw;
             if (fish_yaw < -PI)
             {
@@ -888,6 +910,9 @@ float RoboControl::ctl_yaw(int mode, float goal_yaw)
                 fish_yaw = fish_yaw - 2 * PI;
             }
             ROS_INFO("fish_camera:%f", fish_yaw * 180.0 / PI);
+            first_in_realsense_yaw = true;
+            // first_in_fishcam_yaw = false;
+            last_yaw = fish_yaw;
             return fish_yaw;
         }
     }

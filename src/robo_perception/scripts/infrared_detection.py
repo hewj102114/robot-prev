@@ -487,8 +487,8 @@ def TsDet_callback(infrared_image, pointcloud):
             enemy.pose.position.y = rs_y
             enemy.pose.position.z = rs_z
 
-            enemy.basepose.position.x = rs_x + 0.22*np.cos(odom_yaw)
-            enemy.basepose.position.y = rs_y + 0.22*np.sin(odom_yaw)
+            enemy.basepose.position.x = rs_x + 0.22
+            enemy.basepose.position.y = rs_y 
             enemy.basepose.position.z = 0
 
             enemy.globalpose.position.x = global_x

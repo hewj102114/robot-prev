@@ -308,7 +308,7 @@ int main(int argc, char **argv)
                 vecmsg.x = 90 + i * 45;
                 if (vecmsg.x > 180)
                     vecmsg.x = vecmsg.x - 360;
-                vecmsg.z = pose_matrix[0];
+                vecmsg.z = pose_matrix[i];
                 fishcam_msg.target.push_back(vecmsg);
             }
         }

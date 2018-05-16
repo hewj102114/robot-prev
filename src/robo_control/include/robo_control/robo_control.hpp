@@ -250,6 +250,9 @@ class RoboControl
     float ENEMY_GLOBAL_ANGLE = 0;
 
     robo_control::TeamInfo team_info;
+    bool first_in_realsense_yaw = true;
+    bool first_in_fishcam_yaw = true;
+    ros::Time fishCamRotateStart = ros::Time::now();
 
 
     // yaw: 1 -> 2
