@@ -683,15 +683,15 @@ GambalInfo RoboControl::ctl_stack_enemy()
         ROS_INFO("mode=3, stacking enemy");
         if (SELF_ENEMY_TARGET_DISTANCE > 2 || SELF_ENEMY_TARGET_DISTANCE == 0)
         {
-            sent_mcu_gimbal_result.mode = 6; // 低速
+            sent_mcu_gimbal_result.mode = 2; // 低速
         }
         else if (SELF_ENEMY_TARGET_DISTANCE > 1.5)
         {
-            sent_mcu_gimbal_result.mode = 7; // 中速
+            sent_mcu_gimbal_result.mode = 2; // 中速
         }
         else
         {
-            sent_mcu_gimbal_result.mode = 8; // 高速
+            sent_mcu_gimbal_result.mode = 2; // 高速
         }
 
         sent_mcu_gimbal_result.yaw = armor_info_msg.yaw + robo_ukf_enemy_information.orientation.w;
@@ -777,7 +777,7 @@ GambalInfo RoboControl::ctl_stack_enemy()
             {
                 sent_mcu_gimbal_result.mode = 2;
                 sent_mcu_gimbal_result.yaw = 0;
-                sent_mcu_gimbal_result.pitch = 32760;
+                sent_mcu_gimbal_result.pitch = 5;
                 sent_mcu_gimbal_result.global_z = 0;
             }
         }

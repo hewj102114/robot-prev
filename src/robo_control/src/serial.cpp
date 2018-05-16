@@ -12,8 +12,8 @@ Serial::Serial(const char* dev_name) {
 Serial::~Serial() { close(fd); }
 void Serial::configurePort() {  // configure the port
   // structure to store the port settings in
-  cfsetispeed(&port_settings, B115200);  // set baud rates
-  cfsetospeed(&port_settings, B115200);
+  cfsetispeed(&port_settings, B57600);  // set baud rates
+  cfsetospeed(&port_settings, B57600);
 
   port_settings.c_cflag &= ~PARENB;  // set no parity, stop bits, data bits
   port_settings.c_cflag &= ~CSTOPB;

@@ -23,7 +23,7 @@
 #include <ros/ros.h>
 
 #ifndef SHOW_DEBUG_IMG
-//#define SHOW_DEBUG_IMG
+#define SHOW_DEBUG_IMG
 #endif
 
 #ifndef COUT_LOG
@@ -148,7 +148,7 @@ void ArmorDetector::findContourInEnemyColor(vector<RotatedRect> &contours_rect)
 			{
 				line(tt, vertices[i], vertices[(i + 1) % 4], CV_RGB(0, 255, 0), 1);//green
 			}
-			//cout<<"contour refused 0: h:"<<rect.size.height<< "w:"<<rect.size.width<<endl;
+			cout<<"contour refused 0: h:"<<rect.size.height<< "w:"<<rect.size.width<<endl;
 #endif
 			continue;
 		}
