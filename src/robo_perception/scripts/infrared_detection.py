@@ -337,7 +337,8 @@ def TsDet_callback(infrared_image, pointcloud):
               (final_class, final_probs, final_class))
 
     # TODO: 距离太远的时候, 检测不到轮子，只能检测到车身
-    # TODO: 使用颜色特征决定计算点云距离的位置
+    # TODO: 距离太近的时候, 只能检测到轮子和装甲板和轮子, 检测不到车身
+    # TODO: 车位于红外图像的边缘处时, 需要根据队友来判断这个车是什么
     # 0 -> red, 1 -> wheel, 2 -> blue
     # 检测到车并且检测到轮子, 进入此 if, 目的是为了减少误检率
     robo_bboxes = []
@@ -413,7 +414,6 @@ def TsDet_callback(infrared_image, pointcloud):
             robo_pointcloud = np.array(points)
 
             # 对提取到的点云进行 reshape
-            # TODO: 应该不需要这一步
             t_nan_tart = time.time()
             positionX = robo_pointcloud[:,
                                         0].reshape(-1, pointcloud_w * pointcloud_h).squeeze()
@@ -565,7 +565,6 @@ def TsDet_callback(infrared_image, pointcloud):
         format(times['total'], times['detect'], times['filter'])
     print(time_str)
 
-    # # TODO(bichen): move this color dict to configuration file
     cls2clr = {'robot': (0, 0, 255), 'wheel': (
         0, 255, 0), 'armor': (255, 255, 0)}
     if mc.VISUAL:
@@ -664,7 +663,6 @@ pc_sub = message_filters.Subscriber('camera/points', PointCloud2)
 pub = rospy.Publisher('infrared_detection/enemy_position',
                       ObjectList, queue_size=1)
 
-# TODO 在后面的试验中调调整slop
 TsDet = message_filters.ApproximateTimeSynchronizer(
     [rgb_sub, pc_sub], queue_size=5, slop=0.1, allow_headerless=False)
 TsDet.registerCallback(TsDet_callback)
