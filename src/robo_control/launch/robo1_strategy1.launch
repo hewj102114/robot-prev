@@ -1,0 +1,8 @@
+<launch>
+    <node pkg="robo_control" type="control_strategy_1_node" name="control_strategy_1_node" output="screen">
+    <rosparam param="DEATH_AREA"> 20 </rosparam> 
+
+
+    </node>
+</launch>
+<!--  -->

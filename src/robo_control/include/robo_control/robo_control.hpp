@@ -151,7 +151,8 @@ class RoboControl
     VelInfo ctl_chassis(int xy_mode, int yaw_mode, float goal_x, float goal_y, float goal_yaw);
     void mustRunInWhile();
     void cb_team_info(const robo_control::TeamInfo &msg);
-
+    void get_param(ros::NodeHandle private_nh);
+    
     ros::NodeHandle *pnh;
 
     ros::Publisher pub_game_info;
@@ -253,6 +254,8 @@ class RoboControl
     bool first_in_realsense_yaw = true;
     bool first_in_fishcam_yaw = true;
     ros::Time fishCamRotateStart = ros::Time::now();
+    
+    float DEATH_AREA = 10;      // 旋转的死区
 
 
     // yaw: 1 -> 2

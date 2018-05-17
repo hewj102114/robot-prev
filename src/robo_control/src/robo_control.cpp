@@ -675,7 +675,7 @@ GambalInfo RoboControl::ctl_stack_enemy()
     int armor_max_lost_num = 150; // armor detection 最大允许的丢帧数量
     int armor_around_max_lost_num = 150;
     int realsense_max_lost_num = 150; // realsense detection 最大允许的丢帧数量
-                                     // 2. realsense和armor都没有看到的时候, 并且丢帧数量小于 400, 维持云台角度
+                                      // 2. realsense和armor都没有看到的时候, 并且丢帧数量小于 400, 维持云台角度
     ROS_INFO("armor_lost_counter: %d", armor_lost_counter);
 
     if (armor_info_msg.mode == 3)
@@ -847,17 +847,20 @@ float RoboControl::ctl_yaw(int mode, float goal_yaw)
     *************************************************************************/
     float yaw = 0;
     float fish_yaw = 0;
-    float DEATH_AREA = 10;
+
     float yaw_index = 0;
     if (mode == 1)
     {
         // 正常模式
+        ROS_INFO("death_area: %f, %f, %f, %f", yaw, tf::getYaw(robo_ukf_pose.orientation), yaw - tf::getYaw(robo_ukf_pose.orientation), DEATH_AREA);
+
         if (robo_ukf_enemy_information.orientation.y != 999)
         {
             // 有目标的时候才转
             yaw = robo_ukf_enemy_information.orientation.y * 180.0 / PI;
             if (abs(yaw - tf::getYaw(robo_ukf_pose.orientation) * 180 / PI) > DEATH_AREA)
             {
+
                 first_in_fishcam_yaw = true;
                 yaw = yaw * PI / 180.0;
                 last_yaw = yaw;
@@ -1045,4 +1048,9 @@ void RoboControl::mustRunInWhile()
     sendMCUMsg(1, sent_mcu_gimbal_msg.mode,
                sent_mcu_vel_msg.v_x, sent_mcu_vel_msg.v_y, sent_mcu_vel_msg.v_yaw,
                sent_mcu_gimbal_msg.yaw, sent_mcu_gimbal_msg.pitch, sent_mcu_gimbal_msg.global_z);
+}
+
+void RoboControl::get_param(ros::NodeHandle private_nh)
+{
+    private_nh.getParam("DEATH_AREA", DEATH_AREA);
 }

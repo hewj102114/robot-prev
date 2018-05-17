@@ -11,6 +11,7 @@ int main(int argc, char **argv)
 {
     ros::init(argc, argv, "robo_control_strategy_1");
     ros::NodeHandle nh;
+    ros::NodeHandle private_nh("~");
 
     RoboControl robo_ctl;
     ros::Subscriber sub_armor_info = nh.subscribe("base/armor_info", 1, &RoboControl::cb_armorInfo, &robo_ctl);
@@ -99,6 +100,7 @@ int main(int argc, char **argv)
             break;
         }
         ROS_INFO("OK5");
+        robo_ctl.get_param(private_nh);                                                                                          // 获取动态参数
         robo_ctl.last_enemy_target = robo_ctl.sendEnemyTarget(robo_ctl.enemy_information, robo_ctl.last_enemy_target); // 目标会一直发送, 通过 'Nothing' 来判断有没有敌人
         ROS_INFO("OK6");
         robo_ctl.last_enemy_target_pose.position.x = robo_ctl.last_enemy_target.object[0].globalpose.position.x;
