@@ -346,7 +346,8 @@ def TsDet_callback(infrared_image, pointcloud):
     enemy_position = ObjectList()
     enemy_position.header.stamp = rospy.Time.now()
     enemy_position.header.frame_id = 'enemy'
-    # 必须检测到车, 可能检测到轮子和装甲板才认为是真真检测到车
+
+    # 检测到车或者同时检测到轮子和装甲板认为是真真检测到车 (远距离和近距离车和装甲板是矛盾的)    
     if len(final_boxes) > 0 and np.any(final_class == 0) and (np.any(final_class == 1) or np.any(final_class == 2)):
         # judge detect how much robots
         robot_final_idx = np.array(np.where(final_class == 0))
@@ -414,12 +415,9 @@ def TsDet_callback(infrared_image, pointcloud):
 
             # 对提取到的点云进行 reshape
             t_nan_tart = time.time()
-            positionX = robo_pointcloud[:,
-                                        0].reshape(-1, pointcloud_w * pointcloud_h).squeeze()
-            positionY = robo_pointcloud[:,
-                                        1].reshape(-1, pointcloud_w * pointcloud_h).squeeze()
-            positionZ = robo_pointcloud[:,
-                                        2].reshape(-1, pointcloud_w * pointcloud_h).squeeze()
+            positionX = robo_pointcloud[:, 0].reshape(-1, pointcloud_w * pointcloud_h).squeeze()
+            positionY = robo_pointcloud[:, 1].reshape(-1, pointcloud_w * pointcloud_h).squeeze()
+            positionZ = robo_pointcloud[:, 2].reshape(-1, pointcloud_w * pointcloud_h).squeeze()
 
             # 剔除距离为 nan 的点
             positionX = positionX[np.logical_not(np.isnan(positionX))]
