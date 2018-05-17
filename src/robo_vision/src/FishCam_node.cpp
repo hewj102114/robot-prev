@@ -141,9 +141,10 @@ void prosess(Mat &img, vector<Vec3f> &pt_center)
     kmeans(points, 2, labels,
            TermCriteria(CV_TERMCRIT_EPS + CV_TERMCRIT_ITER, 10, 1.0), 3,
            KMEANS_PP_CENTERS, centers);
-    // cout << centers << "   " << countNonZero(labels) << endl;
-    if (abs(centers.at<float>(0, 0) - centers.at<float>(1, 0) < 130) && centers.at<float>(0, 1) < 210 && centers.at<float>(1, 1) < 210)
+     cout << centers << "   " << countNonZero(labels) << endl;
+    if (abs(centers.at<float>(0, 0) - centers.at<float>(1, 0)) < 130 && centers.at<float>(0, 1) < 210 && centers.at<float>(1, 1) < 210)
     {
+        cout<<"asd"<<endl;       
         float cx = (centers.at<float>(0, 0) + centers.at<float>(1, 0)) / 2.0;
         float cy = (centers.at<float>(0, 1) + centers.at<float>(1, 1)) / 2.0;
 
@@ -226,7 +227,7 @@ int main(int argc, char **argv)
         vector<Vec3f> pt_center_left;
         vector<Vec3f> pt_center_right;
         prosess(src_left, pt_center_left);
-        prosess(src_right, pt_center_right);
+        //prosess(src_right, pt_center_right);
 #ifdef SHOW_IMAGE
         for (int i = 0; i < pt_center_left.size(); i++)
         {

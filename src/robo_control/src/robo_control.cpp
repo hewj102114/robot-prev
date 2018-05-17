@@ -402,15 +402,15 @@ void RoboControl::cb_ukf_enemy_information(const nav_msgs::Odometry &msg)
 
     if (robo_ukf_enemy_information.position.z != 999)
     {
-        SELF_ENEMY_TARGET_DISTANCE = robo_ukf_enemy_information.position.z;
+        SELF_ENEMY_TARGET_DISTANCE = robo_ukf_enemy_information.position.z * 100;
     }
     if (robo_ukf_enemy_information.orientation.z != 999)
     {
-        ENEMY_REALSENSE_ANGLE = -robo_ukf_enemy_information.orientation.z * 180.0 / PI;
+        ENEMY_REALSENSE_ANGLE = -robo_ukf_enemy_information.orientation.z * 180.0 / PI * 100;
     }
     if (robo_ukf_enemy_information.orientation.y != 999)
     {
-        ENEMY_GLOBAL_ANGLE = robo_ukf_enemy_information.orientation.y * 180.0 / PI;
+        ENEMY_GLOBAL_ANGLE = robo_ukf_enemy_information.orientation.y * 180.0 / PI * 100;
     }
 }
 
@@ -423,7 +423,7 @@ robo_perception::ObjectList RoboControl::sendEnemyTarget(const robo_perception::
     *  函数返回：本帧的打击目标
     *  TODO: 1. 融合 armor 检测信息, 2. 测试断错误 bug, 3. 重新单独测试此函数, 看判断的敌人是不是稳定的
     *************************************************************************/
-   ROS_INFO("sent enemy target!");
+    ROS_INFO("sent enemy target!");
     vector<int> enemy_index;
     vector<float> enemy_self_distance; // 当前敌人与自己的相对距离
     vector<float> enemy_last_distance; // 当前敌人与上一帧敌人的距离
@@ -677,19 +677,19 @@ GambalInfo RoboControl::ctl_stack_enemy()
         ROS_INFO("mode = 3, stacking enemy");
         if (SELF_ENEMY_TARGET_DISTANCE > LOW_SHOT_SPEED_DISTANCE || SELF_ENEMY_TARGET_DISTANCE == 0)
         {
-            sent_mcu_gimbal_result.mode = 6; // 低速
+            sent_mcu_gimbal_result.mode = 2; // 低速 6
         }
         else if (SELF_ENEMY_TARGET_DISTANCE > HIGH_SHOT_SPEED_DISTANCE)
         {
-            sent_mcu_gimbal_result.mode = 7; // 中速
+            sent_mcu_gimbal_result.mode = 2; // 中速 7
         }
         else
         {
-            sent_mcu_gimbal_result.mode = 8; // 高速
+            sent_mcu_gimbal_result.mode = 2; // 高速 8
         }
 
-        sent_mcu_gimbal_result.yaw = armor_info_msg.yaw + robo_ukf_enemy_information.orientation.w;
-        sent_mcu_gimbal_result.pitch = armor_info_msg.pitch;
+        sent_mcu_gimbal_result.yaw = armor_info_msg.yaw + robo_ukf_enemy_information.orientation.w * 100.0;
+        sent_mcu_gimbal_result.pitch = armor_info_msg.pitch + robo_ukf_enemy_information.orientation.x * 100.0;
         sent_mcu_gimbal_result.global_z = armor_info_msg.global_z * 100;
         return sent_mcu_gimbal_result;
     }
@@ -783,9 +783,8 @@ GambalInfo RoboControl::ctl_stack_enemy()
         {
             ROS_INFO("detected armor");
             sent_mcu_gimbal_result.mode = 2;
-            sent_mcu_gimbal_result.yaw = armor_info_msg.yaw + robo_ukf_enemy_information.orientation.w;
-            // sent_mcu_gimbal_result.pitch = armor_info_msg.pitch;
-            sent_mcu_gimbal_result.pitch = 5;
+            sent_mcu_gimbal_result.yaw = armor_info_msg.yaw + robo_ukf_enemy_information.orientation.w * 100.0;
+            sent_mcu_gimbal_result.pitch = armor_info_msg.pitch + robo_ukf_enemy_information.orientation.x * 100.0;
             sent_mcu_gimbal_result.global_z = armor_info_msg.global_z * 100;
 
             armor_lost_counter = 0;
@@ -918,6 +917,7 @@ float RoboControl::ctl_yaw(int mode, float goal_yaw)
     if (mode == 2)
     {
         // 没有子弹. 永不转身
+        return goal_yaw;        // 直接转向设定的角度
     }
     return last_yaw;
     // return goal_yaw;
@@ -1040,7 +1040,7 @@ geometry_msgs::Point RoboControl::ctl_track_enemy(double enemy_x, double enemy_y
     }
 }
 
-void RoboControl::mustRunInWhile()
+void RoboControl::mustRunInWhile(ros::NodeHandle private_nh)
 {
     readMCUData();
     get_param(private_nh);
@@ -1067,6 +1067,7 @@ void RoboControl::get_param(ros::NodeHandle private_nh)
 
     private_nh.getParam("LOW_SHOT_SPEED_DISTANCE", LOW_SHOT_SPEED_DISTANCE);
     private_nh.getParam("HIGH_SHOT_SPEED_DISTANCE", HIGH_SHOT_SPEED_DISTANCE);
-    
+
     private_nh.getParam("ARMOR_LOST_PITCH", ARMOR_LOST_PITCH);
+
 }

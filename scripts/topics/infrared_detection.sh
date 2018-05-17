@@ -1,1 +1,1 @@
-rostopic echo 
+rostopic echo /infrared_detection/enemy_position
