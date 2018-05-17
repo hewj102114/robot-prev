@@ -37,9 +37,9 @@ def callback_gameinfo(game):
 
 
 def callback_target(target):
-    global target_global_x, target_global_y, target_rel_x, target_rel_y,enemy_num
+    global target_global_x, target_global_y, target_rel_x, target_rel_y, enemy_num
     target_global_x = target.object[0].globalpose.position.x
-    target_global_x = target.object[0].globalpose.position.y
+    target_global_y = target.object[0].globalpose.position.y
 
     target_rel_x = target.object[0].pose.position.x
     target_rel_y = target.object[0].pose.position.y

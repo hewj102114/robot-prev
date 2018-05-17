@@ -22,7 +22,7 @@ s.bind(addr)
 rate = rospy.Rate(60)
 while not rospy.is_shutdown():
     global lost_counter
-    data, addr = s.recvfrom(2048)
+    data, addr = s.recvfrom(4096)
     datalist = data.split()
     team = TeamInfo()
     if len(datalist) == RECV_LEN:
