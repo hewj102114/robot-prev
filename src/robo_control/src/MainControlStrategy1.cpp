@@ -54,6 +54,9 @@ int main(int argc, char **argv)
         {
             ROS_INFO("Stage 0: Go to center!");
             robo_ctl.sent_mcu_vel_msg.mode=1;
+            robo_ctl.sent_mcu_vel_msg.v_x=robo_ctl.cmd_vel_msg.v_x;
+            robo_ctl.sent_mcu_vel_msg.v_y=robo_ctl.cmd_vel_msg.v_y;
+            robo_ctl.sent_mcu_vel_msg.v_yaw=robo_ctl.cmd_vel_msg.v_yaw;
             if(robo_ctl.finish_navigation.data);
                 //work_state = 1;
             break;

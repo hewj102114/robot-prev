@@ -590,10 +590,10 @@ geometry_msgs::Pose RoboNav::adjustlocalgoal(double yaw)
     return local_goal;
 }
 
-// zhongdian: 3-34; 4.0, 2.5 
-// point 1:  3-11; 3.3, 3.2
-//point 3: 3-13; 4.00,3.8
-//point 2(robot 2): 9-8; 2.6,2.1
+// zhongdian: 3-34; 4.0, 2.5 GO_CENTER_S=1
+// point 1:  3-11; 3.3, 3.2  GO_CENTER_S=1
+//point 3: 3-13; 4.00,3.8   GO_CENTER_S=1
+//point 2(robot 2): 9-8; 2.6,2.1  GO_CENTER_S=1
 //cation:  get velecity, change the last control point [34], [13], [11], 
 
 int RoboNav::go_center()
@@ -604,7 +604,7 @@ int RoboNav::go_center()
 
     cur_goal.orientation=tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
 
-    GO_CENTER_S == 0;
+    GO_CENTER_S = 0;
     {
         path.push_back(9);
         path.push_back(8);
