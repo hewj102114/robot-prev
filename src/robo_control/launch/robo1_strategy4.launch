@@ -9,7 +9,7 @@
 
     <!-- 1 车 -->
     <rosparam param="robo_point1"> [2.6, 2.0, 0]</rosparam>
-    <rosparam param="robo_point2"> [2.6, 2.0, 0]</rosparam>
+    <rosparam param="robo_point2"> [2.6, 0.8, 0]</rosparam>
 
     </node>
 </launch>

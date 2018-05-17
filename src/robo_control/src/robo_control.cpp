@@ -423,7 +423,7 @@ robo_perception::ObjectList RoboControl::sendEnemyTarget(const robo_perception::
     *  函数返回：本帧的打击目标
     *  TODO: 1. 融合 armor 检测信息, 2. 测试断错误 bug, 3. 重新单独测试此函数, 看判断的敌人是不是稳定的
     *************************************************************************/
-    ROS_INFO("OK11");
+   ROS_INFO("sent enemy target!");
     vector<int> enemy_index;
     vector<float> enemy_self_distance; // 当前敌人与自己的相对距离
     vector<float> enemy_last_distance; // 当前敌人与上一帧敌人的距离
@@ -431,7 +431,6 @@ robo_perception::ObjectList RoboControl::sendEnemyTarget(const robo_perception::
     robo_perception::ObjectList result_enemy_target; // return
     result_enemy_target.header = msg.header;
     result_enemy_target.header.stamp = ros::Time::now();
-    ROS_INFO("OK12");
 
     result_enemy_target.num = 0;
     result_enemy_target.red_num = 0;
@@ -441,12 +440,10 @@ robo_perception::ObjectList RoboControl::sendEnemyTarget(const robo_perception::
     int enemy_index2 = 0;
 
     int select_idx = 0;
-    ROS_INFO("OK13");
 
     robo_perception::ObjectList enemy_odom_target_msg; // publish
     enemy_odom_target_msg.header = msg.header;
     enemy_odom_target_msg.header.stamp = ros::Time::now();
-    ROS_INFO("OK14");
 
     enemy_odom_target_msg.num = 0;
     enemy_odom_target_msg.red_num = 0;
@@ -454,8 +451,7 @@ robo_perception::ObjectList RoboControl::sendEnemyTarget(const robo_perception::
     enemy_odom_target_msg.blue_num = 0;
 
     robo_perception::Object temp_object;
-    ROS_INFO("OK15");
-    ROS_INFO("red_num: %f", msg.red_num);
+    ROS_INFO("enemy target red num: %f", msg.red_num);
 
     // 计算打击哪个车, 给定 infrared detection 的检测结果和上一帧的打击目标
     if (msg.red_num == 0)
@@ -465,12 +461,15 @@ robo_perception::ObjectList RoboControl::sendEnemyTarget(const robo_perception::
 
         if (armor_info_target.armor_count == 0)
         {
+            ROS_INFO("red_num = 0 and armor = 0");
             // 此 if 表明 realsense 和 armor 都没有检测到
             if (fishcam_msg.size == 0)
             {
+                ROS_INFO("red_num = 0 and armor = 0 and fish = 0");
                 // realsense, armor 和 fishcam 都没有检测到, 读取队友的 enemytarget
                 if (team_info.enemyNum == 1)
                 {
+                    ROS_INFO("red_num = 0 and armor = 0 and fish = 0 and team = 1");
                     // 队友有发布 enemytrget, 将这个 enemytarget 作为自己的 enemytarget 发布
                     enemy_odom_target_msg.num = 1;
                     enemy_odom_target_msg.red_num = 1;
@@ -492,6 +491,7 @@ robo_perception::ObjectList RoboControl::sendEnemyTarget(const robo_perception::
                 }
                 else
                 {
+                    ROS_INFO("red_num = 0 and armor = 0 and fish = 0 and team = 0");
                     // 队友没有发布 enemytarget, 发布 Nothing
                     temp_object.team.data = "Nothing";
                     temp_object.basepose.position.x = 0;
@@ -501,7 +501,6 @@ robo_perception::ObjectList RoboControl::sendEnemyTarget(const robo_perception::
                     temp_object.globalpose.position.x = 0;
                     temp_object.globalpose.position.y = 0;
                     temp_object.globalpose.position.z = 0;
-                    ROS_INFO("OK16");
 
                     result_enemy_target.object.push_back(temp_object);
                     enemy_odom_target_msg = result_enemy_target;
@@ -511,6 +510,7 @@ robo_perception::ObjectList RoboControl::sendEnemyTarget(const robo_perception::
             }
             else
             {
+                ROS_INFO("red_num = 0 and armor = 0 and fish = 1");
                 // realsense, armor 没有检测到, 鱼眼检测到, 发布 Nothing
                 temp_object.team.data = "Nothing";
                 temp_object.basepose.position.x = 0;
@@ -520,7 +520,6 @@ robo_perception::ObjectList RoboControl::sendEnemyTarget(const robo_perception::
                 temp_object.globalpose.position.x = 0;
                 temp_object.globalpose.position.y = 0;
                 temp_object.globalpose.position.z = 0;
-                ROS_INFO("OK16");
 
                 result_enemy_target.object.push_back(temp_object);
                 enemy_odom_target_msg = result_enemy_target;
@@ -533,6 +532,7 @@ robo_perception::ObjectList RoboControl::sendEnemyTarget(const robo_perception::
             // 此 if 表明 armor 检测到, realsense 没有检测到
             if (armor_info_target.armor_count == 1)
             {
+                ROS_INFO("red_num = 0 and armor = 1");
                 // 只检测到一个 armor
                 enemy_odom_target_msg.num = 1;
                 enemy_odom_target_msg.red_num = 1;
@@ -556,10 +556,10 @@ robo_perception::ObjectList RoboControl::sendEnemyTarget(const robo_perception::
             }
             if (armor_info_target.armor_count >= 2)
             {
+                ROS_INFO("red_num = 0 and armor >= 2");
                 // 检测到多个 armor
                 for (int i = 0; i < armor_info_target.armor_count; i++)
                 {
-
                     enemy_index.push_back(i);
                     enemy_self_distance.push_back(armor_info_target.armor_list[0].pose_base.x);
                     enemy_last_distance.push_back(pow(armor_info_target.armor_list[0].pose_odom.x - last_enemy_target_msg.object[0].globalpose.position.x, 2) + pow(armor_info_target.armor_list[0].pose_odom.y - last_enemy_target_msg.object[0].globalpose.position.y, 2));
@@ -602,7 +602,6 @@ robo_perception::ObjectList RoboControl::sendEnemyTarget(const robo_perception::
     if (msg.red_num == 1)
     {
         ROS_INFO("red_num = 1");
-
         // 没有选择, 只打当前的敌人, 遍历所有检测到的目标, 注意是 msg.num
         for (int i = 0; i < msg.num; i++)
         {
@@ -611,8 +610,6 @@ robo_perception::ObjectList RoboControl::sendEnemyTarget(const robo_perception::
                 enemy_index1 = i;
             }
         }
-        ROS_INFO("OK17");
-
         enemy_odom_target_msg.num = 1;
         enemy_odom_target_msg.red_num = 1;
         enemy_odom_target_msg.object.push_back(msg.object[enemy_index1]);
@@ -624,7 +621,7 @@ robo_perception::ObjectList RoboControl::sendEnemyTarget(const robo_perception::
     }
     if (msg.red_num >= 2)
     {
-        ROS_INFO("red_num = 2");
+        ROS_INFO("red_num >= 2");
 
         // 判断之前有没有打击过敌人, 如果之前没有打击过敌人, 选择距离近的敌人, 否则选择之前打击过的
         for (int i = 0; i < msg.num; i++)
@@ -672,20 +669,17 @@ GambalInfo RoboControl::ctl_stack_enemy()
     *  函数返回：云台控制模式和角度 result -> mode, yaw, pitch, global_z
     *  TODO: 1. 添加摇头功能, 2. 考虑打击标志位如何放置, 理论上 armor mode = 3 时就应该开枪, 优先级高于一切
     *************************************************************************/
-    int armor_max_lost_num = 150; // armor detection 最大允许的丢帧数量
-    int armor_around_max_lost_num = 150;
-    int realsense_max_lost_num = 150; // realsense detection 最大允许的丢帧数量
-                                      // 2. realsense和armor都没有看到的时候, 并且丢帧数量小于 400, 维持云台角度
+    // 2. realsense和armor都没有看到的时候, 并且丢帧数量小于 400, 维持云台角度
     ROS_INFO("armor_lost_counter: %d", armor_lost_counter);
 
     if (armor_info_msg.mode == 3)
     {
-        ROS_INFO("mode=3, stacking enemy");
-        if (SELF_ENEMY_TARGET_DISTANCE > 2 || SELF_ENEMY_TARGET_DISTANCE == 0)
+        ROS_INFO("mode = 3, stacking enemy");
+        if (SELF_ENEMY_TARGET_DISTANCE > LOW_SHOT_SPEED_DISTANCE || SELF_ENEMY_TARGET_DISTANCE == 0)
         {
             sent_mcu_gimbal_result.mode = 6; // 低速
         }
-        else if (SELF_ENEMY_TARGET_DISTANCE > 1.5)
+        else if (SELF_ENEMY_TARGET_DISTANCE > HIGH_SHOT_SPEED_DISTANCE)
         {
             sent_mcu_gimbal_result.mode = 7; // 中速
         }
@@ -720,7 +714,7 @@ GambalInfo RoboControl::ctl_stack_enemy()
         // 一旦 realsense 检测到, 清零
         armor_around_lost_counter = 0;
     }
-    if (armor_around_lost_counter > armor_around_max_lost_num && realsense_lost_counter > realsense_max_lost_num)
+    if (armor_around_lost_counter > ARMOR_AROUND_MAX_LOST_NUM && realsense_lost_counter > REALSENSE_AROUND_MAX_LOST_NUM)
     {
         ROS_INFO("mode = 1");
         sent_mcu_gimbal_result.mode = 1;
@@ -729,7 +723,7 @@ GambalInfo RoboControl::ctl_stack_enemy()
         sent_mcu_gimbal_result.global_z = 0;
     }
 
-    if (armor_lost_counter > armor_max_lost_num && armor_info_msg.mode == 1)
+    if (armor_lost_counter > ARMOR_MAX_LOST_NUM && armor_info_msg.mode == 1)
     {
         if (enemy_information.red_num > 0 && first_in_realsense_flag == true)
         {
@@ -749,17 +743,18 @@ GambalInfo RoboControl::ctl_stack_enemy()
             sent_mcu_gimbal_result.pitch = 0;
             sent_mcu_gimbal_result.global_z = 0;
         }
-        ROS_INFO("armor_lost_counter > 400");
+        ROS_INFO("armor_lost_counter > max_lost_counter");
         current_gimbal_angle = game_msg.gimbalAngleYaw;
         ROS_INFO("first_in: %f, target: %f, current: %f", first_in_gimbal_angle, target_gimbal_angle, current_gimbal_angle);
         if (abs(abs(current_gimbal_angle - first_in_gimbal_angle) - abs(target_gimbal_angle)) < 5)
         {
             // mode = 3 的时候, 云台位置环
+            ROS_INFO("realsense finish");
             first_in_armor_flag = true;
             armor_lost_counter = 0;
         }
     }
-    if (armor_lost_counter <= armor_max_lost_num || armor_info_msg.mode > 1)
+    if (armor_lost_counter <= ARMOR_MAX_LOST_NUM || armor_info_msg.mode > 1)
     {
         // 4. realsense看到, armor没看到, 并且丢帧数量小于400帧, realsense不管
         if (armor_info_msg.mode == 1)
@@ -777,7 +772,7 @@ GambalInfo RoboControl::ctl_stack_enemy()
             {
                 sent_mcu_gimbal_result.mode = 2;
                 sent_mcu_gimbal_result.yaw = 0;
-                sent_mcu_gimbal_result.pitch = 5;
+                sent_mcu_gimbal_result.pitch = ARMOR_LOST_PITCH;
                 sent_mcu_gimbal_result.global_z = 0;
             }
         }
@@ -790,7 +785,7 @@ GambalInfo RoboControl::ctl_stack_enemy()
             sent_mcu_gimbal_result.mode = 2;
             sent_mcu_gimbal_result.yaw = armor_info_msg.yaw + robo_ukf_enemy_information.orientation.w;
             // sent_mcu_gimbal_result.pitch = armor_info_msg.pitch;
-            sent_mcu_gimbal_result.pitch = 5;            
+            sent_mcu_gimbal_result.pitch = 5;
             sent_mcu_gimbal_result.global_z = armor_info_msg.global_z * 100;
 
             armor_lost_counter = 0;
@@ -848,7 +843,6 @@ float RoboControl::ctl_yaw(int mode, float goal_yaw)
     *************************************************************************/
     float yaw = 0;
     float fish_yaw = 0;
-
     float yaw_index = 0;
     if (mode == 1)
     {
@@ -859,9 +853,25 @@ float RoboControl::ctl_yaw(int mode, float goal_yaw)
         {
             // 有目标的时候才转
             yaw = robo_ukf_enemy_information.orientation.y * 180.0 / PI;
+            if (robo_ukf_enemy_information.position.z > 2.0)
+            {
+                DEATH_AREA = 10;
+            }
+            else if (robo_ukf_enemy_information.position.z > 1.5)
+            {
+                DEATH_AREA = 15;
+            }
+            else if (robo_ukf_enemy_information.position.z > 1.0)
+            {
+                DEATH_AREA = 18;
+            }
+            else
+            {
+                DEATH_AREA = 35;
+            }
+
             if (abs(yaw - tf::getYaw(robo_ukf_pose.orientation) * 180 / PI) > DEATH_AREA)
             {
-
                 first_in_fishcam_yaw = true;
                 yaw = yaw * PI / 180.0;
                 last_yaw = yaw;
@@ -957,7 +967,6 @@ geometry_msgs::Point RoboControl::ctl_track_enemy(double enemy_x, double enemy_y
     *************************************************************************/
     float x_coefficient = 0.4, y_coefficient = 0.6;
     float self_coefficient = 0.4, enemy_coefficient = 0.6;
-    float min_distance = 0.6;
 
     float self_x = robo_ukf_pose.position.x;
     float self_y = robo_ukf_pose.position.y;
@@ -966,7 +975,7 @@ geometry_msgs::Point RoboControl::ctl_track_enemy(double enemy_x, double enemy_y
 
     // 小于 0.7m, 后退, 大于 0.7m 前进
 
-    if (robo_ukf_enemy_information.position.z < min_distance)
+    if (robo_ukf_enemy_information.position.z < SWITCH_FORWARD_BACKWARD_DIS)
     {
         // 如果 enemy_target 的距离小于 0.8m, 将 enemy 映射到以自身为中心的对称点上, 计算得到相同直线上的反向最小距离点
         // self_coefficient = 0.6, enemy_coefficient = 0.4; // 修改系数大小, 这时候应该离自身较近
@@ -1003,11 +1012,9 @@ geometry_msgs::Point RoboControl::ctl_track_enemy(double enemy_x, double enemy_y
     else
     {
         vector<float> dis_list;
-        ROS_INFO("OK24");
-
         for (int i = 0; i < point_list.rows; i++)
         {
-            ROS_INFO("find_enemy_self_closest_point_start: %d", i);
+            // ROS_INFO("find_enemy_self_closest_point_start: %d", i);
             float d_enemy_y = enemy_y - point_list.at<double>(i, 0) * 1.0 / 100;
             float d_enemy_x = enemy_x - point_list.at<double>(i, 1) * 1.0 / 100;
 
@@ -1017,7 +1024,7 @@ geometry_msgs::Point RoboControl::ctl_track_enemy(double enemy_x, double enemy_y
             float distance_enemy = sqrt(x_coefficient * d_enemy_x * d_enemy_x + y_coefficient * d_enemy_y * d_enemy_y);
             float distance_self = sqrt(x_coefficient * d_self_x * d_self_x + y_coefficient * d_self_y * d_self_y);
 
-            if (distance_enemy < 0.7 || distance_enemy > 2.0)
+            if (distance_enemy < MIN_TRACK_ENEMY_DIS || distance_enemy > MAX_TRACK_ENEMY_DIS)
             {
                 distance_enemy = 1000.0;
             }
@@ -1025,14 +1032,8 @@ geometry_msgs::Point RoboControl::ctl_track_enemy(double enemy_x, double enemy_y
             dis_list.push_back(self_coefficient * distance_self + enemy_coefficient * distance_enemy);
             ROS_INFO("find_enemy_self_closest_point_end: %d", i);
         }
-        ROS_INFO("OK25");
-
         vector<float>::iterator smallest = min_element(dis_list.begin(), dis_list.end());
-        ROS_INFO("OK26");
-
         int n = distance(dis_list.begin(), smallest);
-        ROS_INFO("OK27");
-
         target_pose.x = point_list.at<double>(n, 1) / 100.0;
         target_pose.y = point_list.at<double>(n, 0) / 100.0;
         return target_pose;
@@ -1042,6 +1043,7 @@ geometry_msgs::Point RoboControl::ctl_track_enemy(double enemy_x, double enemy_y
 void RoboControl::mustRunInWhile()
 {
     readMCUData();
+    get_param(private_nh);
     last_enemy_target = sendEnemyTarget(enemy_information, last_enemy_target); // 目标会一直发送, 通过 'Nothing' 来判断有没有敌人
     last_enemy_target_pose.position.x = last_enemy_target.object[0].globalpose.position.x;
     last_enemy_target_pose.position.y = last_enemy_target.object[0].globalpose.position.y;
@@ -1054,4 +1056,17 @@ void RoboControl::mustRunInWhile()
 void RoboControl::get_param(ros::NodeHandle private_nh)
 {
     private_nh.getParam("DEATH_AREA", DEATH_AREA);
+
+    private_nh.getParam("SWITCH_FORWARD_BACKWARD_DIS", SWITCH_FORWARD_BACKWARD_DIS);
+    private_nh.getParam("MIN_TRACK_ENEMY_DIS", MIN_TRACK_ENEMY_DIS);
+    private_nh.getParam("MAX_TRACK_ENEMY_DIS", MAX_TRACK_ENEMY_DIS);
+
+    private_nh.getParam("ARMOR_MAX_LOST_NUM", ARMOR_MAX_LOST_NUM);
+    private_nh.getParam("ARMOR_AROUND_MAX_LOST_NUM", ARMOR_AROUND_MAX_LOST_NUM);
+    private_nh.getParam("REALSENSE_AROUND_MAX_LOST_NUM", REALSENSE_AROUND_MAX_LOST_NUM);
+
+    private_nh.getParam("LOW_SHOT_SPEED_DISTANCE", LOW_SHOT_SPEED_DISTANCE);
+    private_nh.getParam("HIGH_SHOT_SPEED_DISTANCE", HIGH_SHOT_SPEED_DISTANCE);
+    
+    private_nh.getParam("ARMOR_LOST_PITCH", ARMOR_LOST_PITCH);
 }
