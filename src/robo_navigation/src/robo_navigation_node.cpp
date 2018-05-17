@@ -424,10 +424,9 @@ void RoboNav::get_vel(geometry_msgs::Twist &msg_vel)
         if (GO_CENTER_S == 0)
         {
             ROS_INFO("dx: %f, dy: %f", dx, dy);
-            if (center_flag == 0 && path[0] == 34 && dx > 1.75)
+            if (center_flag == 0 && path[0] == 28 && dx > 0.8)
                 vel_y = 0;
-            else if (center_flag == 0 && path[0] == 32 && dx <= 1.52 && dy > 0.20)
-                vel_x = 0;
+            
         }
     }
     else
@@ -600,16 +599,16 @@ geometry_msgs::Pose RoboNav::adjustlocalgoal(double yaw)
 int RoboNav::go_center()
 {
 
-    cur_goal.position.x =4;
-    cur_goal.position.y = 2.0;
+    cur_goal.position.x =4.7;
+    cur_goal.position.y = 1.8;
 
-    if (GO_CENTER_S == 0)
-        path.push_back(34);
+    cur_goal.orientation=tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
 
-    if (GO_CENTER_S == 1)
+    GO_CENTER_S == 0;
     {
-        path.push_back(3);
-        path.push_back(34);
+        path.push_back(9);
+        path.push_back(8);
+        path.push_back(28);
     }
 
     return 0;
