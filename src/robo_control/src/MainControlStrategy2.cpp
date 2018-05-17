@@ -1,7 +1,7 @@
 /*************************************************************************
 *
 *  2 策略: 防守策略 1
-*  假设: 敌人 1 车开局抢占中点, 2 车站在地方区域 
+*  假设: 敌人 1 车开局抢占中点, 2 车站在敌方区域 
 *  应对策略: 
 *  1. 我方 1 车占据 A(2.6, 3.1, 0度), 2 车占据 B(4.0, 4.2, 90度), 全力攻击敌方抢中点的车, 不管有没有将敌方车辆打死, 回到基地蹲点
 *  2. 我方 1 车蹲守 C(1.3, 1.8, -90度), 2 车占据 D(2.6, 2.0, -90度), 进行蹲点, 如果有一辆车看到敌人, 另一辆车就过去帮忙, 直到比赛结束
@@ -47,7 +47,6 @@ int main(int argc, char **argv)
     ros::Subscriber sub_front_dis = nh.subscribe("front_dis", 1, &RoboControl::cb_front_dis, &robo_ctl);
     ros::Subscriber sub_team_info = nh.subscribe("team/info", 1, &RoboControl::cb_team_info, &robo_ctl);
     ros::Subscriber sub_fishcam_info = nh.subscribe("/base/fishcam_info", 1, &RoboControl::cb_fishcam_info, &robo_ctl);
-
 
     robo_ctl.main_control_init(); // init main contol function
 
@@ -120,14 +119,13 @@ int main(int argc, char **argv)
 		*************************************************************************/
         case 3:
         {
-            ROS_INFO("Stage 3: Go back home!!!!!!");
+            ROS_INFO("Stage 3: Go back home, go to point!!!!!!");
             robo_ctl.sent_mcu_vel_msg = robo_ctl.ctl_chassis(1, 1, robo_point2[0], robo_point2[1], 0);
             ros::Duration timeout(0.1); // Timeout of 2 seconds
-			while (ros::Time::now() - waitNavigationFlagStart < timeout)
-			{
-				robo_ctl.mustRunInWhile();
-				ros::spinOnce();
-			}
+            if (ros::Time::now() - waitNavigationFlagStart < timeout)
+            {
+                robo_ctl.finish_navigation.data = 0;
+            }
             if (robo_ctl.finish_navigation.data == 1) // 到达指点站位点, 跳转到下一个状态, 必须完成
             {
                 waitNavigationFlagStart = ros::Time::now();
@@ -138,14 +136,13 @@ int main(int argc, char **argv)
         }
         case 4:
         {
-            ROS_INFO("Stage 3: Go back home!!!!!!");
+            ROS_INFO("Stage 3: Go back home, rotate!!!!!!");
             robo_ctl.sent_mcu_vel_msg = robo_ctl.ctl_chassis(1, 1, robo_point2[0], robo_point2[1], robo_point2[2]);
             ros::Duration timeout(0.1); // Timeout of 2 seconds
-			while (ros::Time::now() - waitNavigationFlagStart < timeout)
-			{
-				robo_ctl.mustRunInWhile();
-				ros::spinOnce();
-			}
+            if (ros::Time::now() - waitNavigationFlagStart < timeout)
+            {
+                robo_ctl.finish_navigation.data = 0;
+            }
             if (robo_ctl.finish_navigation.data == 1) // 到达指点站位点, 跳转到下一个状态, 必须完成
             {
                 work_state = 5;

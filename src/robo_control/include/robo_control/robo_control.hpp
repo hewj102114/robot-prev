@@ -255,7 +255,23 @@ class RoboControl
     bool first_in_fishcam_yaw = true;
     ros::Time fishCamRotateStart = ros::Time::now();
     
-    float DEATH_AREA = 10;      // 旋转的死区
+
+    // 参数服务器
+
+    float DEATH_AREA = 20;      // 旋转的死区
+
+    float SWITCH_FORWARD_BACKWARD_DIS = 0.6;
+    float MIN_TRACK_ENEMY_DIS = 0.7;
+    float MAX_TRACK_ENEMY_DIS = 3.0;
+
+    int ARMOR_MAX_LOST_NUM = 150;               // armor 最大允许丢帧数量 (真正丢帧)
+    int ARMOR_AROUND_MAX_LOST_NUM = 150;        // armor 最大允许丢帧数量(摇头)
+    int REALSENSE_AROUND_MAX_LOST_NUM = 150;    // realsense 最大允许的丢帧数量(摇头)
+
+    float LOW_SHOT_SPEED_DISTANCE = 2.0;        // 低速射击最小距离
+    float HIGH_SHOT_SPEED_DISTANCE = 1.5;       // 高速射击最大距离
+
+    float ARMOR_LOST_PITCH = 5.0;
 
 
     // yaw: 1 -> 2
