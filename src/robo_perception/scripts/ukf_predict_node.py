@@ -64,7 +64,7 @@ from robo_vision.msg import ArmorInfo
 T_PNP_DELAY_VER = 0.00
 T_RS_DELAY_VER = 0.00 
 T_PNP_DELAY_PAR = 0.00 
-T_RS_DELAY_PAR = 0.00
+T_RS_DELAY_PAR = 0.2
 
 RS_INIT = True
 PNP_INIT = True
@@ -722,6 +722,8 @@ while not rospy.is_shutdown():
         gravital_angel = -2.7192 * predict_xy_distance ** 2 + 10.401 * predict_xy_distance - 9.7522
     else:
         gravital_angel = 0
+    #predict_pos.pose.pose.orientation.x = predict_pos.pose.pose.orientation.x + gravital_angel/np.pi*180
+
     #测试代码,用来屏蔽预测
     #predict_pos.pose.pose.orientation.w = 0
     #predict_pos.pose.pose.orientation.x = gravital_angel
