@@ -149,7 +149,7 @@ class RoboControl
     float ctl_yaw(int mode, float goal_yaw);
     PointInfo ctl_go_to_point(int mode, float goal_x, float goal_y);
     VelInfo ctl_chassis(int xy_mode, int yaw_mode, float goal_x, float goal_y, float goal_yaw);
-    void mustRunInWhile();
+    void mustRunInWhile(ros::NodeHandle private_nh);
     void cb_team_info(const robo_control::TeamInfo &msg);
     void get_param(ros::NodeHandle private_nh);
     
@@ -272,7 +272,6 @@ class RoboControl
     float HIGH_SHOT_SPEED_DISTANCE = 1.5;       // 高速射击最大距离
 
     float ARMOR_LOST_PITCH = 5.0;
-
 
     // yaw: 1 -> 2
     KeyPoint KEY_POINT[30] = {

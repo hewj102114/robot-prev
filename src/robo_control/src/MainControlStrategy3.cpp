@@ -130,7 +130,7 @@ int main(int argc, char **argv)
             ros::Duration timeout(0.1); // Timeout of 2 seconds
             while (ros::Time::now() - waitNavigationFlagStart < timeout)
             {
-                robo_ctl.mustRunInWhile();
+                robo_ctl.mustRunInWhile(private_nh);
                 ros::spinOnce();
             }
             if (robo_ctl.finish_navigation.data == 1) // 到达指点站位点, 跳转到下一个状态, 必须完成

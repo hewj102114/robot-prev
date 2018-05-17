@@ -246,7 +246,7 @@ pub_odom = rospy.Publisher('odom', Odometry, queue_size=1)
 
 rate = rospy.Rate(80)  # 80hz
 while not rospy.is_shutdown():
-    global pos_fuse_x, vel_wheel_x, pos_fuse_y, vel_wheel_y, acc_imu_x, acc_imu_y,ukf_yaw
+
     ukf_input = [pos_fuse_x, vel_wheel_x, acc_imu_x, pos_fuse_y, vel_wheel_y,acc_imu_y]
     ukf.predict()
     ukf.update(ukf_input)

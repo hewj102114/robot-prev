@@ -1,0 +1,1 @@
+rostopic echo base/armor_info
