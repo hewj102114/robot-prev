@@ -22,7 +22,7 @@ s.bind(addr)
 rate = rospy.Rate(60)
 while not rospy.is_shutdown():
     global lost_counter
-    data, addr = s.recvfrom(1024)
+    data, addr = s.recvfrom(4096)
     datalist = data.split()
     team = TeamInfo()
     if len(datalist) == RECV_LEN:
@@ -54,11 +54,11 @@ while not rospy.is_shutdown():
         team.pose.orientation.z = qua[2]
         team.pose.orientation.w = qua[3]
 
-        team.targetRelative.position.x = target_global_x
-        team.targetRelative.position.y = target_global_y
+        team.targetGlobal.position.x = target_global_x
+        team.targetGlobal.position.y = target_global_y
 
-        team.targetGlobal.position.x = target_rel_x
-        team.targetGlobal.position.y = target_rel_y
+        team.targetRelative.position.x = target_rel_x
+        team.targetRelative.position.y = target_rel_y
 
 
         lost_counter = 0
