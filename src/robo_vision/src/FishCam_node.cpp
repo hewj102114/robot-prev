@@ -256,6 +256,8 @@ int main(int argc, char **argv)
         for (int i = 0; i < pt_center_left.size(); i++)
         {
             int ret = fisheye_pose_estimate(pt_center_left[i][0], pt_center_left[i][1], cam_left_radius);
+            if (pt_center_left[i][2]<10)
+                continue;
             switch (ret)
             {
             case 0: //135
@@ -278,6 +280,8 @@ int main(int argc, char **argv)
         for (int i = 0; i < pt_center_right.size(); i++)
         {
             int ret = fisheye_pose_estimate(pt_center_right[i][0], pt_center_right[i][1], cam_right_radius);
+            if (pt_center_right[i][2]<10)
+                continue;
             switch (ret)
             {
             case 0: //-135
