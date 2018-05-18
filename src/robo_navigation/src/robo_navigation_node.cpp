@@ -596,37 +596,47 @@ geometry_msgs::Pose RoboNav::adjustlocalgoal(double yaw)
 }
 
 // zhongdian: 3-34; (4.0, 2.5) GO_CENTER_S=1  +34
-// point 1:  3-11; (3.3, 3.2)  GO_CENTER_S=1  no
+// point 1:  3-7; (2.6, 3.15)  GO_CENTER_S=1  no
 //point 3: 3-13; (4.00,3.8)   GO_CENTER_S=1   +13
 //point 2(robot 2): 9-8; (2.6,2.25)  GO_CENTER_S=1
 //point 4(robot 2): 9-8-28; (4.7,1.8)  GO_CENTER_S=0   +28
-//cation:  get velecity, change the last control point [34], [13], [11], 
+//cation:  get velecity, change the last control point [34], [13], 
 
 int RoboNav::go_center()
 {
-    //192.168.1.150
-    // cur_goal.position.x =2.6;
-    // cur_goal.position.y = 2.25;
-
-    // cur_goal.orientation=tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
-
-    // GO_CENTER_S = 1;
-    // {
-    //     path.push_back(9);
-    //     path.push_back(8);
-    //     //path.push_back(28);
-    // }
-
-    //192.168.1.148
-    cur_goal.position.x = 3.3;
-    cur_goal.position.y = 3.2;
-    cur_goal.orientation=tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
-
-    GO_CENTER_S = 1;
+    int selection=0;
+    switch (selection)
     {
-        path.push_back(3);
-        path.push_back(11);
-        //path.push_back(28);
+    case 0:
+        //192.168.1.150
+        cur_goal.position.x = 2.6;
+        cur_goal.position.y = 2.25;
+
+        cur_goal.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
+
+        GO_CENTER_S = 1;
+        {
+            path.push_back(9);
+            path.push_back(8);
+        }
+        break;
+
+    case 1:
+
+        //192.168.1.148
+        cur_goal.position.x = 2.6;
+        cur_goal.position.y = 3.15;
+        cur_goal.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
+
+        GO_CENTER_S = 1;
+        {
+            path.push_back(3);
+            path.push_back(7);
+            //path.push_back(28);
+        }
+        break;
+    default:
+        break;
     }
     return 0;
 }

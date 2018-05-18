@@ -29,6 +29,7 @@ import sensor_msgs.point_cloud2 as pc2
 from nav_msgs.msg import Odometry
 from robo_perception.msg import ObjectList
 from robo_perception.msg import Object
+from robo_control.msg import TeamInfo
 
 import tensorflow as tf
 from config import *
@@ -50,6 +51,7 @@ team_x = team_y = team_relative_x = team_relative_y = 0
 odom_pos_x = odom_pos_y = 0
 odom_yaw = odom_pos_x = odom_pos_y = odom_vel_x = odom_vel_y = 0
 last_enemy_position = ObjectList()
+connection_status = team_hp = global_team_x = global_team_y = 0
 
 lose_frame_count = 0
 
@@ -650,6 +652,12 @@ def callback_odom(odom):
                odom.pose.pose.orientation.z, odom.pose.pose.orientation.w]
     (odom_roll, odom_pitch, odom_yaw) = euler_from_quaternion(qn_odom)
 
+def callback_team(team):
+    global connection_status, team_hp, global_team_x, global_team_y
+    connection_status = team.connection
+    team_hp = team.remainingHP
+    global_team_x = team.pose.position.x
+    global_team_y = team.pose.position.y 
 
 rospy.init_node('rgb_detection')
 TFinit()
@@ -658,9 +666,10 @@ rgb_sub = message_filters.Subscriber('camera/infra1/image_rect_raw', Image)
 #subodom = rospy.Subscriber('odom', Odometry, callback_odom)
 subrgb = rospy.Subscriber('camera/color/image_raw', Image, callback_rgb)
 subodom = rospy.Subscriber('odom', Odometry, callback_odom)
+team = rospy.Subscriber('team/info', TeamInfo, callback_team)
 pc_sub = message_filters.Subscriber('camera/points', PointCloud2)
-pub = rospy.Publisher('infrared_detection/enemy_position',
-                      ObjectList, queue_size=1)
+
+pub = rospy.Publisher('infrared_detection/enemy_position',ObjectList, queue_size=1)
 
 TsDet = message_filters.ApproximateTimeSynchronizer(
     [rgb_sub, pc_sub], queue_size=5, slop=0.1, allow_headerless=False)
