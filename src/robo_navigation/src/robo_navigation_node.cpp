@@ -2,6 +2,7 @@
 #include <vector>
 #include <ros/ros.h>
 #include <std_msgs/Bool.h>
+#include <std_msgs/Int32.h>
 #include <std_msgs/Float64.h>
 #include <geometry_msgs/Pose.h>
 #include <visualization_msgs/Marker.h>
@@ -53,7 +54,7 @@ class RoboNav
      */
     double obs_min[4][2]; //90,+-60
     int dx_flag, dy_flag, dyaw_flag;
-
+    int selection;
     RoboNav(ros::NodeHandle* _pnh);
     void init();
     void cb_tar_pose(const geometry_msgs::Pose &msg);
@@ -65,6 +66,7 @@ class RoboNav
     void setFixAngle(const geometry_msgs::Quaternion &qua);
     void cb_scan(const sensor_msgs::LaserScan::ConstPtr &scan);
     void cb_enemy_infor(const robo_perception::ObjectList &msg);
+    void cb_first_point(const std_msgs::Int32 &msg);
     int go_center();
     geometry_msgs::Pose adjustlocalgoal(double yaw);
 };
@@ -72,6 +74,7 @@ class RoboNav
 RoboNav::RoboNav(ros::NodeHandle* _pnh)
 {
     obs_min[4][2] = {0};
+    selection=0;
     pnh = _pnh;
     pub_local_goal_pose = pnh->advertise<geometry_msgs::PoseStamped>("nav/local_goal", 1);
     tf_ = new tf::TransformListener();
@@ -429,7 +432,7 @@ void RoboNav::get_vel(geometry_msgs::Twist &msg_vel)
         if (GO_CENTER_S == 0)
         {
             ROS_INFO("dx: %f, dy: %f", dx, dy);
-            if (center_flag == 0 && path[0] == 28 && dx > 0.8)
+            if (center_flag == 0 && path[0] == 27 && dx > 0.8)
                 vel_y = 0;
             
         }
@@ -602,12 +605,16 @@ geometry_msgs::Pose RoboNav::adjustlocalgoal(double yaw)
 //point 4(robot 2): 9-8-28; (4.7,1.8)  GO_CENTER_S=0   +28
 //cation:  get velecity, change the last control point [34], [13], 
 
+void RoboNav::cb_first_point(const std_msgs::Int32 &msg)
+{
+    selection=msg.data;
+}
 int RoboNav::go_center()
 {
-    int selection=0;
+    
     switch (selection)
     {
-    case 0:
+    case 0:  //7
         //192.168.1.150
         cur_goal.position.x = 2.6;
         cur_goal.position.y = 2.25;
@@ -621,7 +628,7 @@ int RoboNav::go_center()
         }
         break;
 
-    case 1:
+    case 1:   //8
 
         //192.168.1.148
         cur_goal.position.x = 2.6;
@@ -633,6 +640,42 @@ int RoboNav::go_center()
             path.push_back(3);
             path.push_back(7);
             //path.push_back(28);
+        }
+        break;
+    case 2:   //13
+        cur_goal.position.x = 4.0;
+        cur_goal.position.y = 3.8;
+        cur_goal.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
+
+        GO_CENTER_S = 1;
+        {
+            path.push_back(3);
+            path.push_back(13);
+            //path.push_back(28);
+        }
+        break;
+    case 3:  //34
+        cur_goal.position.x = 4.0;
+        cur_goal.position.y = 2.5;
+        cur_goal.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
+
+        GO_CENTER_S = 1;
+        {
+            path.push_back(3);
+            path.push_back(34);
+
+        }
+        break;
+    case 4: //27
+        cur_goal.position.x = 4.7;
+        cur_goal.position.y = 0.6;
+        cur_goal.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
+
+        GO_CENTER_S = 0;
+        {
+            path.push_back(9);
+            path.push_back(8);
+            path.push_back(27);
         }
         break;
     default:
@@ -656,6 +699,7 @@ int main(int argc, char **argv)
     ros::Subscriber cb__teaminfo = nh.subscribe("team/info", 1, &RoboNav::cb_teaminfo, &robo_nav);
     ros::Subscriber sub = nh.subscribe<sensor_msgs::LaserScan>("scan", 1, &RoboNav::cb_scan, &robo_nav);
     ros::Subscriber sub_enemy_info = nh.subscribe("infrared_detection/enemy_position", 1, &RoboNav::cb_enemy_infor, &robo_nav);
+    ros::Subscriber cb_start_selection = nh.subscribe("base/first_point", 1, &RoboNav::cb_first_point, &robo_nav);
 
     ros::Publisher pub_vel = nh.advertise<geometry_msgs::Twist>("cmd_vel", 1);
     ros::Publisher pub_state = nh.advertise<std_msgs::Bool>("nav_state", 1);
