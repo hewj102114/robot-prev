@@ -62,7 +62,7 @@ from robo_control.msg import GameInfo
 from robo_vision.msg import ArmorInfo
  #系统延时系数，单位秒
 T_PNP_DELAY_VER = 0.00
-T_RS_DELAY_VER = 0.00 
+T_RS_DELAY_VER = 0.0 
 T_PNP_DELAY_PAR = 0.00 
 T_RS_DELAY_PAR = 0.15
 
@@ -84,7 +84,7 @@ TARGET_RECETIVED = False
 PNP_UKF_AVAILABLE = False
 RS_UKF_AVAILABLE = False
 
-MAX_VERTICLE_ANGLE = 5 #左右预瞄最大角度
+MAX_VERTICLE_ANGLE = 6 #左右预瞄最大角度
 MAX_PARALLEL_ANGLE = 5 #高度预瞄准最大角度
 MAX_GRAVITAL_ANGEL = -6
 
@@ -94,7 +94,7 @@ BULLET_FRICTION = -1 #子弹空气摩擦系数
 GUN_ARMOR_HEIGHT = 0.28 #枪口到装甲板的水平距离为28CM
 PNP_CLOSE_THRESH = 10 #判断pnp是否瞄准到了正确目标
 RS_CLOSE_THRESH = 10 #判断rs是否瞄准到了正确目标
-LOST_TRESH = 30
+LOST_TRESH = 15
 
 GIMBAL_TO_BASE = 0.15 # gimbal to rplidar(base_link) distance 15CM
 GIMBAL_TO_REALSENSE = 0.02 #gimbal to realsensen distance 15CM
@@ -613,21 +613,21 @@ while not rospy.is_shutdown():
         
         #T_FLY = rs_xy_distance / ((BULLET_SPEED + BULLET_FRICTION) * np.cos(gimbal_pitch))
         PREDICT_T_FLY = predict_xy_distance / ((BULLET_SPEED + BULLET_FRICTION)* np.cos(gimbal_pitch))
-        print 'PREDICT_T_FLY',PREDICT_T_FLY,'BULLET_SPEED',BULLET_SPEED,'BULLET_FRICTION',BULLET_FRICTION,'gimbal_pitch',gimbal_pitch,'cos',np.cos(gimbal_pitch)
+        #print 'PREDICT_T_FLY',PREDICT_T_FLY,'BULLET_SPEED',BULLET_SPEED,'BULLET_FRICTION',BULLET_FRICTION,'gimbal_pitch',gimbal_pitch,'cos',np.cos(gimbal_pitch)
         #反解算出需要的预瞄角度
         verticle_angle = np.arctan(V_verticle * (T_RS_DELAY_VER + PREDICT_T_FLY) / predict_xy_distance)
 
         lpf_input_list_ver_rs.append(verticle_angle)
-        lpf_input_list_ver_rs = butter_lowpass_filter(lpf_input_list_ver_rs, RS_LPF_CUTOFF, RS_LPS_SAMPLING_FREQ, LPF_ORDER).tolist()
+        lpf_input_list_ver_rs = butter_lowpass_filter(lpf_input_list_ver_rs, RS_LPF_CUTOFF, RS_LPS_SAMPLING_FREQ, LPF_ORDER)
         verticle_angle = lpf_input_list_ver_rs[5]
 
         
         parallel_angel = np.arctan(predict_xy_distance / GUN_ARMOR_HEIGHT) - np.arctan((predict_xy_distance + (PREDICT_T_FLY + T_RS_DELAY_PAR) * V_parallel) / GUN_ARMOR_HEIGHT)
         
         lpf_input_list_par_rs.append(parallel_angel)
-        lpf_input_list_par_rs = butter_lowpass_filter(lpf_input_list_par_rs, RS_LPF_CUTOFF, RS_LPS_SAMPLING_FREQ, LPF_ORDER).tolist()
+        lpf_input_list_par_rs = butter_lowpass_filter(lpf_input_list_par_rs, RS_LPF_CUTOFF, RS_LPS_SAMPLING_FREQ, LPF_ORDER)
         parallel_angel = lpf_input_list_par_rs[5]
-        print 'predict_xy_distance',predict_xy_distance,'PREDICT_T_FLY',PREDICT_T_FLY,'V_parallel', V_parallel,'parallel_angel',parallel_angel
+        print 'predict_xy_distance',predict_xy_distance,'PREDICT_T_FLY',PREDICT_T_FLY,'V_parallel', V_parallel,'parallel_angel',parallel_angel,'verticle_angle',verticle_angle
 
     elif PNP_UKF_AVAILABLE:
         #计算相对速度
@@ -667,13 +667,13 @@ while not rospy.is_shutdown():
 
 
         lpf_input_list_ver_pnp.append(verticle_angle)
-        lpf_input_list_ver_pnp = butter_lowpass_filter(lpf_input_list_ver_pnp, PNP_LPF_CUTOFF, PNP_LPS_SAMPLING_FREQ, LPF_ORDER).tolist()
+        lpf_input_list_ver_pnp = butter_lowpass_filter(lpf_input_list_ver_pnp, PNP_LPF_CUTOFF, PNP_LPS_SAMPLING_FREQ, LPF_ORDER)
         verticle_angle_ver = lpf_input_list_ver_pnp[5]
 
         parallel_angel = np.arctan(predict_xy_distance / GUN_ARMOR_HEIGHT) - np.arctan((predict_xy_distance + (PREDICT_T_FLY + T_PNP_DELAY_PAR) * V_parallel) / GUN_ARMOR_HEIGHT)
         
         lpf_input_list_par_pnp.append(parallel_angel)
-        lpf_out_list_par_pnp = butter_lowpass_filter(lpf_input_list_par_pnp, PNP_LPF_CUTOFF, PNP_LPS_SAMPLING_FREQ, LPF_ORDER).tolist()
+        lpf_out_list_par_pnp = butter_lowpass_filter(lpf_input_list_par_pnp, PNP_LPF_CUTOFF, PNP_LPS_SAMPLING_FREQ, LPF_ORDER)
         parallel_angel = lpf_out_list_par_pnp[5]
 
     predict_pos = Odometry()
