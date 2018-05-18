@@ -200,7 +200,7 @@ void RoboNav::cb_cur_pose(const nav_msgs::Odometry &msg)
 void RoboNav::cb_teaminfo(const robo_control::TeamInfo &msg)
 {
     team_pose = msg.pose;
-    // ROS_INFO("recv");
+    ROS_INFO("Team Pose, x: %f, y: %f",team_pose.position.x, team_pose.position.y);
     if (path.size() > 0)
     {
         double pt_x = team_pose.position.x;
@@ -218,22 +218,26 @@ void RoboNav::cb_teaminfo(const robo_control::TeamInfo &msg)
         int nest = -1, near = -1;
         nest = distance(dis_list.begin(), smallest);
         double small_dis = *smallest;
-
+        ROS_INFO("Team robot on %d point", nest);
         //too close to a point, all the path related to this point should be invalid
         if (*smallest < 0.5)
         {
-            //if the occupied point is on the point, update
-            for (int i = 0; i < path.size(); i++)
+            if (nest == path.back())
             {
-                if (nest == path[i])
+                ROS_INFO("Team Robot on the target goal");
+                path.pop_back();
+            }
+            //if the occupied point is on the point, update
+            else
+            {
+                floyd.loadMatrix(arrArcs);
+                ROS_INFO("Team Robot on the path");
+                for (int i = 0; i < path.size() - 1; i++)
                 {
-                    int i = 0;
-                    while (i != nest)
+                    for (int i = 0; i < point_list.rows; i++)
                     {
-                                //init the neighor matrix 
-                        floyd.loadMatrix(arrArcs);
-                        floyd.updateFloydGraph(i, nest, 100);
-                        i++;
+                        if (i != nest)
+                            floyd.updateFloydGraph(i, nest, 100);
                     }
                     floyd.initFloydGraph();
                     path_plan(cur_goal);
@@ -241,26 +245,27 @@ void RoboNav::cb_teaminfo(const robo_control::TeamInfo &msg)
                 }
             }
         }
-        else //not too close to a point, find the invalid path
-        {
-            dis_list.erase(smallest);
-            vector<float>::iterator smallestK = min_element(dis_list.begin(), dis_list.end());
-            near = distance(dis_list.begin(), smallestK);
-            double pairwise_dis = sqrt(pow(point_list.at<double>(nest, 0) - point_list.at<double>(near, 0), 2) + pow(point_list.at<double>(nest, 1) - point_list.at<double>(near, 1), 2)) * 1.0 / 100;
-            if (small_dis + *smallestK < pairwise_dis * 1.2&&path.size()>2)
-                //if the occupied point is on the point, update
-                for (int i = 1; i < path.size() - 1; i++)
-                {
-                    if (nest == path[i] && (path[i - 1] == near || path[i + 1] == near))
-                    {
-                        floyd.loadMatrix(arrArcs);
-                        floyd.updateFloydGraph(near, nest, 100);
-                        floyd.initFloydGraph();
-                        path_plan(cur_goal);
-                        break;
-                    }
-                }
-        }
+        // else //not too close to a point, find the invalid path
+        // {
+        //     dis_list.erase(smallest);
+        //     vector<float>::iterator smallestK = min_element(dis_list.begin(), dis_list.end());
+        //     near = distance(dis_list.begin(), smallestK);
+        //     double pairwise_dis = sqrt(pow(point_list.at<double>(nest, 0) - point_list.at<double>(near, 0), 2) + pow(point_list.at<double>(nest, 1) - point_list.at<double>(near, 1), 2)) * 1.0 / 100;
+        //     floyd.loadMatrix(arrArcs);
+        //     if (small_dis + *smallestK < pairwise_dis * 1.2&&path.size()>2)
+        //         //if the occupied point is on the point, update
+        //         for (int i = 1; i < path.size() - 1; i++)
+        //         {
+        //             if (nest == path[i] && (path[i - 1] == near || path[i + 1] == near))
+        //             {
+                        
+        //                 floyd.updateFloydGraph(near, nest, 100);
+        //                 floyd.initFloydGraph();
+        //                 path_plan(cur_goal);
+        //                 break;
+        //             }
+        //         }
+        // }
     }
 }
 

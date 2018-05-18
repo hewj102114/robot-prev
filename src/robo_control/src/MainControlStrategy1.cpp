@@ -37,7 +37,7 @@ int main(int argc, char **argv)
 	chassis 1:velcity 2:angle pose 3:init
 	*/
     geometry_msgs::Pose target_pose;
-    int work_state = 0; // switch case 的状态位
+    int work_state = 1; // switch case 的状态位
 
     ros::Rate loop_rate(150); // ROS 帧率
     while (ros::ok())
