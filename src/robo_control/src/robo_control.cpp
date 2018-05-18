@@ -660,7 +660,7 @@ robo_perception::ObjectList RoboControl::sendEnemyTarget(const robo_perception::
 }
 
 // 打击函数
-GambalInfo RoboControl::ctl_stack_enemy()
+GambalInfo RoboControl::ctl_stack_enemy(bool enable_chassis_rotate)
 {
     /*************************************************************************
     *  ctl_stack_enemy()
@@ -688,7 +688,10 @@ GambalInfo RoboControl::ctl_stack_enemy()
         {
             sent_mcu_gimbal_result.mode = 2; // 高速 8
         }
-        // sent_mcu_vel_msg.mode = 4;
+        if (enable_chassis_rotate)
+        {
+            sent_mcu_vel_msg.mode = 4;            
+        }
 
         sent_mcu_gimbal_result.yaw = armor_info_msg.yaw + robo_ukf_enemy_information.orientation.w * 100.0;
         sent_mcu_gimbal_result.pitch = armor_info_msg.pitch + robo_ukf_enemy_information.orientation.x * 100.0;

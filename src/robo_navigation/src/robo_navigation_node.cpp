@@ -588,8 +588,8 @@ geometry_msgs::Pose RoboNav::adjustlocalgoal(double yaw)
 
     if (center_flag == 0)
     {
-        pid_x.stop = false;
-        pid_y.stop = false;
+        // pid_x.stop = false;
+        // pid_y.stop = false;
     }
     //ROS_INFO("stop x: %d, y: %d", pid_x.stop, pid_y.stop);
     return local_goal;
@@ -605,29 +605,29 @@ geometry_msgs::Pose RoboNav::adjustlocalgoal(double yaw)
 int RoboNav::go_center()
 {
     //192.168.1.150
-    cur_goal.position.x =2.6;
-    cur_goal.position.y = 2.25;
+    // cur_goal.position.x =2.6;
+    // cur_goal.position.y = 2.25;
 
-    cur_goal.orientation=tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
-
-    GO_CENTER_S = 1;
-    {
-        path.push_back(9);
-        path.push_back(8);
-        //path.push_back(28);
-    }
-
-    //192.168.1.148
-    // cur_goal.position.x =3.3;
-    // cur_goal.position.y = 3.2;
     // cur_goal.orientation=tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
 
     // GO_CENTER_S = 1;
     // {
-    //     path.push_back(3);
-    //     path.push_back(11);
+    //     path.push_back(9);
+    //     path.push_back(8);
     //     //path.push_back(28);
     // }
+
+    //192.168.1.148
+    cur_goal.position.x = 3.3;
+    cur_goal.position.y = 3.2;
+    cur_goal.orientation=tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
+
+    GO_CENTER_S = 1;
+    {
+        path.push_back(3);
+        path.push_back(11);
+        //path.push_back(28);
+    }
     return 0;
 }
 

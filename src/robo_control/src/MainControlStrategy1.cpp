@@ -37,7 +37,7 @@ int main(int argc, char **argv)
 	chassis 1:velcity 2:angle pose 3:init
 	*/
     geometry_msgs::Pose target_pose;
-    int work_state = 1; // switch case 的状态位
+    int work_state = 0; // switch case 的状态位
 
     ros::Rate loop_rate(150); // ROS 帧率
     while (ros::ok())
@@ -57,8 +57,10 @@ int main(int argc, char **argv)
             robo_ctl.sent_mcu_vel_msg.v_x=robo_ctl.cmd_vel_msg.v_x;
             robo_ctl.sent_mcu_vel_msg.v_y=robo_ctl.cmd_vel_msg.v_y;
             robo_ctl.sent_mcu_vel_msg.v_yaw=robo_ctl.cmd_vel_msg.v_yaw;
-            if(robo_ctl.finish_navigation.data);
-                //work_state = 1;
+            if(robo_ctl.finish_navigation.data)
+            {
+                work_state = 1;                
+            }
             break;
         }
         /*************************************************************************
@@ -72,7 +74,7 @@ int main(int argc, char **argv)
             // point 1: (2.6, 3.1)
             // rotate -> (3.3, 3.2)
             // shack -> (0.6, 3.2)
-            robo_ctl.sent_mcu_vel_msg = robo_ctl.ctl_chassis(1, 2, 0.6, 3.2, 0);
+            robo_ctl.sent_mcu_vel_msg = robo_ctl.ctl_chassis(1, 2, 2.6, 3.1, 0);
             if (robo_ctl.last_enemy_target.red_num == 1)
             {
                 work_state = 1;

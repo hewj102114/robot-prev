@@ -55,7 +55,7 @@ int main(int argc, char **argv)
 	chassis 1:velcity 2:angle pose 3:init
 	*/
     geometry_msgs::Pose target_pose;
-    int work_state = 7; // switch case 的状态位
+    int work_state = 0; // switch case 的状态位
     ros::Time stackCenterEnemyStart;
     ros::Time waitNavigationFlagStart;
 
@@ -73,8 +73,14 @@ int main(int argc, char **argv)
         case 0:
         {
             ROS_INFO("Stage 0: Go to center!");
-            robo_ctl.finish_navigation.data = 0;
-            work_state = 1;
+            robo_ctl.sent_mcu_vel_msg.mode = 1;
+            robo_ctl.sent_mcu_vel_msg.v_x = robo_ctl.cmd_vel_msg.v_x;
+            robo_ctl.sent_mcu_vel_msg.v_y = robo_ctl.cmd_vel_msg.v_y;
+            robo_ctl.sent_mcu_vel_msg.v_yaw = robo_ctl.cmd_vel_msg.v_yaw;
+            if (robo_ctl.finish_navigation.data)
+            {
+                work_state = 1;
+            }
             break;
         }
         /*************************************************************************
@@ -86,9 +92,15 @@ int main(int argc, char **argv)
         {
             ROS_INFO("Stage 1: Go to certain point!!!!!!");
             robo_ctl.sent_mcu_vel_msg = robo_ctl.ctl_chassis(1, 1, robo_point1[0], robo_point1[1], robo_point1[2]);
+            ros::Duration timeout(0.1); // Timeout of 2 seconds
+            if (ros::Time::now() - waitNavigationFlagStart < timeout)
+            {
+                robo_ctl.finish_navigation.data = 0;
+            }
             if (robo_ctl.finish_navigation.data == 1) // 到达指点站位点, 跳转到下一个状态
             {
                 stackCenterEnemyStart = ros::Time::now();
+                robo_ctl.finish_navigation.data = 0;
                 work_state = 2;
             }
             break;

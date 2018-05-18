@@ -64,6 +64,7 @@ from robo_vision.msg import ArmorInfo
 T_PNP_DELAY_VER = 0.0
 T_RS_DELAY_VER = 5 # all set!
 T_PNP_DELAY_PAR = 0.00 
+
 T_RS_DELAY_PAR = 1.6
 
 RS_INIT = True
@@ -755,9 +756,12 @@ while not rospy.is_shutdown():
     elif predict_pos.pose.pose.orientation.x <= - MAX_PARALLEL_ANGLE:
         predict_pos.pose.pose.orientation.x = -MAX_PARALLEL_ANGLE
 
+    if ENABLE_PREDICT == False:
+        predict_pos.pose.pose.orientation.w = 0
+        predict_pos.pose.pose.orientation.x = 0        
     #测试代码,用来屏蔽预测
     #predict_pos.pose.pose.orientation.w = 0
-    predict_pos.pose.pose.orientation.x = 0
+    #predict_pos.pose.pose.orientation.x = 0
 
     pub_ukf_vel.publish(predict_pos) 
 

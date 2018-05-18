@@ -142,7 +142,7 @@ class RoboControl
     robo_perception::ObjectList sendEnemyTarget(const robo_perception::ObjectList &msg, robo_perception::ObjectList &last_enemy_target_msg);
     float calculator_enemy_angle(double enemy_x, double enemy_y, double self_x, double self_y);
     void cb_ukf_enemy_information(const nav_msgs::Odometry &msg);
-    GambalInfo ctl_stack_enemy();
+    GambalInfo ctl_stack_enemy(bool enable_chassis_rotate=false);
     void main_control_init();
     geometry_msgs::Point ctl_track_enemy(double enemy_x, double enemy_y);
     void cb_fishcam_info(const robo_vision::FishCamInfo &msg);
