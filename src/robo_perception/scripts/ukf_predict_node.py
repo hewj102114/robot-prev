@@ -62,9 +62,9 @@ from robo_control.msg import GameInfo
 from robo_vision.msg import ArmorInfo
  #系统延时系数，单位秒
 T_PNP_DELAY_VER = 0.00
-T_RS_DELAY_VER = 0.00 
+T_RS_DELAY_VER = 0.0 
 T_PNP_DELAY_PAR = 0.00 
-T_RS_DELAY_PAR = 0.05
+T_RS_DELAY_PAR = 0.15
 
 RS_INIT = True
 PNP_INIT = True
@@ -85,28 +85,32 @@ PNP_UKF_AVAILABLE = False
 RS_UKF_AVAILABLE = False
 
 MAX_VERTICLE_ANGLE = 6 #左右预瞄最大角度
-MAX_PARALLEL_ANGLE = 15 #高度预瞄准最大角度
+MAX_PARALLEL_ANGLE = 5 #高度预瞄准最大角度
+MAX_GRAVITAL_ANGEL = -6
 
 GRAVITY = 9.8 #重力加速度 9.8 m/s^2
 BULLET_SPEED = 18.1 #子弹速度
-BULLET_FRICTION = 0 #子弹空气摩擦系数
+BULLET_FRICTION = -1 #子弹空气摩擦系数
 GUN_ARMOR_HEIGHT = 0.28 #枪口到装甲板的水平距离为28CM
 PNP_CLOSE_THRESH = 10 #判断pnp是否瞄准到了正确目标
 RS_CLOSE_THRESH = 10 #判断rs是否瞄准到了正确目标
-LOST_TRESH = 10
+LOST_TRESH = 15
 
 GIMBAL_TO_BASE = 0.15 # gimbal to rplidar(base_link) distance 15CM
 GIMBAL_TO_REALSENSE = 0.02 #gimbal to realsensen distance 15CM
 
 #LOW PASS FILTER
 LPF_ORDER = 7
-PNP_LPS_SAMPLING_FREQ = 100.0       # sample rate, Hz
-PNP_LPF_CUTOFF = 10  # desired cutoff frequency of the filter, Hz
+PNP_LPS_SAMPLING_FREQ = 70.0       # sample rate, Hz
+PNP_LPF_CUTOFF = 5  # desired cutoff frequency of the filter, Hz
 
 RS_LPS_SAMPLING_FREQ = 100.0       # sample rate, Hz
 RS_LPF_CUTOFF = 30  # desired cutoff frequency of the filter, Hz
 
-lpf_input_list = deque([0,0,0,0,0],maxlen = 6)
+lpf_input_list_par_rs = deque([0,0,0,0,0],maxlen = 6)
+lpf_input_list_ver_rs = deque([0,0,0,0,0],maxlen = 6)
+lpf_input_list_par_pnp = deque([0,0,0,0,0],maxlen = 6)
+lpf_input_list_ver_pnp = deque([0,0,0,0,0],maxlen = 6)
 
 ukf_result = []
 robo_vel_x = robo_vel_y = 0
@@ -609,16 +613,21 @@ while not rospy.is_shutdown():
         
         #T_FLY = rs_xy_distance / ((BULLET_SPEED + BULLET_FRICTION) * np.cos(gimbal_pitch))
         PREDICT_T_FLY = predict_xy_distance / ((BULLET_SPEED + BULLET_FRICTION)* np.cos(gimbal_pitch))
-        print 'PREDICT_T_FLY',PREDICT_T_FLY,'BULLET_SPEED',BULLET_SPEED,'BULLET_FRICTION',BULLET_FRICTION,'gimbal_pitch',gimbal_pitch,'cos',np.cos(gimbal_pitch)
+        #print 'PREDICT_T_FLY',PREDICT_T_FLY,'BULLET_SPEED',BULLET_SPEED,'BULLET_FRICTION',BULLET_FRICTION,'gimbal_pitch',gimbal_pitch,'cos',np.cos(gimbal_pitch)
         #反解算出需要的预瞄角度
         verticle_angle = np.arctan(V_verticle * (T_RS_DELAY_VER + PREDICT_T_FLY) / predict_xy_distance)
 
-        lpf_input_list.append(verticle_angle)
-        lpf_out_list = butter_lowpass_filter(lpf_input_list, RS_LPF_CUTOFF, RS_LPS_SAMPLING_FREQ, LPF_ORDER)
-        verticle_angle = lpf_out_list[5]
+        lpf_input_list_ver_rs.append(verticle_angle)
+        lpf_input_list_ver_rs = butter_lowpass_filter(lpf_input_list_ver_rs, RS_LPF_CUTOFF, RS_LPS_SAMPLING_FREQ, LPF_ORDER)
+        verticle_angle = lpf_input_list_ver_rs[5]
+
         
         parallel_angel = np.arctan(predict_xy_distance / GUN_ARMOR_HEIGHT) - np.arctan((predict_xy_distance + (PREDICT_T_FLY + T_RS_DELAY_PAR) * V_parallel) / GUN_ARMOR_HEIGHT)
-        print 'predict_xy_distance',predict_xy_distance,'PREDICT_T_FLY',PREDICT_T_FLY,'V_parallel', V_parallel,'parallel_angel',parallel_angel
+        
+        lpf_input_list_par_rs.append(parallel_angel)
+        lpf_input_list_par_rs = butter_lowpass_filter(lpf_input_list_par_rs, RS_LPF_CUTOFF, RS_LPS_SAMPLING_FREQ, LPF_ORDER)
+        parallel_angel = lpf_input_list_par_rs[5]
+        print 'predict_xy_distance',predict_xy_distance,'PREDICT_T_FLY',PREDICT_T_FLY,'V_parallel', V_parallel,'parallel_angel',parallel_angel,'verticle_angle',verticle_angle
 
     elif PNP_UKF_AVAILABLE:
         #计算相对速度
@@ -657,12 +666,15 @@ while not rospy.is_shutdown():
         # distance_to_enemy = np.sqrt((ukf_out_pos_x - (odom_pos_x + 0.22*np.cos(odom_yaw)))**2 +(ukf_out_pos_y - (odom_pos_y+ 0.22*np.cos(odom_yaw)))**2)
 
 
-        lpf_input_list.append(verticle_angle)
-        lpf_out_list = butter_lowpass_filter(lpf_input_list, PNP_LPF_CUTOFF, PNP_LPS_SAMPLING_FREQ, LPF_ORDER)
-        verticle_angle = lpf_out_list[5]
+        lpf_input_list_ver_pnp.append(verticle_angle)
+        lpf_input_list_ver_pnp = butter_lowpass_filter(lpf_input_list_ver_pnp, PNP_LPF_CUTOFF, PNP_LPS_SAMPLING_FREQ, LPF_ORDER)
+        verticle_angle_ver = lpf_input_list_ver_pnp[5]
 
         parallel_angel = np.arctan(predict_xy_distance / GUN_ARMOR_HEIGHT) - np.arctan((predict_xy_distance + (PREDICT_T_FLY + T_PNP_DELAY_PAR) * V_parallel) / GUN_ARMOR_HEIGHT)
-
+        
+        lpf_input_list_par_pnp.append(parallel_angel)
+        lpf_out_list_par_pnp = butter_lowpass_filter(lpf_input_list_par_pnp, PNP_LPF_CUTOFF, PNP_LPS_SAMPLING_FREQ, LPF_ORDER)
+        parallel_angel = lpf_out_list_par_pnp[5]
 
     predict_pos = Odometry()
     predict_pos.header.frame_id = "predict"
@@ -712,24 +724,27 @@ while not rospy.is_shutdown():
     elif predict_pos.pose.pose.orientation.w <= - MAX_VERTICLE_ANGLE:
         predict_pos.pose.pose.orientation.w = -MAX_VERTICLE_ANGLE
 
+
+
+    if predict_xy_distance > 2.2:
+        gravital_angel = -2.7192 * predict_xy_distance ** 2 + 10.401 * predict_xy_distance - 9.7522
+        # restrain the max limit 
+        if gravital_angel < MAX_GRAVITAL_ANGEL:
+            gravital_angel = MAX_GRAVITAL_ANGEL
+    else:
+        gravital_angel = 0
+    print gravital_angel
+    predict_pos.pose.pose.orientation.x = predict_pos.pose.pose.orientation.x + gravital_angel
+
     # parallel_angel
     if predict_pos.pose.pose.orientation.x >= MAX_PARALLEL_ANGLE:
         predict_pos.pose.pose.orientation.x = MAX_PARALLEL_ANGLE
     elif predict_pos.pose.pose.orientation.x <= - MAX_PARALLEL_ANGLE:
         predict_pos.pose.pose.orientation.x = -MAX_PARALLEL_ANGLE
 
-    if predict_xy_distance > 2.2:
-        gravital_angel = -2.7192 * predict_xy_distance ** 2 + 10.401 * predict_xy_distance - 9.7522
-        # restrain the max limit 
-        if gravital_angel < -9.5:
-            gravital_angel = -9.5
-    else:
-        gravital_angel = 0
-    predict_pos.pose.pose.orientation.x = predict_pos.pose.pose.orientation.x + gravital_angel/np.pi*180
-
     #测试代码,用来屏蔽预测
     #predict_pos.pose.pose.orientation.w = 0
-    #predict_pos.pose.pose.orientation.x = gravital_angel
+    #predict_pos.pose.pose.orientation.x = 0
 
     pub_ukf_vel.publish(predict_pos) 
 
