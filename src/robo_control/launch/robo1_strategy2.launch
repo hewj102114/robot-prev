@@ -33,7 +33,7 @@
 
     <!-- 1 车 -->
     <rosparam param="robo_point1"> [2.6, 3.1, 0]</rosparam>     <!-- A -->
-    <rosparam param="robo_point2"> [1.3, 1.8, 1.57]</rosparam>  <!-- C -->
+    <rosparam param="robo_point2"> [2.6, 0.8, 1.57]</rosparam>  <!-- C -->
 
     <rosparam param="first_point"> 4 </rosparam>
 

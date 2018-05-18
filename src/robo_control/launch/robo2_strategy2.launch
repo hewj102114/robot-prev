@@ -35,7 +35,7 @@
     <rosparam param="robo_point1"> [2.6, 2.25, 0]</rosparam>    <!-- E -->
     <rosparam param="robo_point2"> [2.6, 0.8, 1.57]</rosparam>  <!-- D -->
 
-    <rosparam param="first_point"> 0 </rosparam>
+    <rosparam param="first_point"> 4 </rosparam>
     
 
     </node>
