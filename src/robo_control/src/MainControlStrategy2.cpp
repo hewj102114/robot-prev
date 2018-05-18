@@ -149,7 +149,7 @@ int main(int argc, char **argv)
         case 4:
         {
             ROS_INFO("Stage 3: Go back home, rotate!!!!!!");
-            robo_ctl.sent_mcu_vel_msg = robo_ctl.ctl_chassis(1, 1, robo_point2[0], robo_point2[1], robo_point2[2]);
+            robo_ctl.sent_mcu_vel_msg = robo_ctl.ctl_chassis(1, 2, robo_point2[0], robo_point2[1], robo_point2[2]);
             ros::Duration timeout(0.1); // Timeout of 2 seconds
             if (ros::Time::now() - waitNavigationFlagStart < timeout)
             {
@@ -169,7 +169,7 @@ int main(int argc, char **argv)
         case 5:
         {
             ROS_INFO("Stage 4: Stay at home!!!!!!");
-            robo_ctl.sent_mcu_vel_msg = robo_ctl.ctl_chassis(1, 1, robo_point2[0], robo_point2[1], robo_point2[2]);
+            robo_ctl.sent_mcu_vel_msg = robo_ctl.ctl_chassis(1, 2, robo_point2[0], robo_point2[1], robo_point2[2]);
             if (robo_ctl.last_enemy_target.red_num == 1) // 看到敌人, 冲上去打
             {
                 work_state = 6;

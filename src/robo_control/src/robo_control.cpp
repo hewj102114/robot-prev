@@ -939,6 +939,7 @@ float RoboControl::ctl_yaw(int mode, float goal_yaw)
     if (mode == 2)
     {
         // 没有子弹. 永不转身
+        last_yaw = goal_yaw;
         return goal_yaw;        // 直接转向设定的角度
     }
     return last_yaw;

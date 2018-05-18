@@ -588,8 +588,8 @@ geometry_msgs::Pose RoboNav::adjustlocalgoal(double yaw)
 
     if (center_flag == 0)
     {
-        // pid_x.stop = false;
-        // pid_y.stop = false;
+        pid_x.stop = false;
+        pid_y.stop = false;
     }
     //ROS_INFO("stop x: %d, y: %d", pid_x.stop, pid_y.stop);
     return local_goal;

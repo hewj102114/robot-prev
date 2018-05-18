@@ -1,6 +1,6 @@
 <launch>
     <node pkg="robo_control" type="control_strategy_2_node" name="control_strategy_2_node" output="screen">
-
+    <!-- 参数服务器 -->    
     <rosparam param="DEATH_AREA"> 20 </rosparam>
 
     <rosparam param="SWITCH_FORWARD_BACKWARD_DIS"> 0.6 </rosparam>
@@ -30,7 +30,7 @@
 
     <!-- 1 车 -->
     <rosparam param="robo_point1"> [2.6, 3.1, 0]</rosparam>
-    <rosparam param="robo_point2"> [2.6, 0.8, 1.57]</rosparam>
+    <rosparam param="robo_point2"> [1.3, 1.8, 1.57]</rosparam>
 
     </node>
 </launch>
