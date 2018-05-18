@@ -10,10 +10,16 @@
         <rosparam param="ARMOR_AROUND_MAX_LOST_NUM"> 150 </rosparam>
         <rosparam param="REALSENSE_AROUND_MAX_LOST_NUM"> 150 </rosparam>
 
-        <rosparam param="LOW_SHOT_SPEED_DISTANCE"> 2.0 </rosparam>
+        <rosparam param="LOW_SHOT_SPEED_DISTANCE"> 2.7 </rosparam>
         <rosparam param="HIGH_SHOT_SPEED_DISTANCE"> 1.5 </rosparam>
 
         <rosparam param="ARMOR_LOST_PITCH"> 5.0 </rosparam>
+
+        <rosparam param="P_pitch"> 1 </rosparam>
+        <rosparam param="I_pitch"> 0.1 </rosparam>
+        <rosparam param="D_pitch"> 0 </rosparam>
+        <rosparam param="MAX_SUM_ERROR"> 1 </rosparam>
+        
         
     </node>
 </launch>

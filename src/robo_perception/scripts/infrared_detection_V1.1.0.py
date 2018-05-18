@@ -348,10 +348,27 @@ def TsDet_callback(infrared_image, pointcloud):
     enemy_position.header.frame_id = 'enemy'
 
     # 检测到车或者同时检测到轮子和装甲板认为是真真检测到车 (远距离和近距离车和装甲板是矛盾的)    
-    if len(final_boxes) > 0 and np.any(final_class == 0) and (np.any(final_class == 1) or np.any(final_class == 2)):
+    # and 改成了 or, 有两种情况, 1. robo = 0 的时候能够进入 if 循环, 2. armor 和 wheel 都没有的时候能够进入 if 循环
+    if len(final_boxes) > 0 and np.any(final_class == 0) or (np.any(final_class == 1) or np.any(final_class == 2)):
         # judge detect how much robots
         robot_final_idx = np.array(np.where(final_class == 0))
         armor_idx = np.array(np.where(final_class == 2))
+        wheel_idx = np.array(np.where(final_class == 1))
+        
+        print(robot_final_idx.shape, armor_idx.shape, wheel_idx.shape)
+
+        robo_num = robot_final_idx.shape[1]
+        armor_num = armor_idx.shape[1]
+        wheel_num = wheel_idx.shape[1]
+
+        detection_mode_flag = "normal"
+        if robo_num == 0 and armor_num != 0:   # 有装甲板没有车, 表明车很近或者误检
+            robot_final_idx = armor_idx
+            detection_mode_flag = "near"
+        
+        if robo_num != 0 and armor_num == 0 and wheel_num == 0: # 有车没有装甲板和轮子, 表明车很远或者误检
+            robot_final_idx = robot_final_idx
+            detection_mode_flag = "far"
 
         # 如果一个robot的bbox中没有轮子和装甲板, 认为这个bbox是误检
         for _ in range(robot_final_idx.shape[1]):
@@ -398,12 +415,9 @@ def TsDet_callback(infrared_image, pointcloud):
 
             # 使用bbox下方的点云计算距离, 大概是装甲板的位置
 
-            x_ = np.arange(int(armor_cx - pointcloud_w / 2),
-                           int(armor_cx + pointcloud_w / 2), 1)
-            y_ = np.arange(int(armor_cy + armor_h / 2 - armor_h / 6 -
-                               pointcloud_h), int(armor_cy + armor_h / 2 - armor_h / 6), 1)
-            y_ = np.arange(int(armor_cy - pointcloud_h / 2),
-                           int(armor_cy + pointcloud_h / 2), 1)
+            x_ = np.arange(int(armor_cx - pointcloud_w / 2), int(armor_cx + pointcloud_w / 2), 1)
+            y_ = np.arange(int(armor_cy + armor_h / 2 - armor_h / 6 - pointcloud_h), int(armor_cy + armor_h / 2 - armor_h / 6), 1)
+            y_ = np.arange(int(armor_cy - pointcloud_h / 2), int(armor_cy + pointcloud_h / 2), 1)
             roi = [[x, y] for x in x_ for y in y_]
 
             rois.append(roi)
@@ -429,8 +443,18 @@ def TsDet_callback(infrared_image, pointcloud):
             avgY = np.mean(positionY)
             avgZ = np.mean(positionZ)
 
+            if detection_mode_flag == "far":
+                print("enemy is so far")
+                if avgZ < 6.0:
+                    continue
+            if detection_mode_flag == "near":
+                print("enemy is so near")
+                if avgZ > 0.8:
+                    continue
+
             current_position = [avgX, avgY, avgZ]
             if current_position in robo_position:
+                print("position pop")
                 robo_bboxes.pop()
                 armor_bboxes.pop()
                 rois.pop()

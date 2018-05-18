@@ -672,6 +672,7 @@ GambalInfo RoboControl::ctl_stack_enemy()
     // 2. realsense和armor都没有看到的时候, 并且丢帧数量小于 400, 维持云台角度
     ROS_INFO("armor_lost_counter: %d", armor_lost_counter);
 
+
     if (armor_info_msg.mode == 3)
     {
         ROS_INFO("mode = 3, stacking enemy");
@@ -687,6 +688,7 @@ GambalInfo RoboControl::ctl_stack_enemy()
         {
             sent_mcu_gimbal_result.mode = 2; // 高速 8
         }
+        // sent_mcu_vel_msg.mode = 4;
 
         sent_mcu_gimbal_result.yaw = armor_info_msg.yaw + robo_ukf_enemy_information.orientation.w * 100.0;
         sent_mcu_gimbal_result.pitch = armor_info_msg.pitch + robo_ukf_enemy_information.orientation.x * 100.0;
@@ -784,7 +786,12 @@ GambalInfo RoboControl::ctl_stack_enemy()
             ROS_INFO("detected armor");
             sent_mcu_gimbal_result.mode = 2;
             sent_mcu_gimbal_result.yaw = armor_info_msg.yaw + robo_ukf_enemy_information.orientation.w * 100.0;
-            sent_mcu_gimbal_result.pitch = armor_info_msg.pitch + robo_ukf_enemy_information.orientation.x * 100.0;
+            // sent_mcu_gimbal_result.pitch = armor_info_msg.pitch + robo_ukf_enemy_information.orientation.x * 100.0;
+            // current_pitch = game_msg.gimbalAnglePitch;
+            error = (armor_info_msg.pitch + robo_ukf_enemy_information.orientation.x * 100.0) / 100.0;
+            output_pitch = ctl_pid(P_pitch, I_pitch, D_pitch, error, last_error);
+            last_error = error;
+            sent_mcu_gimbal_result.pitch = output_pitch * 100;
             sent_mcu_gimbal_result.global_z = armor_info_msg.global_z * 100;
 
             armor_lost_counter = 0;
@@ -796,6 +803,18 @@ GambalInfo RoboControl::ctl_stack_enemy()
         first_in_realsense_flag = true;
     }
     return sent_mcu_gimbal_result;
+}
+
+float RoboControl::ctl_pid(float P, float I, float D, float error, float last_error)
+{
+    float output = 0;
+    sum_error = sum_error + error;
+    if (sum_error > MAX_SUM_ERROR)
+    {
+        sum_error = MAX_SUM_ERROR;
+    }
+    output = P * error + I * (sum_error) + D * (last_error - error);
+    return output;
 }
 
 VelInfo RoboControl::ctl_chassis(int xy_mode, int yaw_mode, float goal_x, float goal_y, float goal_yaw)
@@ -1070,4 +1089,9 @@ void RoboControl::get_param(ros::NodeHandle private_nh)
 
     private_nh.getParam("ARMOR_LOST_PITCH", ARMOR_LOST_PITCH);
 
+    private_nh.getParam("P_pitch", P_pitch);
+    private_nh.getParam("I_pitch", I_pitch);
+    private_nh.getParam("D_pitch", D_pitch);
+    private_nh.getParam("MAX_SUM_ERROR", MAX_SUM_ERROR);
+    
 }

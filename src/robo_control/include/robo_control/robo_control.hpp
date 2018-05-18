@@ -152,6 +152,9 @@ class RoboControl
     void mustRunInWhile(ros::NodeHandle private_nh);
     void cb_team_info(const robo_control::TeamInfo &msg);
     void get_param(ros::NodeHandle private_nh);
+    float ctl_pid(float P, float I, float D, float error, float last_error);
+
+    
     
     ros::NodeHandle *pnh;
 
@@ -255,6 +258,11 @@ class RoboControl
     bool first_in_fishcam_yaw = true;
     ros::Time fishCamRotateStart = ros::Time::now();
     
+    float current_pitch = 0;
+    float error = 0;
+    float output_pitch = 0;
+    float last_error = 0;
+    float sum_error = 0;
 
     // 参数服务器
 
@@ -268,10 +276,16 @@ class RoboControl
     int ARMOR_AROUND_MAX_LOST_NUM = 150;        // armor 最大允许丢帧数量(摇头)
     int REALSENSE_AROUND_MAX_LOST_NUM = 150;    // realsense 最大允许的丢帧数量(摇头)
 
-    float LOW_SHOT_SPEED_DISTANCE = 2.0;        // 低速射击最小距离
+    float LOW_SHOT_SPEED_DISTANCE = 2.7;        // 低速射击最小距离
     float HIGH_SHOT_SPEED_DISTANCE = 1.5;       // 高速射击最大距离
 
     float ARMOR_LOST_PITCH = 5.0;
+
+    float P_pitch = 1;
+    float I_pitch = 0.1;
+    float D_pitch = 0;
+    float MAX_SUM_ERROR = 1;
+    
 
     // yaw: 1 -> 2
     KeyPoint KEY_POINT[30] = {
