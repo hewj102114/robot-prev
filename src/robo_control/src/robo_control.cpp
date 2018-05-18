@@ -223,6 +223,19 @@ void RoboControl::sendNavGoal(geometry_msgs::Pose &target_pose)
     //     }
 }
 
+void RoboControl::sendFirstPoint(int first_point)
+{
+    // target_pose.position.x = 2.6;
+    // target_pose.position.y = 3.1;
+    // target_pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, 1.57);
+    //     if (abs(target_pose.position.x - nav_current_goal.position.x) > 0.2 ||
+    //         abs(target_pose.position.y - nav_current_goal.position.y) > 0.2) {
+    std_msgs::Int32 msg;
+    msg.data = first_point;
+    pub_first_point.publish(msg);
+    //     }
+}
+
 bool RoboControl::judgeKeyPointPosition(KeyPoint currentPosition,
                                         KeyPoint goalKeyPoint,
                                         float x_threshold, float y_threshold,

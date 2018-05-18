@@ -23,14 +23,19 @@
 
     <!-- 蹲点的位置 -->
     <!-- 朝左是 1.57, 朝右是 -1.57 -->
-    <rosparam param="pointA"> [2.6, 3.1, 0]</rosparam>  <!-- 1 车 1 点 -->
-    <rosparam param="pointB"> [3.6, 4.2, -1.57]</rosparam>  <!-- 2 车 1 点 -->
-    <rosparam param="pointC"> [1.3, 1.8, 1.57]</rosparam>  <!-- 2 车 2 点 -->
-    <rosparam param="pointD"> [2.6, 0.8, 1.57]</rosparam>  <!-- 1 车 2 点 -->
+    <rosparam param="pointA"> [2.6, 3.1, 0]</rosparam>  <!-- 1 车 1 点 -->              <!-- 1 -->
+    <rosparam param="pointB"> [3.3, 3.8, -1.57]</rosparam>  <!-- 2 车 1 点 -->          <!-- 2 -->
+    <rosparam param="pointC"> [1.3, 1.8, 1.57]</rosparam>  <!-- 2 车 2 点 -->           <!--  -->
+    <rosparam param="pointD"> [2.6, 0.8, 1.57]</rosparam>  <!-- 1 车 2 点 -->           <!--  -->
+    <rosparam param="pointE"> [2.6, 2.25, 0]</rosparam>                                 <!-- 0 -->
+    <rosparam param="pointF"> [4.0, 2.5, 0]</rosparam>                                  <!-- 3 -->
+    <rosparam param="pointG"> [4.7, 1.8, 1.57]</rosparam>                               <!-- 4 -->
 
     <!-- 1 车 -->
-    <rosparam param="robo_point1"> [2.6, 3.1, 0]</rosparam>
-    <rosparam param="robo_point2"> [1.3, 1.8, 1.57]</rosparam>
+    <rosparam param="robo_point1"> [2.6, 3.1, 0]</rosparam>     <!-- A -->
+    <rosparam param="robo_point2"> [1.3, 1.8, 1.57]</rosparam>  <!-- C -->
+
+    <rosparam param="first_point"> 2 </rosparam>
 
     </node>
 </launch>

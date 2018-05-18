@@ -19,7 +19,7 @@ int main(int argc, char **argv)
     vector<float> pointB;
     vector<float> pointC;
     vector<float> pointD;
-
+    
     private_nh.getParam("pointA", pointA);
     private_nh.getParam("pointB", pointB);
     private_nh.getParam("pointC", pointC);
@@ -30,6 +30,10 @@ int main(int argc, char **argv)
 
     private_nh.getParam("robo_point1", robo_point1);
     private_nh.getParam("robo_point2", robo_point2);
+
+    int first_point;
+    private_nh.getParam("first_point", first_point);
+    
 
     RoboControl robo_ctl;
     ros::Subscriber sub_armor_info = nh.subscribe("base/armor_info", 1, &RoboControl::cb_armorInfo, &robo_ctl);
@@ -73,6 +77,7 @@ int main(int argc, char **argv)
         case 0:
         {
             ROS_INFO("Stage 0: Go to center!");
+            robo_ctl.sendFirstPoint(first_point);
             robo_ctl.sent_mcu_vel_msg.mode = 1;
             robo_ctl.sent_mcu_vel_msg.v_x = robo_ctl.cmd_vel_msg.v_x;
             robo_ctl.sent_mcu_vel_msg.v_y = robo_ctl.cmd_vel_msg.v_y;

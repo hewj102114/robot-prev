@@ -13,6 +13,7 @@
 #include <nav_msgs/Odometry.h>
 
 #include <std_msgs/Int16.h>
+#include <std_msgs/Int32.h>
 #include <std_msgs/Bool.h>
 #include <std_msgs/Float64.h>
 #include <geometry_msgs/TransformStamped.h>
@@ -100,6 +101,7 @@ class RoboControl
         pub_wheel_vel = pnh->advertise<geometry_msgs::Vector3Stamped>("robo/wheel/data", 1);
         pub_imu_data = pnh->advertise<sensor_msgs::Imu>("gimbal/imu/data_raw", 1);
         pub_nav_goal = pnh->advertise<geometry_msgs::Pose>("base/goal", 1);
+        pub_first_point = pnh->advertise<std_msgs::Int32>("base/first_point", 1);
         pub_enemy_target = pnh->advertise<robo_perception::ObjectList>("enemy/target", 1);
 
         serial = new Serial("/dev/ttyUSBA1");
@@ -153,6 +155,7 @@ class RoboControl
     void cb_team_info(const robo_control::TeamInfo &msg);
     void get_param(ros::NodeHandle private_nh);
     float ctl_pid(float P, float I, float D, float error, float last_error);
+    void sendFirstPoint(int first_point);
 
     
     
@@ -163,6 +166,7 @@ class RoboControl
     ros::Publisher pub_wheel_vel;
     ros::Publisher pub_imu_data;
     ros::Publisher pub_nav_goal;
+    ros::Publisher pub_first_point;
     ros::Publisher pub_enemy_target;
 
     tf2_ros::TransformBroadcaster gimbal_tf;

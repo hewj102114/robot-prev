@@ -604,7 +604,7 @@ geometry_msgs::Pose RoboNav::adjustlocalgoal(double yaw)
 
 int RoboNav::go_center()
 {
-    int selection=0;
+    int selection=1;
     switch (selection)
     {
     case 0:
