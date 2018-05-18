@@ -61,7 +61,8 @@ from geometry_msgs.msg import PoseStamped
 from robo_control.msg import GameInfo
 from robo_vision.msg import ArmorInfo
  #系统延时系数，单位秒
-T_PNP_DELAY_VER = 0.0
+ #VER代表垂直枪口方向，PAR代表水平枪口方向
+T_PNP_DELAY_VER = 0.0 
 T_RS_DELAY_VER = 5 # all set!
 T_PNP_DELAY_PAR = 0.00 
 
@@ -70,18 +71,16 @@ T_RS_DELAY_PAR = 1.6
 RS_INIT = True
 PNP_INIT = True
 
-ENABLE_PREDICT = True
-PNP_LAST_AVAILABLE = False
-PNP_DATA_AVAILABLE = False
-RS_LAST_AVAILABLE = False
-RS_DATA_AVAILABLE = False
+ENABLE_PREDICT = True #启动预测标志位（从策略层面接收）
+PNP_LAST_AVAILABLE = False #PNP上一帧可行标志位
+PNP_DATA_AVAILABLE = False #PNP数据可行标志位
+RS_LAST_AVAILABLE = False #Realsense上一帧可行标志位
+RS_DATA_AVAILABLE = False #Realsense数据可行标志位
+UNABLE_PREDICT = 0 #无法预测标志位（发送）
+TEMPERAL_LOST = 0#（暂时性数据丢失）
 RS_PREDICT_INIT = True
 PNP_PREDICT_INIT = True
-UNABLE_PREDICT = 0
-TEMPERAL_LOST = 0
-RS_PREDICT_INIT = True
-PNP_PREDICT_INIT = True
-TARGET_RECETIVED = False
+TARGET_RECETIVED = False #接收到目标标志位
 PNP_UKF_AVAILABLE = False
 RS_UKF_AVAILABLE = False
 
@@ -93,15 +92,15 @@ GRAVITY = 9.8 #重力加速度 9.8 m/s^2
 BULLET_SPEED = 18.1 #子弹速度
 BULLET_FRICTION = 0 #子弹空气摩擦系数
 GUN_ARMOR_HEIGHT = 0.28 #枪口到装甲板的水平距离为28CM
-PNP_CLOSE_THRESH = 10 #判断pnp是否瞄准到了正确目标
-RS_CLOSE_THRESH = 10 #判断rs是否瞄准到了正确目标
-LOST_TRESH = 15
+PNP_CLOSE_THRESH = 0.3 #判断pnp是否瞄准到了正确目标
+RS_CLOSE_THRESH = 0.3 #判断rs是否瞄准到了正确目标
+LOST_TRESH = 15 #丢失标志位，超过15帧表示丢失目标
 
 GIMBAL_TO_BASE = 0.15 # gimbal to rplidar(base_link) distance 15CM
 GIMBAL_TO_REALSENSE = 0.02 #gimbal to realsensen distance 15CM
 
 #LOW PASS FILTER
-LPF_ORDER = 7
+LPF_ORDER = 7 #滤波器阶数
 PNP_LPS_SAMPLING_FREQ = 70.0       # sample rate, Hz
 PNP_LPF_CUTOFF = 30  # desired cutoff frequency of the filter, Hz
 
