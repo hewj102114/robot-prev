@@ -27,6 +27,7 @@ int local_adj=1; //0 for close local adjustment, 1 for open.
 int update_path=0; //0 for don't update, 1 for update
 int GO_CENTER_S = 1; //0 direct go center; 1: using one other point
 int center_flag = 0;   //0 for have not go center, 1 have been center
+int first_go=0;
 class RoboNav
 {
   public:
@@ -74,7 +75,7 @@ class RoboNav
 RoboNav::RoboNav(ros::NodeHandle* _pnh)
 {
     obs_min[4][2] = {0};
-    selection=0;
+    selection=999;
     pnh = _pnh;
     pub_local_goal_pose = pnh->advertise<geometry_msgs::PoseStamped>("nav/local_goal", 1);
     tf_ = new tf::TransformListener();
@@ -611,10 +612,12 @@ void RoboNav::cb_first_point(const std_msgs::Int32 &msg)
 }
 int RoboNav::go_center()
 {    
+    ROS_INFO("select %d",selection);
     switch (selection)
     {
     case 0:  //7
         //192.168.1.150
+        first_go=1;
         cur_goal.position.x = 2.6;
         cur_goal.position.y = 2.25;
 
@@ -630,6 +633,7 @@ int RoboNav::go_center()
     case 1:   //8
 
         //192.168.1.148
+        first_go=1;
         cur_goal.position.x = 2.6;
         cur_goal.position.y = 3.15;
         cur_goal.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
@@ -642,6 +646,7 @@ int RoboNav::go_center()
         }
         break;
     case 2:   //13
+        first_go=1;
         cur_goal.position.x = 4.0;
         cur_goal.position.y = 3.8;
         cur_goal.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
@@ -654,6 +659,7 @@ int RoboNav::go_center()
         }
         break;
     case 3:  //34
+        first_go=1;
         cur_goal.position.x = 4.0;
         cur_goal.position.y = 2.5;
         cur_goal.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
@@ -666,6 +672,7 @@ int RoboNav::go_center()
         }
         break;
     case 4: //27
+        first_go=1;
         cur_goal.position.x = 4.7;
         cur_goal.position.y = 0.6;
         cur_goal.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
@@ -691,7 +698,7 @@ int main(int argc, char **argv)
     RoboNav robo_nav(&nh);
     robo_nav.init();
 
-    robo_nav.go_center();
+    
 
     ros::Subscriber cb_tar_pose = nh.subscribe("base/goal", 1, &RoboNav::cb_tar_pose, &robo_nav);
     ros::Subscriber cb_cur_pose = nh.subscribe("odom", 1, &RoboNav::cb_cur_pose, &robo_nav);
@@ -705,8 +712,12 @@ int main(int argc, char **argv)
     ros::Publisher pub_front = nh.advertise<std_msgs::Float64>("front_dis", 1);
     ros::Rate rate(80);
 
+    
+    
     while (ros::ok())
     {
+        if(first_go==0)
+            robo_nav.go_center();
         geometry_msgs::Twist msg_vel;
         robo_nav.get_vel(msg_vel);
 
