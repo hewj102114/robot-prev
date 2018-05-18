@@ -47,11 +47,9 @@ void Floyd::calcPath(int start, int end) {
         path.clear();
 }
 
-
 void Floyd::updateFloydGraph(int i,int j,int value){
-    weight_graph.at<int>(i,j)=value;
-    weight_graph.at<int>(j,i)=value;
-    memcpy(arrDis,weight_graph.data,sizeof(arrDis));
+    arrDis[i][j]=value;
+    arrDis[j][i]=value;
     //initFloydGraph();
 }
 void Floyd::printPath(){

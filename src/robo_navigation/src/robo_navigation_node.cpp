@@ -200,7 +200,7 @@ void RoboNav::cb_cur_pose(const nav_msgs::Odometry &msg)
 void RoboNav::cb_teaminfo(const robo_control::TeamInfo &msg)
 {
     team_pose = msg.pose;
-    // ROS_INFO("recv");
+    ROS_INFO("Team Pose, x: %f, y: %f",team_pose.position.x, team_pose.position.y);
     if (path.size() > 0)
     {
         double pt_x = team_pose.position.x;
@@ -218,22 +218,26 @@ void RoboNav::cb_teaminfo(const robo_control::TeamInfo &msg)
         int nest = -1, near = -1;
         nest = distance(dis_list.begin(), smallest);
         double small_dis = *smallest;
-
+        ROS_INFO("Team robot on %d point", nest);
         //too close to a point, all the path related to this point should be invalid
         if (*smallest < 0.5)
         {
-            //if the occupied point is on the point, update
-            for (int i = 0; i < path.size(); i++)
+            if (nest == path.back())
             {
-                if (nest == path[i])
+                ROS_INFO("Team Robot on the target goal");
+                path.pop_back();
+            }
+            //if the occupied point is on the point, update
+            else
+            {
+                floyd.loadMatrix(arrArcs);
+                ROS_INFO("Team Robot on the path");
+                for (int i = 0; i < path.size() - 1; i++)
                 {
-                    int i = 0;
-                    while (i != nest)
+                    for (int i = 0; i < point_list.rows; i++)
                     {
-                                //init the neighor matrix 
-                        floyd.loadMatrix(arrArcs);
-                        floyd.updateFloydGraph(i, nest, 100);
-                        i++;
+                        if (i != nest)
+                            floyd.updateFloydGraph(i, nest, 100);
                     }
                     floyd.initFloydGraph();
                     path_plan(cur_goal);
@@ -241,26 +245,27 @@ void RoboNav::cb_teaminfo(const robo_control::TeamInfo &msg)
                 }
             }
         }
-        else //not too close to a point, find the invalid path
-        {
-            dis_list.erase(smallest);
-            vector<float>::iterator smallestK = min_element(dis_list.begin(), dis_list.end());
-            near = distance(dis_list.begin(), smallestK);
-            double pairwise_dis = sqrt(pow(point_list.at<double>(nest, 0) - point_list.at<double>(near, 0), 2) + pow(point_list.at<double>(nest, 1) - point_list.at<double>(near, 1), 2)) * 1.0 / 100;
-            if (small_dis + *smallestK < pairwise_dis * 1.2&&path.size()>2)
-                //if the occupied point is on the point, update
-                for (int i = 1; i < path.size() - 1; i++)
-                {
-                    if (nest == path[i] && (path[i - 1] == near || path[i + 1] == near))
-                    {
-                        floyd.loadMatrix(arrArcs);
-                        floyd.updateFloydGraph(near, nest, 100);
-                        floyd.initFloydGraph();
-                        path_plan(cur_goal);
-                        break;
-                    }
-                }
-        }
+        // else //not too close to a point, find the invalid path
+        // {
+        //     dis_list.erase(smallest);
+        //     vector<float>::iterator smallestK = min_element(dis_list.begin(), dis_list.end());
+        //     near = distance(dis_list.begin(), smallestK);
+        //     double pairwise_dis = sqrt(pow(point_list.at<double>(nest, 0) - point_list.at<double>(near, 0), 2) + pow(point_list.at<double>(nest, 1) - point_list.at<double>(near, 1), 2)) * 1.0 / 100;
+        //     floyd.loadMatrix(arrArcs);
+        //     if (small_dis + *smallestK < pairwise_dis * 1.2&&path.size()>2)
+        //         //if the occupied point is on the point, update
+        //         for (int i = 1; i < path.size() - 1; i++)
+        //         {
+        //             if (nest == path[i] && (path[i - 1] == near || path[i + 1] == near))
+        //             {
+                        
+        //                 floyd.updateFloydGraph(near, nest, 100);
+        //                 floyd.initFloydGraph();
+        //                 path_plan(cur_goal);
+        //                 break;
+        //             }
+        //         }
+        // }
     }
 }
 
@@ -424,10 +429,9 @@ void RoboNav::get_vel(geometry_msgs::Twist &msg_vel)
         if (GO_CENTER_S == 0)
         {
             ROS_INFO("dx: %f, dy: %f", dx, dy);
-            if (center_flag == 0 && path[0] == 34 && dx > 1.75)
+            if (center_flag == 0 && path[0] == 28 && dx > 0.8)
                 vel_y = 0;
-            else if (center_flag == 0 && path[0] == 32 && dx <= 1.52 && dy > 0.20)
-                vel_x = 0;
+            
         }
     }
     else
@@ -591,25 +595,25 @@ geometry_msgs::Pose RoboNav::adjustlocalgoal(double yaw)
     return local_goal;
 }
 
-// zhongdian: 3-34; 4.0, 2.5 
-// point 1:  3-11; 3.3, 3.2
-//point 3: 3-13; 4.00,3.8
-//point 2(robot 2): 9-8; 2.6,2.1
+// zhongdian: 3-34; 4.0, 2.5 GO_CENTER_S=1
+// point 1:  3-11; 3.3, 3.2  GO_CENTER_S=1
+//point 3: 3-13; 4.00,3.8   GO_CENTER_S=1
+//point 2(robot 2): 9-8; 2.6,2.1  GO_CENTER_S=1
 //cation:  get velecity, change the last control point [34], [13], [11], 
 
 int RoboNav::go_center()
 {
 
-    cur_goal.position.x =4;
-    cur_goal.position.y = 2.0;
+    cur_goal.position.x =4.7;
+    cur_goal.position.y = 1.8;
 
-    if (GO_CENTER_S == 0)
-        path.push_back(34);
+    cur_goal.orientation=tf::createQuaternionMsgFromRollPitchYaw(0, 0, 0);
 
-    if (GO_CENTER_S == 1)
+    GO_CENTER_S = 0;
     {
-        path.push_back(3);
-        path.push_back(34);
+        path.push_back(9);
+        path.push_back(8);
+        path.push_back(28);
     }
 
     return 0;
