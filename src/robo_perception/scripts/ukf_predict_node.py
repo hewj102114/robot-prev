@@ -101,10 +101,12 @@ GIMBAL_TO_REALSENSE = 0.02 #gimbal to realsensen distance 15CM
 #LOW PASS FILTER
 LPF_ORDER = 7 #滤波器阶数
 PNP_LPS_SAMPLING_FREQ = 70.0       # sample rate, Hz
-PNP_LPF_CUTOFF = 30  # desired cutoff frequency of the filter, Hz
+RS_LPF_CUTOFF_VER = 30  # desired cutoff frequency of the filter, Hz
+RS_LPF_CUTOFF_PAR =30
 
 RS_LPS_SAMPLING_FREQ = 100.0       # sample rate, Hz
-RS_LPF_CUTOFF = 30  # desired cutoff frequency of the filter, Hz
+RS_LPF_CUTOFF_VER = 30  # desired cutoff frequency of the filter, Hz
+RS_LPF_CUTOFF_PAR = 26
 
 lpf_input_list_par_rs = deque([0,0,0,0,0],maxlen = 6)
 lpf_input_list_ver_rs = deque([0,0,0,0,0],maxlen = 6)
@@ -332,8 +334,7 @@ def callback_enemy(enemy):
             else:
                 RS_DATA_AVAILABLE = False
                 rs_lost_counter = rs_lost_counter + 1
-
-            
+  
             RS_LAST_AVAILABLE = True
             last_rs_pos_x = rs_pos_x
             last_rs_pos_y = rs_pos_y
@@ -368,11 +369,7 @@ def callback_enemy(enemy):
         #第一次直接初始化，第二次再更新
         if RS_DATA_AVAILABLE == False:
             RS_PREDICT_INIT = True 
-
-        
         #print 'RS_LAST_AVAILABLE',RS_LAST_AVAILABLE,'RS_DATA_AVAILABLE',RS_DATA_AVAILABLE,rs_lost_counter
-
-        
 
 def callback_pnp(pnp):
     global pnp_pos_x, pnp_pos_y, aim_target_x, aim_target_y, pnp_lost_counter, last_pnp_pos_x, last_pnp_pos_y, pnp_vel_x, pnp_vel_y
@@ -495,21 +492,8 @@ def callback_target(target):
     TARGET_RECETIVED = False
     if aim_target_x and aim_target_y != 0:
         TARGET_RECETIVED = True
-        # rs_trans = TransformStamped()
-        # try:
-        #     rs_trans = tfBuffer.lookup_transform('odom', 'realsense_camera', rospy.Time(0))
-        # except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
-        #     print('realsense TF TRANS TRANS FAIL! check your code')
-        
-        # #use sele as orign of axis
-        # relative_x = aim_target_x - rs_trans.transform.translation.x
-        # relative_y = aim_target_y - rs_trans.transform.translation.y
-        
         aim_relative_distance = np.sqrt(aim_target_rel_x **2 + aim_target_rel_y ** 2)
-        # print rs_trans.transform.translation.x,rs_trans.transform.translation.y
-        # print 'aim_target_x',aim_target_x,'aim_target_y',aim_target_y
-        # print 'relative',relative_x,relative_y
-        #target 
+
         aimtheta = np.arctan2(aim_target_rel_y, aim_target_rel_x)
         global_aimtheta = aimtheta + odom_yaw
 
@@ -539,7 +523,7 @@ pub_ukf_vel = rospy.Publisher('ukf/enemy', Odometry, queue_size=1)
 rate = rospy.Rate(60) # 30hz
 while not rospy.is_shutdown():
 
-    RS_UKF_AVAILABLE = False
+    #RS_UKF_AVAILABLE = False
     # 选择传感器预测优先级
     if RS_UKF_AVAILABLE:
         ukf_out_pos_x = ukf_rs_pos_x  
@@ -607,7 +591,8 @@ while not rospy.is_shutdown():
         #print V_verticle, odom_yaw
         #计算检测到的目标和我自身的距离
         #rs_distance_to_enemy = np.sqrt(rs_xy_distance **2 + GUN_ARMOR_HEIGHT **2)
-        
+
+        #根据距离进行低通限制，保证枪口不会在近距离发生抖动
         if rs_xy_distance > 2.7:
             RS_LPF_CUTOFF = 30
         elif rs_xy_distance < 2.7 and rs_xy_distance >1.5:
@@ -624,7 +609,7 @@ while not rospy.is_shutdown():
         verticle_angle = np.arctan(V_verticle * (T_RS_DELAY_VER + PREDICT_T_FLY) / rs_xy_distance)
 
         lpf_input_list_ver_rs.append(verticle_angle)
-        lpf_input_list_ver_rs = butter_lowpass_filter(lpf_input_list_ver_rs, RS_LPF_CUTOFF, RS_LPS_SAMPLING_FREQ, LPF_ORDER)
+        lpf_input_list_ver_rs = butter_lowpass_filter(lpf_input_list_ver_rs, RS_LPF_CUTOFF_VER, RS_LPS_SAMPLING_FREQ, LPF_ORDER)
         lpf_input_list_ver_rs = deque(lpf_input_list_ver_rs.tolist(),maxlen = 6)
         verticle_angle = lpf_input_list_ver_rs[5]
 
@@ -632,7 +617,7 @@ while not rospy.is_shutdown():
         parallel_angel = np.arctan(predict_xy_distance / GUN_ARMOR_HEIGHT) - np.arctan((predict_xy_distance + (PREDICT_T_FLY + T_RS_DELAY_PAR) * V_parallel) / GUN_ARMOR_HEIGHT)
         
         lpf_input_list_par_rs.append(parallel_angel)
-        lpf_input_list_par_rs = butter_lowpass_filter(lpf_input_list_par_rs, 26, RS_LPS_SAMPLING_FREQ, LPF_ORDER)
+        lpf_input_list_par_rs = butter_lowpass_filter(lpf_input_list_par_rs, RS_LPF_CUTOFF_PAR, RS_LPS_SAMPLING_FREQ, LPF_ORDER)
         lpf_input_list_par_rs = deque(lpf_input_list_par_rs.tolist(),maxlen = 6)
         parallel_angel = lpf_input_list_par_rs[5]
         print 'rs_xy_distance',rs_xy_distance,'PREDICT_T_FLY',PREDICT_T_FLY,'V_parallel', V_parallel,'parallel_angel',parallel_angel,'verticle_angle',verticle_angle
@@ -675,14 +660,14 @@ while not rospy.is_shutdown():
 
 
         lpf_input_list_ver_pnp.append(verticle_angle)
-        lpf_input_list_ver_pnp = butter_lowpass_filter(lpf_input_list_ver_pnp, PNP_LPF_CUTOFF, PNP_LPS_SAMPLING_FREQ, LPF_ORDER)
+        lpf_input_list_ver_pnp = butter_lowpass_filter(lpf_input_list_ver_pnp, PNP_LPF_CUTOFF_VER, PNP_LPS_SAMPLING_FREQ, LPF_ORDER)
         lpf_input_list_ver_pnp = deque(lpf_input_list_ver_pnp.tolist(),maxlen = 6)
         verticle_angle_ver = lpf_input_list_ver_pnp[5]
 
         parallel_angel = np.arctan(predict_xy_distance / GUN_ARMOR_HEIGHT) - np.arctan((predict_xy_distance + (PREDICT_T_FLY + T_PNP_DELAY_PAR) * V_parallel) / GUN_ARMOR_HEIGHT)
         
         lpf_input_list_par_pnp.append(parallel_angel)
-        lpf_out_list_par_pnp = butter_lowpass_filter(lpf_input_list_par_pnp, PNP_LPF_CUTOFF, PNP_LPS_SAMPLING_FREQ, LPF_ORDER)
+        lpf_out_list_par_pnp = butter_lowpass_filter(lpf_input_list_par_pnp, PNP_LPF_CUTOFF_PAR, PNP_LPS_SAMPLING_FREQ, LPF_ORDER)
         #lpf_input_list_par_pnp = deque(lpf_input_list_par_pnp.tolist(),maxlen = 6)
         parallel_angel = lpf_out_list_par_pnp[5]
 
@@ -756,7 +741,7 @@ while not rospy.is_shutdown():
 
     #测试代码,用来屏蔽预测
     #predict_pos.pose.pose.orientation.w = 0
-    predict_pos.pose.pose.orientation.x = 0
+    #predict_pos.pose.pose.orientation.x = 0
 
     pub_ukf_vel.publish(predict_pos) 
 
