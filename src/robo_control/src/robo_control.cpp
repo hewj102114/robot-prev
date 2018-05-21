@@ -121,6 +121,16 @@ void RoboControl::main_control_init()
     armor_info_target.header.frame_id = "base_link";
     armor_info_target.header.stamp = ros::Time::now();
     armor_info_target.mode = 1;
+
+    sent_mcu_gimbal_result.mode = 1;
+    sent_mcu_gimbal_result.yaw = 0;
+    sent_mcu_gimbal_result.pitch = 0;
+    sent_mcu_gimbal_result.global_z = 0;
+
+    sent_mcu_gimbal_msg.mode = 1;
+    sent_mcu_gimbal_msg.yaw = 0;
+    sent_mcu_gimbal_msg.pitch = 0;
+    sent_mcu_gimbal_msg.global_z = 0;
 }
 
 void RoboControl::readMCUData()
@@ -684,7 +694,7 @@ GambalInfo RoboControl::ctl_stack_enemy(bool enable_chassis_rotate)
     *************************************************************************/
     // 2. realsense和armor都没有看到的时候, 并且丢帧数量小于 400, 维持云台角度
     ROS_INFO("armor_lost_counter: %d", armor_lost_counter);
-
+    ROS_INFO("armor_info_msg.mode: %d", armor_info_msg.mode);
 
     if (armor_info_msg.mode == 3)
     {
@@ -739,6 +749,8 @@ GambalInfo RoboControl::ctl_stack_enemy(bool enable_chassis_rotate)
         sent_mcu_gimbal_result.yaw = 0;
         sent_mcu_gimbal_result.pitch = 0;
         sent_mcu_gimbal_result.global_z = 0;
+        // first_in_realsense_flag = true;
+        // target_gimbal_angle = 1000;
     }
 
     if (armor_lost_counter > ARMOR_MAX_LOST_NUM && armor_info_msg.mode == 1)
@@ -752,6 +764,12 @@ GambalInfo RoboControl::ctl_stack_enemy(bool enable_chassis_rotate)
             if (robo_ukf_enemy_information.orientation.z != 999)
             {
                 enemy_realsense_angle = -robo_ukf_enemy_information.orientation.z * 180.0 / PI;
+            }
+            else
+            {
+                ROS_INFO("NO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+                first_in_realsense_flag = true;
+                enemy_realsense_angle = 1000;
             }
             first_in_gimbal_angle = game_msg.gimbalAngleYaw;
             target_gimbal_angle = enemy_realsense_angle;
@@ -803,7 +821,6 @@ GambalInfo RoboControl::ctl_stack_enemy(bool enable_chassis_rotate)
             sent_mcu_gimbal_result.mode = 2;
             sent_mcu_gimbal_result.yaw = armor_info_msg.yaw + robo_ukf_enemy_information.orientation.w * 100.0;
             // sent_mcu_gimbal_result.pitch = armor_info_msg.pitch + robo_ukf_enemy_information.orientation.x * 100.0;
-            // current_pitch = game_msg.gimbalAnglePitch;
             error = (armor_info_msg.pitch + robo_ukf_enemy_information.orientation.x * 100.0) / 100.0;
             output_pitch = ctl_pid(P_pitch, I_pitch, D_pitch, error, last_error);
             last_error = error;

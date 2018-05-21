@@ -84,7 +84,7 @@ int main(int argc, char **argv)
             robo_ctl.sent_mcu_vel_msg.v_yaw = robo_ctl.cmd_vel_msg.v_yaw;
             if (robo_ctl.finish_navigation.data)
             {
-                work_state = 1;
+                work_state = 2;
             }
             break;
         }
@@ -120,7 +120,7 @@ int main(int argc, char **argv)
         case 2:
         {
             ROS_INFO("Stage 2: Stacking enemy!!!!!!");
-            ros::Duration timeout(10);
+            ros::Duration timeout(2);
             if (ros::Time::now() - stackCenterEnemyStart > timeout)
             {
                 robo_ctl.finish_navigation.data = 0;

@@ -62,11 +62,12 @@ from robo_control.msg import GameInfo
 from robo_vision.msg import ArmorInfo
  #系统延时系数，单位秒
  #VER代表垂直枪口方向，PAR代表水平枪口方向
-T_PNP_DELAY_VER = 0.0 
+T_PNP_DELAY_VER = 0.05
 T_RS_DELAY_VER = 5 # all set!
 T_PNP_DELAY_PAR = 0.00 
-
 T_RS_DELAY_PAR = 1.6
+
+PNP_MAX_PREDICT_DISTANCE = 1.2
 
 RS_INIT = True
 PNP_INIT = True
@@ -84,7 +85,7 @@ TARGET_RECETIVED = False #接收到目标标志位
 PNP_UKF_AVAILABLE = False
 RS_UKF_AVAILABLE = False
 
-MAX_VERTICLE_ANGLE = 6 #左右预瞄最大角度
+MAX_VERTICLE_ANGLE = 5 #左右预瞄最大角度
 MAX_PARALLEL_ANGLE = 7 #高度预瞄准最大角度
 MAX_GRAVITAL_ANGEL = -3.0
 
@@ -92,18 +93,19 @@ GRAVITY = 9.8 #重力加速度 9.8 m/s^2
 BULLET_SPEED = 18.1 #子弹速度
 BULLET_FRICTION = 0 #子弹空气摩擦系数
 GUN_ARMOR_HEIGHT = 0.28 #枪口到装甲板的水平距离为28CM
-PNP_CLOSE_THRESH = 0.3 #判断pnp是否瞄准到了正确目标
-RS_CLOSE_THRESH = 0.3 #判断rs是否瞄准到了正确目标
-LOST_TRESH = 15 #丢失标志位，超过15帧表示丢失目标
+PNP_CLOSE_THRESH = 10 #判断pnp是否瞄准到了正确目标
+RS_CLOSE_THRESH = 10 #判断rs是否瞄准到了正确目标
+RS_LOST_TRESH = 10
+PNP_LOST_TRESH = 100 #丢失标志位，超过15帧表示丢失目标
 
 GIMBAL_TO_BASE = 0.15 # gimbal to rplidar(base_link) distance 15CM
 GIMBAL_TO_REALSENSE = 0.02 #gimbal to realsensen distance 15CM
 
 #LOW PASS FILTER
 LPF_ORDER = 7 #滤波器阶数
-PNP_LPS_SAMPLING_FREQ = 70.0       # sample rate, Hz
-RS_LPF_CUTOFF_VER = 30  # desired cutoff frequency of the filter, Hz
-RS_LPF_CUTOFF_PAR =30
+PNP_LPS_SAMPLING_FREQ = 100.0       # sample rate, Hz
+PNP_LPF_CUTOFF_VER = 10  # desired cutoff frequency of the filter, Hz
+PNP_LPF_CUTOFF_PAR = 10
 
 RS_LPS_SAMPLING_FREQ = 100.0       # sample rate, Hz
 RS_LPF_CUTOFF_VER = 30  # desired cutoff frequency of the filter, Hz
@@ -193,8 +195,8 @@ def UKFRsInit(in_dt, init_x):
 def UKFPnpInit(in_dt, init_x):
     global ukf_pnp
 
-    p_std_x, p_std_y = 0.04, 0.04
-    v_std_x, v_std_y = 0.15, 0.15
+    p_std_x, p_std_y = 0.02, 0.02
+    v_std_x, v_std_y = 0.2, 0.2
     dt = in_dt 
 
 
@@ -202,8 +204,8 @@ def UKFPnpInit(in_dt, init_x):
     ukf_pnp = UKF(dim_x=4, dim_z=4, fx=f_cv, hx=h_cv, dt=dt, points=sigmas)
     ukf_pnp.x = init_x
     ukf_pnp.R = np.diag([p_std_x, v_std_x, p_std_y, v_std_y]) 
-    ukf_pnp.Q[0:2, 0:2] = Q_discrete_white_noise(2, dt=dt, var=2)
-    ukf_pnp.Q[2:4, 2:4] = Q_discrete_white_noise(2, dt=dt, var=2)
+    ukf_pnp.Q[0:2, 0:2] = Q_discrete_white_noise(2, dt=dt, var=0.2)
+    ukf_pnp.Q[2:4, 2:4] = Q_discrete_white_noise(2, dt=dt, var=0.2)
     ukf_pnp.P = np.diag([8, 1.5  ,5, 1.5])
 
 def TFinit():
@@ -421,6 +423,7 @@ def callback_pnp(pnp):
             pnp_lost_time = []
             pnp_lost_counter = 0
             pnp_xy_distance = np.sqrt(pnp_pos_x**2 +pnp_pos_y**2)
+
             if PNP_LAST_AVAILABLE:
                 #last data available, use to update the speed
                 pnp_vel_x = (pnp_pos_x - last_pnp_pos_x) / dt
@@ -466,6 +469,7 @@ def callback_pnp(pnp):
 
         if PNP_DATA_AVAILABLE == False:
             PNP_PREDICT_INIT = True 
+
         
          
         
@@ -491,14 +495,14 @@ def callback_target(target):
     aim_target_rel_x = target.object[0].pose.position.x
     aim_target_rel_y = target.object[0].pose.position.y
     TARGET_RECETIVED = False
-    if aim_target_x and aim_target_y != 0:
+    if aim_target_x !=0 and aim_target_y != 0:
         TARGET_RECETIVED = True
         aim_relative_distance = np.sqrt(aim_target_rel_x **2 + aim_target_rel_y ** 2)
 
         aimtheta = np.arctan2(aim_target_rel_y, aim_target_rel_x)
         global_aimtheta = aimtheta + odom_yaw
 
-
+        print aim_relative_distance, aimtheta,global_aimtheta
 
         ENABLE_PREDICT = target.object[0].globalpose.orientation.w
 
@@ -517,14 +521,16 @@ subenemy = rospy.Subscriber('infrared_detection/enemy_position', ObjectList, cal
 subpnp = rospy.Subscriber('base/armor_info', ArmorInfo, callback_pnp)
 subodom = rospy.Subscriber('odom', Odometry, callback_odom)
 subgimbal = rospy.Subscriber('base/game_info', GameInfo, callback_gimbal)
-subtarget = rospy.Subscriber('enemy/target', ObjectList, callback_target)
+subtarget = rospy.Subscriber('enemy/target', ObjectList, callback_target,queue_size=1)
 
 pub_ukf_vel = rospy.Publisher('ukf/enemy', Odometry, queue_size=1)
 
 rate = rospy.Rate(60) # 30hz
 while not rospy.is_shutdown():
 
-    #RS_UKF_AVAILABLE = False
+    if pnp_xy_distance > PNP_MAX_PREDICT_DISTANCE:
+        PNP_UKF_AVAILABLE = False
+
     # 选择传感器预测优先级
     if RS_UKF_AVAILABLE:
         ukf_out_pos_x = ukf_rs_pos_x  
@@ -545,7 +551,7 @@ while not rospy.is_shutdown():
         #print 'temperal unable to predict!','pnp_lost_counter',pnp_lost_counter,'rs_lost_counter',rs_lost_counter 
         TEMPERAL_LOST = 1
 
-    if pnp_lost_counter > LOST_TRESH and rs_lost_counter > LOST_TRESH:
+    if pnp_lost_counter > PNP_LOST_TRESH and rs_lost_counter > RS_LOST_TRESH:
         UNABLE_PREDICT = 1
         #print 'UNABLE TO PREDICT!!!!!!!!!!!!'
 
@@ -558,10 +564,10 @@ while not rospy.is_shutdown():
         global_gimbal_yaw = global_gimbal_yaw - 2 * np.pi
 
     
-    if PNP_UKF_AVAILABLE or RS_UKF_AVAILABLE:
-        print 'RS','X',rs_pos_x,'Y',rs_pos_y, 'VX',rs_vel_x,'VY',rs_vel_y,'RDA',RS_DATA_AVAILABLE
-        print 'PNP','X',pnp_pos_x,'Y',pnp_pos_y, 'VX',pnp_vel_x,'VY',pnp_vel_x,'PDA',PNP_DATA_AVAILABLE
-        print 'KALMAN', 'X',ukf_out_pos_x,'Y',ukf_out_pos_y, 'VX',ukf_out_vel_x,'VY',ukf_out_vel_y
+    # if PNP_UKF_AVAILABLE or RS_UKF_AVAILABLE:
+    #     print 'RS','X',rs_pos_x,'Y',rs_pos_y, 'VX',rs_vel_x,'VY',rs_vel_y,'RDA',RS_DATA_AVAILABLE
+    #     print 'PNP','X',pnp_pos_x,'Y',pnp_pos_y, 'VX',pnp_vel_x,'VY',pnp_vel_x,'PDA',PNP_DATA_AVAILABLE
+    #     print 'KALMAN', 'X',ukf_out_pos_x,'Y',ukf_out_pos_y, 'VX',ukf_out_vel_x,'VY',ukf_out_vel_y
 
     #   #
     #           #
@@ -621,7 +627,7 @@ while not rospy.is_shutdown():
         lpf_input_list_par_rs = butter_lowpass_filter(lpf_input_list_par_rs, RS_LPF_CUTOFF_PAR, RS_LPS_SAMPLING_FREQ, LPF_ORDER)
         lpf_input_list_par_rs = deque(lpf_input_list_par_rs.tolist(),maxlen = 6)
         parallel_angel = lpf_input_list_par_rs[5]
-        print 'rs_xy_distance',rs_xy_distance,'PREDICT_T_FLY',PREDICT_T_FLY,'V_parallel', V_parallel,'parallel_angel',parallel_angel,'verticle_angle',verticle_angle
+        # print 'rs_xy_distance',rs_xy_distance,'PREDICT_T_FLY',PREDICT_T_FLY,'V_parallel', V_parallel,'parallel_angel',parallel_angel,'verticle_angle',verticle_angle
 
     elif PNP_UKF_AVAILABLE:
         #计算相对速度
@@ -665,12 +671,12 @@ while not rospy.is_shutdown():
         lpf_input_list_ver_pnp = deque(lpf_input_list_ver_pnp.tolist(),maxlen = 6)
         verticle_angle_ver = lpf_input_list_ver_pnp[5]
 
-        parallel_angel = np.arctan(predict_xy_distance / GUN_ARMOR_HEIGHT) - np.arctan((predict_xy_distance + (PREDICT_T_FLY + T_PNP_DELAY_PAR) * V_parallel) / GUN_ARMOR_HEIGHT)
+        # parallel_angel = np.arctan(predict_xy_distance / GUN_ARMOR_HEIGHT) - np.arctan((predict_xy_distance + (PREDICT_T_FLY + T_PNP_DELAY_PAR) * V_parallel) / GUN_ARMOR_HEIGHT)
         
-        lpf_input_list_par_pnp.append(parallel_angel)
-        lpf_out_list_par_pnp = butter_lowpass_filter(lpf_input_list_par_pnp, PNP_LPF_CUTOFF_PAR, PNP_LPS_SAMPLING_FREQ, LPF_ORDER)
-        #lpf_input_list_par_pnp = deque(lpf_input_list_par_pnp.tolist(),maxlen = 6)
-        parallel_angel = lpf_out_list_par_pnp[5]
+        # lpf_input_list_par_pnp.append(parallel_angel)
+        # lpf_out_list_par_pnp = butter_lowpass_filter(lpf_input_list_par_pnp, PNP_LPF_CUTOFF_PAR, PNP_LPS_SAMPLING_FREQ, LPF_ORDER)
+        # #lpf_input_list_par_pnp = deque(lpf_input_list_par_pnp.tolist(),maxlen = 6)
+        # parallel_angel = lpf_out_list_par_pnp[5]
 
     predict_pos = Odometry()
     predict_pos.header.frame_id = "predict"
@@ -707,7 +713,7 @@ while not rospy.is_shutdown():
     if PNP_UKF_AVAILABLE or RS_UKF_AVAILABLE:
         predict_pos.pose.pose.orientation.w = -verticle_angle/np.pi*180
         predict_pos.pose.pose.orientation.x = parallel_angel/np.pi*180
-    elif pnp_lost_counter > LOST_TRESH and rs_lost_counter > LOST_TRESH:
+    elif pnp_lost_counter > PNP_LOST_TRESH and rs_lost_counter > RS_LOST_TRESH:
         predict_pos.pose.pose.orientation.w = 0
         predict_pos.pose.pose.orientation.x = 0
 
@@ -730,7 +736,7 @@ while not rospy.is_shutdown():
     elif predict_xy_distance < 0 and predict_xy_distance <2.2:
         gravital_angel = 0
 
-    print 'gravity',gravital_angel,predict_pos.pose.pose.orientation.x
+    # print 'gravity',gravital_angel,predict_pos.pose.pose.orientation.x
     #gravital_angel = 0 
     predict_pos.pose.pose.orientation.x = predict_pos.pose.pose.orientation.x + gravital_angel
 
@@ -742,11 +748,12 @@ while not rospy.is_shutdown():
 
     if ENABLE_PREDICT == False:
         predict_pos.pose.pose.orientation.w = 0
-        predict_pos.pose.pose.orientation.x = 0        
+        predict_pos.pose.pose.orientation.x = 0 
     #测试代码,用来屏蔽预测
     #predict_pos.pose.pose.orientation.w = 0
     #predict_pos.pose.pose.orientation.x = 0
-
+    TARGET_RECETIVED = False
+    print predict_pos.pose.pose.orientation.z
     pub_ukf_vel.publish(predict_pos) 
 
     rate.sleep()

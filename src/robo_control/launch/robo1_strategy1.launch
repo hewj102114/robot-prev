@@ -6,9 +6,9 @@
         <rosparam param="MIN_TRACK_ENEMY_DIS"> 0.7 </rosparam>
         <rosparam param="MAX_TRACK_ENEMY_DIS"> 3.0 </rosparam>
 
-        <rosparam param="ARMOR_MAX_LOST_NUM"> 150 </rosparam>
-        <rosparam param="ARMOR_AROUND_MAX_LOST_NUM"> 150 </rosparam>
-        <rosparam param="REALSENSE_AROUND_MAX_LOST_NUM"> 150 </rosparam>
+        <rosparam param="ARMOR_MAX_LOST_NUM"> 120 </rosparam>
+        <rosparam param="ARMOR_AROUND_MAX_LOST_NUM"> 120 </rosparam>
+        <rosparam param="REALSENSE_AROUND_MAX_LOST_NUM"> 120 </rosparam>
 
         <rosparam param="LOW_SHOT_SPEED_DISTANCE"> 2.7 </rosparam>
         <rosparam param="HIGH_SHOT_SPEED_DISTANCE"> 1.5 </rosparam>
