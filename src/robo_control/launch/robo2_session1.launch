@@ -1,5 +1,9 @@
 <launch>
+<<<<<<< HEAD
     <node pkg="robo_control" type="control_strategy_2_node" name="control_strategy_2_node" output="screen">
+=======
+    <node pkg="robo_control" type="control_session1" name="control_session1" output="screen">
+>>>>>>> d3483db1f10db2b04a72f9216dea22f02d521b17
     <!-- 参数服务器 -->    
     <rosparam param="DEATH_AREA"> 20 </rosparam>
 

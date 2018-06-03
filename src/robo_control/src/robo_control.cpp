@@ -153,6 +153,8 @@ cout<<"ssssssssss"<<endl;
     uwb_odom_msg.pose.pose.position.y = msg_frommcu.uwb_y * 1.0 / 100;
 
      ROS_INFO("AAA:  %f",msg_frommcu.uwb_yaw.num);
+
+    //  ROS_INFO("BB: %d %d %d %d",msg_frommcu.uwb_yaw.byte[0],msg_frommcu.uwb_yaw.byte[1],msg_frommcu.uwb_yaw.byte[2],msg_frommcu.uwb_yaw.byte[3]);
     uwb_odom_msg.pose.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, (msg_frommcu.uwb_yaw.num) * PI * 2 / 360);
     //     uwb_odom_msg.twist.twist.linear.x = msg_frommcu.wheel_odom_x
     //     * 1.0 / 10000; uwb_odom_msg.twist.twist.linear.y =
@@ -720,7 +722,7 @@ GambalInfo RoboControl::ctl_stack_enemy(bool enable_chassis_rotate)
     }
     else
     {
-        // sent_mcu_vel_msg.mode = 1;
+        // sent_mcu_vel_msg.mode = 1;        
     }
 
     if (enemy_information.red_num == 0)
@@ -757,6 +759,7 @@ GambalInfo RoboControl::ctl_stack_enemy(bool enable_chassis_rotate)
         if (enemy_information.red_num > 0 && first_in_realsense_flag == false)
         {
             realsense_first_in_lose_count++;
+            // ROS_INFO("realsense_first_in_lose_count: %d", realsense_first_in_lose_count);
             if (realsense_first_in_lose_count > 100)
             {
                 realsense_first_in_lose_count = 0;
@@ -774,7 +777,7 @@ GambalInfo RoboControl::ctl_stack_enemy(bool enable_chassis_rotate)
             {
                 enemy_realsense_angle = -robo_ukf_enemy_information.orientation.z * 180.0 / PI;
             }
-            
+
             first_in_gimbal_angle = game_msg.gimbalAngleYaw;
             target_gimbal_angle = enemy_realsense_angle;
 
@@ -898,7 +901,7 @@ VelInfo RoboControl::ctl_chassis(int xy_mode, int yaw_mode, float goal_x, float 
     {
         sent_mcu_vel_result.v_x = 0;
         sent_mcu_vel_result.v_y = 0;
-        ROS_INFO("yaw:%f, current_yaw: %f", yaw, current_yaw);
+        // ROS_INFO("yaw:%f, current_yaw: %f", yaw, current_yaw);
         sent_mcu_vel_result.v_yaw = ctl_v_yaw(yaw, current_yaw);
     }
     return sent_mcu_vel_result;

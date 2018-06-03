@@ -83,6 +83,7 @@ int main(int argc, char **argv)
         //     if (robo_ctl.game_msg.RFID)
         //     {
         //         work_state = 1;
+
         //     }
         //     break;
         // }

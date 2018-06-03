@@ -64,6 +64,7 @@ int main(int argc, char **argv)
     ros::Time waitNavigationFlagStart;
 
     ros::Rate loop_rate(150); // ROS 帧率
+    robo_ctl.finish_navigation.data=false;
     while (ros::ok())
     {
         robo_ctl.readMCUData();
@@ -77,6 +78,7 @@ int main(int argc, char **argv)
         case 0:
         {
             ROS_INFO("Stage 0: Go to center!");
+
             // robo_ctl.sendFirstPoint(first_point);
             // robo_ctl.sent_mcu_vel_msg.mode = 3;
             // robo_ctl.sent_mcu_vel_msg.v_yaw = tf::getYaw(robo_ctl.robo_ukf_pose.orientation);

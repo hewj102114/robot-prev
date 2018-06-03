@@ -112,12 +112,12 @@ void prosess(Mat &img, vector<Vec3f> &pt_center)
 #endif
 
     const uchar *ptr_con_begin = img_contour.data;
-    const uchar *ptr_con_src = img_contour.data;
+    const uchar *ptr_con_src =  img_contour.data;
     const uchar *ptr_con_end = img_contour.data + img_contour.cols * img_contour.rows;
     for (; ptr_con_src != ptr_con_end; ++ptr_con_src)
     {
 
-        if (*ptr_con_src > 100)
+        if (*ptr_con_src > 150)
         {
             int pt_y = (ptr_con_src - ptr_con_begin) / img_contour.cols;
             int pt_x = ((ptr_con_src - ptr_con_begin)) % img_contour.cols;

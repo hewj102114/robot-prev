@@ -37,7 +37,7 @@ int main(int argc, char **argv)
 	chassis 1:velcity 2:angle pose 3:init
 	*/
     geometry_msgs::Pose target_pose;
-    int work_state = 0; // switch case 的状态位
+    int work_state = 4; // switch case 的状态位
 
     ros::Rate loop_rate(150); // ROS 帧率
     while (ros::ok())
@@ -59,7 +59,7 @@ int main(int argc, char **argv)
             robo_ctl.sent_mcu_vel_msg.v_yaw=robo_ctl.cmd_vel_msg.v_yaw;
             if(robo_ctl.finish_navigation.data)
             {
-                work_state = 1;                
+                work_state = 1;               
             }
             break;
         }
@@ -103,6 +103,10 @@ int main(int argc, char **argv)
             ROS_INFO("Test Case");
             robo_ctl.sendMCUMsg(1, 1, 0, 0, 0, 0, 0, 0);
             ros::spinOnce();
+            break;
+        }
+        case 4:
+        {
             break;
         }
         default:

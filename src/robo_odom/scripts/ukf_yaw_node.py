@@ -183,7 +183,9 @@ def callback_imu(imu):
                 mad_out_yaw = mad_out_yaw + 2 * np.pi
             if mad_out_yaw > np.pi:
                 mad_out_yaw = mad_out_yaw - 2 * np.pi
+
             # print 'mad_out_yaw', mad_out_yaw
+
             (ukf_yaw.pose.pose.orientation.x, ukf_yaw.pose.pose.orientation.y, ukf_yaw.pose.pose.orientation.z, ukf_yaw.pose.pose.orientation.w) = quaternion_from_euler(0,0, mad_out_yaw)
 
         

@@ -493,7 +493,9 @@ void RoboNav::cb_scan(const sensor_msgs::LaserScan::ConstPtr &scan)
 
     }
     read_lidar=1;
+
     ROS_INFO("obs_min[0][0]: %f",obs_min[0][0]);
+
 }
 
 void RoboNav::lidar_nav(geometry_msgs::Twist &msg_vel)
@@ -505,9 +507,11 @@ void RoboNav::lidar_nav(geometry_msgs::Twist &msg_vel)
     switch(lidar_state)
     {
     case 0:
+
         vel_x=0.7;
         vel_y=0.0;
         if(obs_min[0][0]<DEFF_CORNER)
+
         {
             lidar_state=1;
         }
@@ -516,6 +520,7 @@ void RoboNav::lidar_nav(geometry_msgs::Twist &msg_vel)
         vel_x=0.0;
         vel_y=0.7;
         if(obs_min[0][0]>1.0)
+
         {
             lidar_state=2;
         }
@@ -523,6 +528,7 @@ void RoboNav::lidar_nav(geometry_msgs::Twist &msg_vel)
     case 2:
         vel_x=0.0;
         vel_y=0.0;
+
         state.data=true;
         break;
     default:
@@ -757,7 +763,6 @@ int main(int argc, char **argv)
     ros::Publisher pub_front = nh.advertise<std_msgs::Float64>("front_dis", 1);
     ros::Rate rate(80);
 
-    
     int delay=0;
     
     while (ros::ok())
@@ -767,14 +772,18 @@ int main(int argc, char **argv)
         if (read_lidar)
         {
             
+
             if (robo_nav.lidar_state < 2) //main control cannot get the end state signal
+
             {
                 robo_nav.lidar_nav(msg_vel);
             }
 
+
             if (robo_nav.lidar_state == 2)
             {
                 //robo_nav.get_vel(msg_vel);
+
                 robo_nav.state.data=true;
             }
 

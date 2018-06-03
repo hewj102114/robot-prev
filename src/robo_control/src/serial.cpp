@@ -67,7 +67,9 @@ bool Serial::ReadData(struct RobotMsgFromMCU& msg) {
            //printf("msg recv:  %d %d %d %d  %d %d  %d\n",msg.remaining_HP,msg.attack_armorID,msg.remaining_bullet,msg.uwb_x,msg.uwb_y,msg.uwb_yaw,msg.gimbal_chassis_angle);
           tcflush(fd, TCIFLUSH);
 
-           return true;
+
+          //if (msg.uwb_x != 0) 
+          return true;
         } else
           return false;
       }

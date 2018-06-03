@@ -43,6 +43,7 @@ struct RobotMsgFromMCU {
   }uwb_yaw;
   //unsigned char uwb_yaw[4];
   //float uwb_yaw = 0;
+  //short int gimbal_chassis_angle = 0;
   short int imu_acceleration_x = 0;
   short int imu_acceleration_y = 0;
   short int imu_acceleration_z = 0;

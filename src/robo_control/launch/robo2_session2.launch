@@ -1,9 +1,5 @@
 <launch>
-<<<<<<< HEAD
-    <node pkg="robo_control" type="control_session1" name="control_session1" output="screen">
-=======
-    <node pkg="robo_control" type="control_strategy_2_node" name="control_strategy_2_node" output="screen">
->>>>>>> d3483db1f10db2b04a72f9216dea22f02d521b17
+    <node pkg="robo_control" type="control_session2" name="control_session2" output="screen">
     <!-- 参数服务器 -->    
     <rosparam param="DEATH_AREA"> 20 </rosparam>
 
@@ -19,13 +15,8 @@
     <rosparam param="ARMOR_AROUND_MAX_LOST_NUM"> 120 </rosparam>
     <rosparam param="REALSENSE_AROUND_MAX_LOST_NUM"> 120 </rosparam>
 
-<<<<<<< HEAD
-    <rosparam param="LOW_SHOT_SPEED_DISTANCE"> 4.0 </rosparam>
-    <rosparam param="HIGH_SHOT_SPEED_DISTANCE"> 3.0 </rosparam>
-=======
     <rosparam param="LOW_SHOT_SPEED_DISTANCE"> 2.7 </rosparam>
     <rosparam param="HIGH_SHOT_SPEED_DISTANCE"> 1.5 </rosparam>
->>>>>>> d3483db1f10db2b04a72f9216dea22f02d521b17
 
     <rosparam param="ARMOR_LOST_PITCH"> 5.0 </rosparam>
 
