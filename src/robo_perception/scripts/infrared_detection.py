@@ -300,6 +300,7 @@ def TsDet_callback(infrared_image, pointcloud):
     im = im.astype(np.float32, copy=False)
     im = cv2.resize(im, (mc.IMAGE_WIDTH, mc.IMAGE_HEIGHT))
     input_image = im - mc.BGR_MEANS
+    im_dataset = im
 
     t_reshape = time.time()
     times['reshape'] = t_reshape - t_start
@@ -602,8 +603,8 @@ def TsDet_callback(infrared_image, pointcloud):
             file_name = str(image_name) + '.jpg'
             out_file_name = os.path.join(
                 '/home/ubuntu/robot/src/robo_perception/scripts/visual', 'out_' + file_name)
-            im = im.astype('uint8')
-            cv2.imwrite(out_file_name, im)
+            im_dataset = im_dataset.astype('uint8')
+            cv2.imwrite(out_file_name, im_dataset)
         if mc.SHOW:
             im = im.astype('uint8')
             cv2.imshow('demo', im)

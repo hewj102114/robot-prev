@@ -12,8 +12,8 @@ Serial::Serial(const char* dev_name) {
 Serial::~Serial() { close(fd); }
 void Serial::configurePort() {  // configure the port
   // structure to store the port settings in
-  cfsetispeed(&port_settings, B57600);  // set baud rates
-  cfsetospeed(&port_settings, B57600);
+  cfsetispeed(&port_settings, B115200);  // set baud rates
+  cfsetospeed(&port_settings, B115200);
 
   port_settings.c_cflag &= ~PARENB;  // set no parity, stop bits, data bits
   port_settings.c_cflag &= ~CSTOPB;
@@ -50,12 +50,13 @@ bool Serial::ReadData(struct RobotMsgFromMCU& msg) {
     if (ret == 0) continue;
     if (tmp[0] == 0x7F) data_start = 1;
     if (data_start) {
-      *ptr = tmp[0];
+      *ptr = tmp[0]; 
       ptr++;
-       
-       //printf("size %d\n",sizeof(msg));
+       float  a;
+      // printf("size %d\n",sizeof(msg));
       if (tmp[0] == 0x7E) {
         //printf("%X %X\n",tmp[0],buf[sizeof(msg)+1]);
+
         if (buf[sizeof(msg)+1] == 0x7E) {
           //printf("ready\n");
           // printf ("%X %X%X %X%X %X%X %X%X %X%X %X%X %X%X
@@ -66,7 +67,7 @@ bool Serial::ReadData(struct RobotMsgFromMCU& msg) {
            //printf("msg recv:  %d %d %d %d  %d %d  %d\n",msg.remaining_HP,msg.attack_armorID,msg.remaining_bullet,msg.uwb_x,msg.uwb_y,msg.uwb_yaw,msg.gimbal_chassis_angle);
           tcflush(fd, TCIFLUSH);
 
-          if (msg.uwb_x != 0) return true;
+           return true;
         } else
           return false;
       }

@@ -47,7 +47,7 @@ def kitti_squeezeDet_config():
   
   mc.DEBUG = False
   
-  mc.SAVE_NUM = 200
+  mc.SAVE_NUM = 10000
   return mc
 
 def set_anchors(mc):

@@ -82,10 +82,20 @@ add_executable(${PROJECT_NAME}
     ${SOURCEFILES}
 )
 
+add_executable(lidar_nav 
+     src/robo_navigation_1.cpp
+    ${SOURCEFILES}
+)
+
 target_link_libraries(${PROJECT_NAME}
 ${OpenCV_LIBS}
    ${catkin_LIBRARIES}
-
  )
+
+ target_link_libraries(lidar_nav
+${OpenCV_LIBS}
+   ${catkin_LIBRARIES}
+ )
+
 
 

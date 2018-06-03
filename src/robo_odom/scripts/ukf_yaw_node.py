@@ -61,6 +61,7 @@ from geometry_msgs.msg import Vector3Stamped
 KALMAN_GAIN = 0.8
 FUSE_IMUYAW = False
 
+
 UWB_INIT_COUNTER = 0
 YAW_BAIS = 0  #BAIS use for adjustment
 IMU_INIT = True
@@ -71,6 +72,9 @@ vel_wheel_x = vel_wheel_y = 0
 pos_uwb_x = pos_uwb_y = uwb_yaw = uwb_seq = 0
 imu_yaw = 0
 pre_yaw = yaw_counter = 0
+
+ENABLE_MAD = False
+BIAS_MAD_YAW = 0
 
 ukf_result = []
 uwb_yaw_list = []
@@ -110,7 +114,7 @@ def UKFinit():
 def callback_imu(imu):
     global imu_last_time, IMU_INIT, vel_imu_yaw, imu_yaw, fuse_yaw, YAW_BAIS, FUSE_IMUYAW, KALMAN_GAIN
     global ukf_result, ukf, uwb_yaw, uwb_seq, last_uwb_seq, incremental_yaw, yaw_counter, pre_yaw, THRESH
-    
+    global ENABLE_MAD, BIAS_MAD_YAW
     if IMU_INIT == True:
         print "ukf yaw Init Finished!"
         last_uwb_seq = 0
@@ -118,6 +122,11 @@ def callback_imu(imu):
         imu_last_time = imu.header.stamp.secs + imu.header.stamp.nsecs * 10**-9
         pre_yaw = uwb_yaw
         IMU_INIT = False
+        ENABLE_MAD = rospy.get_param('~enable_mad', False)
+        print ENABLE_MAD,'!!!!!!!!!!!!!!!!!!!!!!!!!!!'
+        (mad_roll, mad_pitch, mad_yaw) = euler_from_quaternion([imu.orientation.x, imu.orientation.y, imu.orientation.z, imu.orientation.w])
+        BIAS_MAD_YAW = mad_yaw
+
     else:
         #print "ukf yaw Processing"
         imu_time = imu.header.stamp.secs + imu.header.stamp.nsecs * 10**-9
@@ -137,6 +146,7 @@ def callback_imu(imu):
         yaw_out = yaw_counter * 2 * np.pi + uwb_yaw
         
         
+        
         # uwb not change, use imu to compensate
         if uwb_seq - last_uwb_seq == 0:
             incremental_yaw = incremental_yaw + vel_imu_yaw * dt
@@ -154,23 +164,39 @@ def callback_imu(imu):
         imu_last_time = imu_time
         last_uwb_seq = uwb_seq
 
-        ukf_input = [fuse_yaw, vel_imu_yaw]
-        ukf.predict()
-        ukf.update(ukf_input)
-        ukf_out_yaw = ukf.x[0]
-        
-        ukf_out_yaw = ukf_out_yaw - yaw_counter * 2 * np.pi
+
         #print ukf.x[0]
-
-        #print 'imu_yaw:',imu_yaw, 'uwb_yaw',uwb_yaw,'fuse_yaw', fuse_yaw,'bais:', uwb_yaw - imu_yaw, 'kalman',ukf_out_yaw, 'accz', vel_imu_yaw
-
 
         ukf_yaw = Odometry()
         ukf_yaw.header.frame_id = "ukf_yaw"
         ukf_yaw.header.stamp.secs = imu.header.stamp.secs
         ukf_yaw.header.stamp.nsecs = imu.header.stamp.nsecs
+        #print 'imu_yaw:',imu_yaw, 'uwb_yaw',uwb_yaw,'fuse_yaw', fuse_yaw,'bais:', uwb_yaw - imu_yaw, 'kalman',ukf_out_yaw, 'accz', vel_imu_yaw
+        
+        #if use madgwick,那就直接让数据相等
+        if ENABLE_MAD:
+            
+            (mad_roll, mad_pitch, mad_yaw) = euler_from_quaternion([imu.orientation.x, imu.orientation.y, imu.orientation.z, imu.orientation.w])
+           
+            mad_out_yaw = mad_yaw - BIAS_MAD_YAW
+            if mad_out_yaw < -np.pi:
+                mad_out_yaw = mad_out_yaw + 2 * np.pi
+            if mad_out_yaw > np.pi:
+                mad_out_yaw = mad_out_yaw - 2 * np.pi
+            # print 'mad_out_yaw', mad_out_yaw
+            (ukf_yaw.pose.pose.orientation.x, ukf_yaw.pose.pose.orientation.y, ukf_yaw.pose.pose.orientation.z, ukf_yaw.pose.pose.orientation.w) = quaternion_from_euler(0,0, mad_out_yaw)
 
-        (ukf_yaw.pose.pose.orientation.x, ukf_yaw.pose.pose.orientation.y, ukf_yaw.pose.pose.orientation.z, ukf_yaw.pose.pose.orientation.w) = quaternion_from_euler(0,0,ukf_out_yaw)
+        
+        #否者使用ukf对uwb数据进行更新
+        else:
+            ukf_input = [fuse_yaw, vel_imu_yaw]
+            ukf.predict()
+            ukf.update(ukf_input)
+            ukf_out_yaw = ukf.x[0]
+            
+            ukf_out_yaw = ukf_out_yaw - yaw_counter * 2 * np.pi
+            (ukf_yaw.pose.pose.orientation.x, ukf_yaw.pose.pose.orientation.y, ukf_yaw.pose.pose.orientation.z, ukf_yaw.pose.pose.orientation.w) = quaternion_from_euler(0,0,ukf_out_yaw)
+
 
         pub_ukf_yaw.publish(ukf_yaw)
 

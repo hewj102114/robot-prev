@@ -36,9 +36,13 @@ struct RobotMsgFromMCU {
   short int remaining_bullet = 0;
   short int uwb_x = 0;
   short int uwb_y = 0;
-  unsigned short int uwb_yaw = 0;
-  short int gimbal_chassis_angle = 0;
   short int gimbal_pitch_angle = 0;
+  union union_uwb_yaw{
+    float num;
+    unsigned char byte[4];
+  }uwb_yaw;
+  //unsigned char uwb_yaw[4];
+  //float uwb_yaw = 0;
   short int imu_acceleration_x = 0;
   short int imu_acceleration_y = 0;
   short int imu_acceleration_z = 0;
@@ -51,6 +55,7 @@ struct RobotMsgFromMCU {
   char init_flag=0;
   short int bullet_speed=0;
   short int rfid_flag=0;
+  short int gimbal_chassis_angle = 0;
 };
 
 class Serial {

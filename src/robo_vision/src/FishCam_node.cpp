@@ -9,7 +9,7 @@
 
 using namespace std;
 using namespace cv;
-//#define SHOW_IMAGE
+// #define SHOW_IMAGE
 #define TH_RATIO 0.3
 Mat img_recv_left, img_recv_right;
 
@@ -72,12 +72,12 @@ void prosess(Mat &img, vector<Vec3f> &pt_center)
         uchar g = *(++ptr_src);
         uchar r = *(++ptr_src);
         if (r > 160)
-            *ptr_img_gray = 255;
+            *ptr_img_gray = r;
         else
             *ptr_img_gray = 0;
         if ((r - b) > 60)
         {
-            *ptr_img_rb = 255;
+            *ptr_img_rb = r - b;
         }
         else
         {
@@ -227,7 +227,7 @@ int main(int argc, char **argv)
         vector<Vec3f> pt_center_left;
         vector<Vec3f> pt_center_right;
         prosess(src_left, pt_center_left);
-        //prosess(src_right, pt_center_right);
+        prosess(src_right, pt_center_right);
 #ifdef SHOW_IMAGE
         for (int i = 0; i < pt_center_left.size(); i++)
         {

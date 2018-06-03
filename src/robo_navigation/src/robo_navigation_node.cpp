@@ -21,7 +21,7 @@
 using namespace std;
 #define OFFSET 0 //rplidar front offset
 #define DEFFENCE 0.40
-#define DEFF_CORNER 0.50
+#define DEFF_CORNER 0.60
 
 int local_adj=1; //0 for close local adjustment, 1 for open.
 int update_path=0; //0 for don't update, 1 for update

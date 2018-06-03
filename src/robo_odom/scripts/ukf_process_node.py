@@ -285,7 +285,7 @@ while not rospy.is_shutdown():
     odom.child_frame_id = "base_link"
     odom.header.stamp = rospy.Time.now()
     odom.pose.pose.position.x = ukf_out_pos_x + np.cos(ukf_yaw)*0.13
-    odom.pose.pose.position.y = ukf_out_pos_y + np.sin(ukf_yaw)*0.13
+    odom.pose.pose.position.y = ukf_out_pos_y + np.sin(ukf_yaw)*0.13 
     odom.pose.pose.position.z = 0
     odom.pose.pose.orientation.x = qn_ukf[0]
     odom.pose.pose.orientation.y = qn_ukf[1]
@@ -303,7 +303,7 @@ while not rospy.is_shutdown():
     t.header.frame_id = 'odom'
     t.child_frame_id = 'base_link'
     t.transform.translation.x = odom.pose.pose.position.x+np.cos(ukf_yaw)*0.13
-    t.transform.translation.y = odom.pose.pose.position.y+np.sin(ukf_yaw)*0.13
+    t.transform.translation.y = odom.pose.pose.position.y+np.sin(ukf_yaw)*0.13 
     t.transform.translation.z = 0
     t.transform.rotation.x = qn_ukf[0]
     t.transform.rotation.y = qn_ukf[1]

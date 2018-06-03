@@ -156,6 +156,10 @@ class RoboControl
     void get_param(ros::NodeHandle private_nh);
     float ctl_pid(float P, float I, float D, float error, float last_error);
     void sendFirstPoint(int first_point);
+    float ctl_v_yaw(float yaw, float current_yaw);
+    double calyaw(double set_yaw, double cur_yaw);
+    float ctl_pid_v_yaw(float P, float I, float D, float error, float last_error_v_yaw);
+    
 
     
     
@@ -176,6 +180,7 @@ class RoboControl
 
     int uwb_ready_flag; //current UWB flag  valid if = 2
     int pre_uwb_ready_flag;
+    int pre_uwb_x,pre_uwb_y,pre_uwb_yaw;
 
     int enemy_found_flag;     //if enemy found in realsence -> 1
     int enemy_found_pnp_flag; //if enemy found in pnp -> 1
@@ -273,15 +278,18 @@ class RoboControl
     float DEATH_AREA = 20;      // 旋转的死区
 
     float SWITCH_FORWARD_BACKWARD_DIS = 0.6;
+    float FORWARD_DIS = 3.0;
+    float BACKWARD_DIS = 0.6;
+
     float MIN_TRACK_ENEMY_DIS = 0.7;
     float MAX_TRACK_ENEMY_DIS = 3.0;
 
-    int ARMOR_MAX_LOST_NUM = 150;               // armor 最大允许丢帧数量 (真正丢帧)
-    int ARMOR_AROUND_MAX_LOST_NUM = 150;        // armor 最大允许丢帧数量(摇头)
-    int REALSENSE_AROUND_MAX_LOST_NUM = 150;    // realsense 最大允许的丢帧数量(摇头)
+    int ARMOR_MAX_LOST_NUM = 120;               // armor 最大允许丢帧数量 (真正丢帧)
+    int ARMOR_AROUND_MAX_LOST_NUM = 120;        // armor 最大允许丢帧数量(摇头)
+    int REALSENSE_AROUND_MAX_LOST_NUM = 120;    // realsense 最大允许的丢帧数量(摇头)
 
-    float LOW_SHOT_SPEED_DISTANCE = 2.7;        // 低速射击最小距离
-    float HIGH_SHOT_SPEED_DISTANCE = 1.5;       // 高速射击最大距离
+    float LOW_SHOT_SPEED_DISTANCE = 4.0;        // 低速射击最小距离
+    float HIGH_SHOT_SPEED_DISTANCE = 3.0;       // 高速射击最大距离
 
     float ARMOR_LOST_PITCH = 5.0;
 
@@ -289,7 +297,20 @@ class RoboControl
     float I_pitch = 0.1;
     float D_pitch = 0;
     float MAX_SUM_ERROR = 1;
-    
+
+    bool enable_direct_control_yaw = true;
+
+    float P_v_yaw = 1;
+    float I_v_yaw = 0.1;
+    float D_v_yaw = 0;
+    float MAX_SUM_ERROR_V_YAW = 1;
+
+    float last_error_v_yaw = 0;
+    float sum_error_v_yaw = 0;
+
+    float current_yaw = 0;
+    int realsense_first_in_lose_count = 0;
+
 
     // yaw: 1 -> 2
     KeyPoint KEY_POINT[30] = {
