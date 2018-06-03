@@ -101,3 +101,15 @@ add_dependencies(control_strategy_4_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${c
 target_link_libraries(control_strategy_4_node
   ${catkin_LIBRARIES}
 )
+
+add_executable(control_session1 src/control_1_session.cpp src/robo_control.cpp src/serial.cpp)
+add_dependencies(control_session1 ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(control_session1
+  ${catkin_LIBRARIES}
+)
+
+add_executable(control_session2 src/control_2_session.cpp src/robo_control.cpp src/serial.cpp)
+add_dependencies(control_session2 ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(control_session2
+  ${catkin_LIBRARIES}
+)

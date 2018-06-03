@@ -4,6 +4,10 @@
     <rosparam param="DEATH_AREA"> 20 </rosparam>
 
     <rosparam param="SWITCH_FORWARD_BACKWARD_DIS"> 0.6 </rosparam>
+
+    <rosparam param="FORWARD_DIS"> 3.0 </rosparam>
+    <rosparam param="BACKWARD_DIS"> 0.6 </rosparam>    
+
     <rosparam param="MIN_TRACK_ENEMY_DIS"> 0.7 </rosparam>
     <rosparam param="MAX_TRACK_ENEMY_DIS"> 3.0 </rosparam>
 

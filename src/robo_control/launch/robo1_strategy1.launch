@@ -20,7 +20,6 @@
         <rosparam param="D_pitch"> 0 </rosparam>
         <rosparam param="MAX_SUM_ERROR"> 1 </rosparam>
         
-        
     </node>
 </launch>
 <!--  -->

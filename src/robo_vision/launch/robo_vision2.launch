@@ -30,11 +30,11 @@
 <node pkg="robo_vision" type="fishcamera_detect" name="fishcamera_detect" >
 <param name="cam_left_center" value="623"/>
 <param name="cam_left_radius" value="440"/>
-<param name="cam_left_up" value="235"/>
+<param name="cam_left_up" value="312"/>
 <param name="cam_left_down" value="600"/>
 <param name="cam_right_center" value="603"/>
 <param name="cam_right_radius" value="450"/>
-<param name="cam_right_up" value="235"/>
+<param name="cam_right_up" value="312"/>
 <param name="cam_right_down" value="600"/>
 <param name="edge_width" value="70"/>
 </node>

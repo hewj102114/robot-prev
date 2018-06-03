@@ -1,7 +1,10 @@
 /*************************************************************************
 *
-*  1 策略: 最简单的策略: 看到敌人 -> 动态追击, 没有看到敌人 -> 固定蹲点
-*
+*  2 策略: 防守策略 1
+*  假设: 敌人 1 车开局抢占中点, 2 车站在敌方区域 
+*  应对策略: 
+*  1. 我方 1 车占据 A(2.6, 3.1, 0度), 2 车占据 B(4.0, 4.2, 90度), 全力攻击敌方抢中点的车, 不管有没有将敌方车辆打死, 回到基地蹲点
+*  2. 我方 1 车蹲守 C(1.3, 1.8, -90度), 2 车占据 D(2.6, 2.0, -90度), 进行蹲点, 如果有一辆车看到敌人, 另一辆车就过去帮忙, 直到比赛结束
 *************************************************************************/
 
 #include <iostream>
@@ -9,9 +12,28 @@
 
 int main(int argc, char **argv)
 {
-    ros::init(argc, argv, "robo_control_strategy_1");
+    ros::init(argc, argv, "control_session1");
     ros::NodeHandle nh;
     ros::NodeHandle private_nh("~");
+    vector<float> pointA;
+    vector<float> pointB;
+    vector<float> pointC;
+    vector<float> pointD;
+    
+    private_nh.getParam("pointA", pointA);
+    private_nh.getParam("pointB", pointB);
+    private_nh.getParam("pointC", pointC);
+    private_nh.getParam("pointD", pointD);
+
+    vector<float> robo_point1;
+    vector<float> robo_point2;
+
+    private_nh.getParam("robo_point1", robo_point1);
+    private_nh.getParam("robo_point2", robo_point2);
+
+    int first_point;
+    private_nh.getParam("first_point", first_point);
+    
 
     RoboControl robo_ctl;
     ros::Subscriber sub_armor_info = nh.subscribe("base/armor_info", 1, &RoboControl::cb_armorInfo, &robo_ctl);
@@ -37,7 +59,9 @@ int main(int argc, char **argv)
 	chassis 1:velcity 2:angle pose 3:init
 	*/
     geometry_msgs::Pose target_pose;
-    int work_state = 4; // switch case 的状态位
+    int work_state = 0; // switch case 的状态位
+    ros::Time stackCenterEnemyStart;
+    ros::Time waitNavigationFlagStart;
 
     ros::Rate loop_rate(150); // ROS 帧率
     while (ros::ok())
@@ -47,73 +71,43 @@ int main(int argc, char **argv)
         {
         /*************************************************************************
 		*
-		*  0. 抢占中点
+		*  0. 抢占中点, 本策略跳过
+		*
+		*************************************************************************/
+        // case 0:
+        // {
+        //     ROS_INFO("Stage 0: Go to center!");
+        //     // /robo_ctl.sendFirstPoint(first_point);
+        //     robo_ctl.sent_mcu_vel_msg.mode = 1;
+        //     robo_ctl.sent_mcu_vel_msg.v_x = robo_ctl.cmd_vel_msg.v_x;
+        //     robo_ctl.sent_mcu_vel_msg.v_y = robo_ctl.cmd_vel_msg.v_y;
+        //     robo_ctl.sent_mcu_vel_msg.v_yaw = robo_ctl.cmd_vel_msg.v_yaw;
+        //     if (robo_ctl.finish_navigation.data)
+        //     {
+        //         work_state = 1;
+        //         waitNavigationFlagStart = ros::Time::now();
+        //         robo_ctl.finish_navigation.data = 0;
+        //     }
+        //     break;
+        // }
+        /*************************************************************************
+		*
+		*  1. 原地旋转, 跟着敌人旋转
 		*
 		*************************************************************************/
         case 0:
         {
-            ROS_INFO("Stage 0: Go to center!");
-            robo_ctl.sent_mcu_vel_msg.mode=1;
-            robo_ctl.sent_mcu_vel_msg.v_x=robo_ctl.cmd_vel_msg.v_x;
-            robo_ctl.sent_mcu_vel_msg.v_y=robo_ctl.cmd_vel_msg.v_y;
-            robo_ctl.sent_mcu_vel_msg.v_yaw=robo_ctl.cmd_vel_msg.v_yaw;
-            if(robo_ctl.finish_navigation.data)
-            {
-                work_state = 1;               
-            }
+            ROS_INFO("Stage 1: Rotate on a point!!!!!!");
+            // xy_mode: 1 -> navigation goal, 2 -> track goal
+            // yaw_mode: 1 -> 普通模式, 2 -> 永不转身, 维持当前角度
+            robo_ctl.sent_mcu_vel_msg = robo_ctl.ctl_chassis(1, 1, 0, 0, 0);
             break;
         }
-        /*************************************************************************
-		*
-		*  1. 站位, 最简单策略, 固定一个站位点, 没有看到敌人就回到这个点
-		*
-		*************************************************************************/
-        case 1:
-        {
-            ROS_INFO("Stage 1: Go to certain point!!!!!!");
-            // point 1: (2.6, 3.1)
-            // rotate -> (3.3, 3.2)
-            // shack -> (0.6, 3.2)
-            robo_ctl.sent_mcu_vel_msg = robo_ctl.ctl_chassis(1, 2, 2.5, 4.0, 0);
-            if (robo_ctl.last_enemy_target.red_num == 1)
-            {
-                work_state = 1;
-            }
-            break;
-        }
-
-        /*************************************************************************
-		*
-		*  2. 检测到敌人, 跟着打
-		*
-		*************************************************************************/
-        case 2:
-        {
-            ROS_INFO("Stage 2: Tracking enemy!!!!!!");
-            robo_ctl.sent_mcu_vel_msg = robo_ctl.ctl_chassis(2, 1, robo_ctl.last_enemy_target_pose.position.x, robo_ctl.last_enemy_target_pose.position.y, 0);
-            if (robo_ctl.last_enemy_target.red_num == 0)
-            {
-                work_state = 1;
-            }
-            break;
-        }
-        case 3:
-        {
-            robo_ctl.readMCUData();
-            ROS_INFO("Test Case");
-            robo_ctl.sendMCUMsg(1, 1, 0, 0, 0, 0, 0, 0);
-            ros::spinOnce();
-            break;
-        }
-        case 4:
-        {
-            break;
-        }
+        
         default:
             break;
         }
         ROS_INFO("OK5");
-        robo_ctl.get_param(private_nh);                                                                                          // 获取动态参数
         robo_ctl.last_enemy_target = robo_ctl.sendEnemyTarget(robo_ctl.enemy_information, robo_ctl.last_enemy_target); // 目标会一直发送, 通过 'Nothing' 来判断有没有敌人
         ROS_INFO("OK6");
         robo_ctl.last_enemy_target_pose.position.x = robo_ctl.last_enemy_target.object[0].globalpose.position.x;
@@ -122,9 +116,11 @@ int main(int argc, char **argv)
         ROS_INFO("OK8");
         robo_ctl.sent_mcu_gimbal_msg = robo_ctl.ctl_stack_enemy(); // 云台一直转动, 无论干什么都是一直转动
         ROS_INFO("OK9");
+        // v_yaw: -3.14 -> 逆时针 3.14 -> 顺时针
         robo_ctl.sendMCUMsg(robo_ctl.sent_mcu_vel_msg.mode, robo_ctl.sent_mcu_gimbal_msg.mode,
                             robo_ctl.sent_mcu_vel_msg.v_x, robo_ctl.sent_mcu_vel_msg.v_y, robo_ctl.sent_mcu_vel_msg.v_yaw,
                             robo_ctl.sent_mcu_gimbal_msg.yaw, robo_ctl.sent_mcu_gimbal_msg.pitch, robo_ctl.sent_mcu_gimbal_msg.global_z);
+        ROS_INFO("OK_sent");
         ros::spinOnce();
         loop_rate.sleep();
     }

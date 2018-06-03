@@ -86,7 +86,7 @@ PNP_UKF_AVAILABLE = False
 RS_UKF_AVAILABLE = False
 
 MAX_VERTICLE_ANGLE = 5 #左右预瞄最大角度
-MAX_PARALLEL_ANGLE = 7 #高度预瞄准最大角度
+MAX_PARALLEL_ANGLE = 6 #高度预瞄准最大角度
 MAX_GRAVITAL_ANGEL = -3.0
 
 GRAVITY = 9.8 #重力加速度 9.8 m/s^2
@@ -751,7 +751,7 @@ while not rospy.is_shutdown():
         predict_pos.pose.pose.orientation.x = 0 
     #测试代码,用来屏蔽预测
     #predict_pos.pose.pose.orientation.w = 0
-    #predict_pos.pose.pose.orientation.x = 0
+    predict_pos.pose.pose.orientation.x = 0
     TARGET_RECETIVED = False
     print predict_pos.pose.pose.orientation.z
     pub_ukf_vel.publish(predict_pos) 

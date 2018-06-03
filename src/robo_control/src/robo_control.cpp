@@ -1,4 +1,5 @@
 #include "robo_control/robo_control.hpp"
+#include "stdio.h"
 void RoboControl::cb_armorInfo(const robo_vision::ArmorInfo &msg)
 {
     armor_info_msg.mode = msg.mode;
@@ -121,16 +122,6 @@ void RoboControl::main_control_init()
     armor_info_target.header.frame_id = "base_link";
     armor_info_target.header.stamp = ros::Time::now();
     armor_info_target.mode = 1;
-
-    sent_mcu_gimbal_result.mode = 1;
-    sent_mcu_gimbal_result.yaw = 0;
-    sent_mcu_gimbal_result.pitch = 0;
-    sent_mcu_gimbal_result.global_z = 0;
-
-    sent_mcu_gimbal_msg.mode = 1;
-    sent_mcu_gimbal_msg.yaw = 0;
-    sent_mcu_gimbal_msg.pitch = 0;
-    sent_mcu_gimbal_msg.global_z = 0;
 }
 
 void RoboControl::readMCUData()
@@ -159,16 +150,22 @@ void RoboControl::readMCUData()
     uwb_odom_msg.child_frame_id = "base_link";
     uwb_odom_msg.pose.pose.position.x = msg_frommcu.uwb_x * 1.0 / 100;
     uwb_odom_msg.pose.pose.position.y = msg_frommcu.uwb_y * 1.0 / 100;
-    uwb_odom_msg.pose.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, (msg_frommcu.uwb_yaw * 1.0 / 100) * PI * 2 / 360);
+
+     ROS_INFO("AAA:  %f",msg_frommcu.uwb_yaw.num);
+     ROS_INFO("BB: %d %d %d %d",msg_frommcu.uwb_yaw.byte[0],msg_frommcu.uwb_yaw.byte[1],msg_frommcu.uwb_yaw.byte[2],msg_frommcu.uwb_yaw.byte[3]);
+    uwb_odom_msg.pose.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0, 0, (msg_frommcu.uwb_yaw.num) * PI * 2 / 360);
     //     uwb_odom_msg.twist.twist.linear.x = msg_frommcu.wheel_odom_x
     //     * 1.0 / 10000; uwb_odom_msg.twist.twist.linear.y =
     //     msg_frommcu.wheel_odom_y * 1.0 / 10000;
     robo_uwb_pose = uwb_odom_msg.pose.pose;
-    if (pre_uwb_ready_flag != msg_frommcu.uwb_ready_flag)
+    if (pre_uwb_ready_flag != msg_frommcu.uwb_ready_flag && pre_uwb_x!=msg_frommcu.uwb_x &&  pre_uwb_y!=msg_frommcu.uwb_y && pre_uwb_yaw!=msg_frommcu.uwb_yaw.num)
     {
         pub_uwb_odom.publish(uwb_odom_msg);
     }
     pre_uwb_ready_flag = msg_frommcu.uwb_ready_flag;
+    pre_uwb_x=msg_frommcu.uwb_x;
+    pre_uwb_y=msg_frommcu.uwb_y;
+    pre_uwb_yaw=msg_frommcu.uwb_yaw.num;
 
     geometry_msgs::Vector3Stamped wheel_vel_msg;
     wheel_vel_msg.header.stamp = time;
@@ -425,7 +422,7 @@ void RoboControl::cb_ukf_enemy_information(const nav_msgs::Odometry &msg)
 
     if (robo_ukf_enemy_information.position.z != 999)
     {
-        SELF_ENEMY_TARGET_DISTANCE = robo_ukf_enemy_information.position.z * 100;
+        SELF_ENEMY_TARGET_DISTANCE = robo_ukf_enemy_information.position.z;
     }
     if (robo_ukf_enemy_information.orientation.z != 999)
     {
@@ -694,22 +691,22 @@ GambalInfo RoboControl::ctl_stack_enemy(bool enable_chassis_rotate)
     *************************************************************************/
     // 2. realsense和armor都没有看到的时候, 并且丢帧数量小于 400, 维持云台角度
     ROS_INFO("armor_lost_counter: %d", armor_lost_counter);
-    ROS_INFO("armor_info_msg.mode: %d", armor_info_msg.mode);
+
 
     if (armor_info_msg.mode == 3)
     {
         ROS_INFO("mode = 3, stacking enemy");
         if (SELF_ENEMY_TARGET_DISTANCE > LOW_SHOT_SPEED_DISTANCE || SELF_ENEMY_TARGET_DISTANCE == 0)
         {
-            sent_mcu_gimbal_result.mode = 2; // 低速 6
+            sent_mcu_gimbal_result.mode = 6; // 低速 6
         }
         else if (SELF_ENEMY_TARGET_DISTANCE > HIGH_SHOT_SPEED_DISTANCE)
         {
-            sent_mcu_gimbal_result.mode = 2; // 中速 7
+            sent_mcu_gimbal_result.mode = 7; // 中速 7
         }
         else
         {
-            sent_mcu_gimbal_result.mode = 2; // 高速 8
+            sent_mcu_gimbal_result.mode = 8; // 高速 8
         }
         if (enable_chassis_rotate)
         {
@@ -718,8 +715,12 @@ GambalInfo RoboControl::ctl_stack_enemy(bool enable_chassis_rotate)
 
         sent_mcu_gimbal_result.yaw = armor_info_msg.yaw + robo_ukf_enemy_information.orientation.w * 100.0;
         sent_mcu_gimbal_result.pitch = armor_info_msg.pitch + robo_ukf_enemy_information.orientation.x * 100.0;
-        sent_mcu_gimbal_result.global_z = armor_info_msg.global_z * 100;
+        sent_mcu_gimbal_result.global_z = SELF_ENEMY_TARGET_DISTANCE * 100;
         return sent_mcu_gimbal_result;
+    }
+    else
+    {
+        // sent_mcu_vel_msg.mode = 1;        
     }
 
     if (enemy_information.red_num == 0)
@@ -749,30 +750,40 @@ GambalInfo RoboControl::ctl_stack_enemy(bool enable_chassis_rotate)
         sent_mcu_gimbal_result.yaw = 0;
         sent_mcu_gimbal_result.pitch = 0;
         sent_mcu_gimbal_result.global_z = 0;
-        // first_in_realsense_flag = true;
-        // target_gimbal_angle = 1000;
     }
 
     if (armor_lost_counter > ARMOR_MAX_LOST_NUM && armor_info_msg.mode == 1)
     {
+        if (enemy_information.red_num > 0 && first_in_realsense_flag == false)
+        {
+            realsense_first_in_lose_count++;
+            ROS_INFO("realsense_first_in_lose_count: %d", realsense_first_in_lose_count);
+            if (realsense_first_in_lose_count > 100)
+            {
+                realsense_first_in_lose_count = 0;
+                first_in_realsense_flag = true;
+            }
+        }
         if (enemy_information.red_num > 0 && first_in_realsense_flag == true)
         {
             // realsense看到, armor没看到, 并且丢帧数量大于400帧, realsense引导云台转动
             ROS_INFO("realsense detected");
+            realsense_first_in_lose_count = 0;
             first_in_realsense_flag = false;
             int enemy_realsense_angle = 0;
             if (robo_ukf_enemy_information.orientation.z != 999)
             {
                 enemy_realsense_angle = -robo_ukf_enemy_information.orientation.z * 180.0 / PI;
             }
-            else
-            {
-                ROS_INFO("NO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-                first_in_realsense_flag = true;
-                enemy_realsense_angle = 1000;
-            }
+
             first_in_gimbal_angle = game_msg.gimbalAngleYaw;
             target_gimbal_angle = enemy_realsense_angle;
+
+            if (robo_ukf_enemy_information.orientation.z == 999)
+            {
+                target_gimbal_angle = 1000;
+                first_in_realsense_flag = true;
+            }
 
             sent_mcu_gimbal_result.mode = 3;
             sent_mcu_gimbal_result.yaw = enemy_realsense_angle * 100;
@@ -787,6 +798,7 @@ GambalInfo RoboControl::ctl_stack_enemy(bool enable_chassis_rotate)
             // mode = 3 的时候, 云台位置环
             ROS_INFO("realsense finish");
             first_in_armor_flag = true;
+            detected_armor_flag = false;
             armor_lost_counter = 0;
         }
     }
@@ -808,7 +820,7 @@ GambalInfo RoboControl::ctl_stack_enemy(bool enable_chassis_rotate)
             {
                 sent_mcu_gimbal_result.mode = 2;
                 sent_mcu_gimbal_result.yaw = 0;
-                sent_mcu_gimbal_result.pitch = ARMOR_LOST_PITCH;
+                sent_mcu_gimbal_result.pitch = -ARMOR_LOST_PITCH;
                 sent_mcu_gimbal_result.global_z = 0;
             }
         }
@@ -821,6 +833,7 @@ GambalInfo RoboControl::ctl_stack_enemy(bool enable_chassis_rotate)
             sent_mcu_gimbal_result.mode = 2;
             sent_mcu_gimbal_result.yaw = armor_info_msg.yaw + robo_ukf_enemy_information.orientation.w * 100.0;
             // sent_mcu_gimbal_result.pitch = armor_info_msg.pitch + robo_ukf_enemy_information.orientation.x * 100.0;
+            // current_pitch = game_msg.gimbalAnglePitch;
             error = (armor_info_msg.pitch + robo_ukf_enemy_information.orientation.x * 100.0) / 100.0;
             output_pitch = ctl_pid(P_pitch, I_pitch, D_pitch, error, last_error);
             last_error = error;
@@ -835,6 +848,7 @@ GambalInfo RoboControl::ctl_stack_enemy(bool enable_chassis_rotate)
         target_gimbal_angle = 1000;
         first_in_realsense_flag = true;
     }
+    sent_mcu_gimbal_result.global_z = SELF_ENEMY_TARGET_DISTANCE * 100.0;
     return sent_mcu_gimbal_result;
 }
 
@@ -880,8 +894,57 @@ VelInfo RoboControl::ctl_chassis(int xy_mode, int yaw_mode, float goal_x, float 
     sent_mcu_vel_result.v_y = cmd_vel_msg.v_y;
     sent_mcu_vel_result.v_yaw = cmd_vel_msg.v_yaw;
 
+    current_yaw = tf::getYaw(robo_ukf_pose.orientation);
+    if (enable_direct_control_yaw == true)
+    {
+        sent_mcu_vel_result.v_x = 0;
+        sent_mcu_vel_result.v_y = 0;
+        sent_mcu_vel_result.v_yaw = ctl_v_yaw(yaw, current_yaw);
+    }
     return sent_mcu_vel_result;
 }
+
+float RoboControl::ctl_v_yaw(float yaw, float current_yaw)
+{
+    float error_v_yaw = calyaw(yaw, current_yaw);
+    ROS_INFO("error_v_yaw: %f", error_v_yaw);
+    float v_yaw = ctl_pid_v_yaw(P_v_yaw, I_v_yaw, D_v_yaw, error_v_yaw, last_error_v_yaw);
+    ROS_INFO("v_yaw: %f", v_yaw);
+    last_error_v_yaw = error_v_yaw;
+    return v_yaw;
+}
+
+double RoboControl::calyaw(double set_yaw, double cur_yaw)
+{
+    double dyaw = 0;
+    if (set_yaw > 0 && cur_yaw < 0 && (set_yaw - cur_yaw) > 3.14)
+    {
+        dyaw = -(cur_yaw + 6.28 - set_yaw);
+    }
+    else if (set_yaw < 0 && cur_yaw > 0 && (cur_yaw - set_yaw) > 3.14)
+    {
+        dyaw = set_yaw + 6.28 - cur_yaw;
+    }
+    else
+    {
+        dyaw = set_yaw - cur_yaw;
+    }
+    return dyaw;
+}
+
+float RoboControl::ctl_pid_v_yaw(float P, float I, float D, float error, float last_error_v_yaw)
+{
+    float output = 0;
+    ROS_INFO("PID: %f, %f, %f, %f, %f", P, I, D, error, last_error_v_yaw);
+    sum_error_v_yaw = sum_error_v_yaw + error;
+    if (sum_error_v_yaw > MAX_SUM_ERROR_V_YAW)
+    {
+        sum_error_v_yaw = MAX_SUM_ERROR_V_YAW;
+    }
+    output = P * error + D * (last_error_v_yaw - error);
+    return output;
+}
+
 
 float RoboControl::ctl_yaw(int mode, float goal_yaw)
 {
@@ -928,6 +991,7 @@ float RoboControl::ctl_yaw(int mode, float goal_yaw)
                 last_yaw = yaw;
                 return yaw;
             }
+            return tf::getYaw(robo_ukf_pose.orientation);
         }
         ros::Duration timeout(3);
         if (fishcam_msg.size > 0 && ros::Time::now() - fishCamRotateStart > timeout)
@@ -1111,6 +1175,10 @@ void RoboControl::get_param(ros::NodeHandle private_nh)
     private_nh.getParam("DEATH_AREA", DEATH_AREA);
 
     private_nh.getParam("SWITCH_FORWARD_BACKWARD_DIS", SWITCH_FORWARD_BACKWARD_DIS);
+
+    private_nh.getParam("FORWARD_DIS", FORWARD_DIS);
+    private_nh.getParam("BACKWARD_DIS", BACKWARD_DIS);   
+
     private_nh.getParam("MIN_TRACK_ENEMY_DIS", MIN_TRACK_ENEMY_DIS);
     private_nh.getParam("MAX_TRACK_ENEMY_DIS", MAX_TRACK_ENEMY_DIS);
 

@@ -1,9 +1,13 @@
 <launch>
-    <node pkg="robo_control" type="control_strategy_2_node" name="control_strategy_2_node" output="screen">
+    <node pkg="robo_control" type="control_session1" name="control_session1" output="screen">
     <!-- 参数服务器 -->    
     <rosparam param="DEATH_AREA"> 20 </rosparam>
 
     <rosparam param="SWITCH_FORWARD_BACKWARD_DIS"> 0.6 </rosparam>
+
+    <rosparam param="FORWARD_DIS"> 3.0 </rosparam>
+    <rosparam param="BACKWARD_DIS"> 0.6 </rosparam>    
+
     <rosparam param="MIN_TRACK_ENEMY_DIS"> 0.7 </rosparam>
     <rosparam param="MAX_TRACK_ENEMY_DIS"> 3.0 </rosparam>
 

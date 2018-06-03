@@ -12,8 +12,8 @@ Serial::Serial(const char* dev_name) {
 Serial::~Serial() { close(fd); }
 void Serial::configurePort() {  // configure the port
   // structure to store the port settings in
-  cfsetispeed(&port_settings, B57600);  // set baud rates
-  cfsetospeed(&port_settings, B57600);
+  cfsetispeed(&port_settings, B115200);  // set baud rates
+  cfsetospeed(&port_settings, B115200);
 
   port_settings.c_cflag &= ~PARENB;  // set no parity, stop bits, data bits
   port_settings.c_cflag &= ~CSTOPB;
@@ -66,7 +66,8 @@ bool Serial::ReadData(struct RobotMsgFromMCU& msg) {
            //printf("msg recv:  %d %d %d %d  %d %d  %d\n",msg.remaining_HP,msg.attack_armorID,msg.remaining_bullet,msg.uwb_x,msg.uwb_y,msg.uwb_yaw,msg.gimbal_chassis_angle);
           tcflush(fd, TCIFLUSH);
 
-          if (msg.uwb_x != 0) return true;
+          //if (msg.uwb_x != 0) 
+          return true;
         } else
           return false;
       }

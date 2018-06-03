@@ -30,7 +30,7 @@ void Floyd::initFloydGraph() {
 void Floyd::calcPath(int start, int end) {
     path.clear();
     if (start != end) {
-        if (INF == arrDis[start][end]) {
+        if (INF == arrDis[start][end]) {    //arrDis[start][end]>100
             cout << "INFINITE" << endl;
         } else {
             int k = end;

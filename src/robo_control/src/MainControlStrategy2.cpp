@@ -120,7 +120,7 @@ int main(int argc, char **argv)
         case 2:
         {
             ROS_INFO("Stage 2: Stacking enemy!!!!!!");
-            ros::Duration timeout(2);
+            ros::Duration timeout(5);
             if (ros::Time::now() - stackCenterEnemyStart > timeout)
             {
                 robo_ctl.finish_navigation.data = 0;
@@ -213,9 +213,11 @@ int main(int argc, char **argv)
         ROS_INFO("OK8");
         robo_ctl.sent_mcu_gimbal_msg = robo_ctl.ctl_stack_enemy(); // 云台一直转动, 无论干什么都是一直转动
         ROS_INFO("OK9");
+        // v_yaw: -3.14 -> 逆时针 3.14 -> 顺时针
         robo_ctl.sendMCUMsg(1, robo_ctl.sent_mcu_gimbal_msg.mode,
                             robo_ctl.cmd_vel_msg.v_x, robo_ctl.cmd_vel_msg.v_y, robo_ctl.cmd_vel_msg.v_yaw,
                             robo_ctl.sent_mcu_gimbal_msg.yaw, robo_ctl.sent_mcu_gimbal_msg.pitch, robo_ctl.sent_mcu_gimbal_msg.global_z);
+        ROS_INFO("OK_sent");
         ros::spinOnce();
         loop_rate.sleep();
     }
